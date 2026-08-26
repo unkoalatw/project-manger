@@ -59,6 +59,15 @@
         .kanban-col {
             scroll-snap-align: start;
         }
+
+        /* 手機端觸控優化與底部 Safe Area */
+        @media (max-width: 1023px) {
+            .mobile-touch-target {
+                min-height: 44px;
+                display: flex;
+                align-items: center;
+            }
+        }
     </style>
 </head>
 <body class="bg-zinc-100 text-zinc-900 antialiased h-screen overflow-hidden flex flex-col selection:bg-black selection:text-white">
@@ -111,7 +120,12 @@
                 <span id="bgSyncText" class="hidden sm:inline">檢查同步中</span>
             </div>
 
-            <button onclick="app.openNewProjectModal()" class="px-2.5 py-1 bg-emerald-400 border-2 border-black font-bold text-xs flat-shadow-sm hover:bg-emerald-300 active:translate-x-0.5 active:translate-y-0.5 transition-all">
+            <!-- 手動雲端拉取快捷按鈕 -->
+            <button onclick="app.pullFromGas()" class="p-1.5 border-2 border-black bg-white hover:bg-black hover:text-white transition-colors flat-shadow-sm" title="從雲端載入最新資料 (Pull)">
+                <i class="fa-solid fa-cloud-arrow-down text-xs"></i>
+            </button>
+
+            <button onclick="app.openNewProjectModal()" class="px-2.5 py-1.5 border-2 border-black bg-emerald-400 font-bold text-xs flat-shadow-sm hover:bg-emerald-300 active:translate-x-0.5 active:translate-y-0.5 transition-all flex items-center">
                 <i class="fa-solid fa-plus mr-1"></i><span class="hidden sm:inline">新建專案</span>
             </button>
         </div>
@@ -121,10 +135,10 @@
     <div class="flex flex-1 overflow-hidden relative">
 
         <!-- 行動端側邊欄遮罩 -->
-        <div id="sidebarBackdrop" onclick="app.toggleSidebar(false)" class="fixed inset-0 bg-black/50 z-20 hidden md:hidden transition-opacity"></div>
+        <div id="sidebarBackdrop" onclick="app.toggleSidebar(false)" class="fixed inset-0 bg-black/60 z-20 hidden md:hidden transition-opacity"></div>
 
         <!-- 側邊欄 (Sidebar) -->
-        <aside id="mainSidebar" class="w-72 bg-white border-r-2 border-black flex flex-col z-20 absolute md:relative inset-y-0 left-0 transition-transform duration-200 ease-in-out shrink-0">
+        <aside id="mainSidebar" class="w-72 md:w-64 bg-white border-r-2 border-black flex flex-col z-30 absolute md:relative inset-y-0 left-0 -translate-x-full md:translate-x-0 transition-transform duration-200 ease-in-out shrink-0 flat-shadow-lg md:flat-shadow-none">
             <!-- 專案切換器 -->
             <div class="p-3 border-b-2 border-black bg-zinc-50 space-y-2">
                 <div class="flex items-center justify-between">
@@ -188,15 +202,7 @@
         </aside>
 
         <!-- 主內容視圖區域 (Main Workspace) -->
-        <main class="flex-1 bg-zinc-100 flex flex-col min-w-0 overflow-hidden relative">
-
-            <!-- 行動端底部視圖切換列 -->
-            <div class="lg:hidden flex border-b-2 border-black bg-white shrink-0">
-                <button onclick="app.switchView('dashboard')" class="flex-1 py-2 text-center text-xs font-bold border-r border-black hover:bg-zinc-100">儀表板</button>
-                <button onclick="app.switchView('docs')" class="flex-1 py-2 text-center text-xs font-bold border-r border-black hover:bg-zinc-100">文檔</button>
-                <button onclick="app.switchView('wizard')" class="flex-1 py-2 text-center text-xs font-bold border-r border-black hover:bg-zinc-100">精靈</button>
-                <button onclick="app.switchView('execution')" class="flex-1 py-2 text-center text-xs font-bold hover:bg-zinc-100">控制台</button>
-            </div>
+        <main class="flex-1 bg-zinc-100 flex flex-col min-w-0 overflow-hidden relative pb-16 lg:pb-0">
 
             <!-- 視圖 1: 儀表板 (Dashboard View) -->
             <div id="viewDashboard" class="flex-1 p-4 md:p-6 overflow-y-auto space-y-6">
@@ -209,10 +215,10 @@
                             <p id="dashProjectVision" class="text-sm text-zinc-600 mt-1 max-w-2xl">點擊引導精靈來建立專案願景與目標...</p>
                         </div>
                         <div class="flex items-center space-x-2 shrink-0">
-                            <button onclick="app.switchView('wizard')" class="px-4 py-2 border-2 border-black bg-amber-300 font-bold text-xs flat-shadow-sm hover:bg-amber-200">
-                                <i class="fa-solid fa-wand-magic-sparkles mr-1"></i>啟動設計精靈
+                            <button onclick="app.switchView('wizard')" class="flex-1 md:flex-none px-4 py-2.5 border-2 border-black bg-amber-300 font-bold text-xs flat-shadow-sm hover:bg-amber-200 active:translate-x-0.5">
+                                <i class="fa-solid fa-wand-magic-sparkles mr-1"></i>設計精靈
                             </button>
-                            <button onclick="app.switchView('execution')" class="px-4 py-2 border-2 border-black bg-emerald-400 font-bold text-xs flat-shadow-sm hover:bg-emerald-300">
+                            <button onclick="app.switchView('execution')" class="flex-1 md:flex-none px-4 py-2.5 border-2 border-black bg-emerald-400 font-bold text-xs flat-shadow-sm hover:bg-emerald-300 active:translate-x-0.5">
                                 <i class="fa-solid fa-play mr-1"></i>執行專案
                             </button>
                         </div>
@@ -409,13 +415,73 @@
                     </div>
 
                     <!-- 看板模式 (Kanban Mode - 3 Columns) -->
-                    <div id="execKanbanView" class="hidden h-full grid grid-cols-1 md:grid-cols-3 gap-4 kanban-scroll overflow-x-auto pb-4">
+                    <div id="execKanbanView" class="hidden h-full grid grid-cols-1 md:grid-cols-3 gap-4 kanban-scroll overflow-x-auto pb-6">
                         <!-- TODO 欄位 -->
-                        <div class="bg-white border-2 border-black p-3 flex flex-col h-full flat-shadow-sm kanban-col">
+                        <div class="bg-white border-2 border-black p-3 flex flex-col h-full flat-shadow-sm kanban-col min-w-[85vw] md:min-w-0">
                             <div class="font-bold text-xs font-mono uppercase bg-zinc-100 p-2 border border-black mb-3 flex justify-between">
                                 <span>📋 待處理 (TODO)</span>
                                 <span id="countTodo" class="font-bold">0</span>
                             </div>
+                            <div id="kanbanColTodo" class="flex-1 overflow-y-auto space-y-2 pr-1">
+                                <!-- Tasks -->
+                            </div>
+                        </div>
+
+                        <!-- IN_PROGRESS 欄位 -->
+                        <div class="bg-white border-2 border-black p-3 flex flex-col h-full flat-shadow-sm kanban-col min-w-[85vw] md:min-w-0">
+                            <div class="font-bold text-xs font-mono uppercase bg-amber-100 p-2 border border-black mb-3 flex justify-between">
+                                <span>⏳ 進行中 (IN PROGRESS)</span>
+                                <span id="countInProgress" class="font-bold">0</span>
+                            </div>
+                            <div id="kanbanColInProgress" class="flex-1 overflow-y-auto space-y-2 pr-1">
+                                <!-- Tasks -->
+                            </div>
+                        </div>
+
+                        <!-- DONE 欄位 -->
+                        <div class="bg-white border-2 border-black p-3 flex flex-col h-full flat-shadow-sm kanban-col min-w-[85vw] md:min-w-0">
+                            <div class="font-bold text-xs font-mono uppercase bg-emerald-100 p-2 border border-black mb-3 flex justify-between">
+                                <span>✅ 已完成 (DONE)</span>
+                                <span id="countDone" class="font-bold">0</span>
+                            </div>
+                            <div id="kanbanColDone" class="flex-1 overflow-y-auto space-y-2 pr-1">
+                                <!-- Tasks -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- 行動端 Native App 風格固定底部導覽列 (Mobile Bottom App Navigation Bar) -->
+    <nav id="mobileBottomNav" class="lg:hidden fixed bottom-0 left-0 right-0 h-14 bg-white border-t-2 border-black flex items-center justify-around z-40 flat-shadow">
+        <button id="mobNavDashboard" onclick="app.switchView('dashboard')" class="flex flex-col items-center justify-center flex-1 h-full font-bold text-[10px] text-black">
+            <i class="fa-solid fa-chart-pie text-base mb-0.5"></i>
+            <span>儀表板</span>
+        </button>
+        <button id="mobNavDocs" onclick="app.switchView('docs')" class="flex flex-col items-center justify-center flex-1 h-full font-bold text-[10px] text-zinc-500 hover:text-black">
+            <i class="fa-solid fa-file-lines text-base mb-0.5"></i>
+            <span>文檔</span>
+        </button>
+        <button id="mobNavWizard" onclick="app.switchView('wizard')" class="flex flex-col items-center justify-center flex-1 h-full font-bold text-[10px] text-zinc-500 hover:text-black">
+            <i class="fa-solid fa-wand-magic-sparkles text-base mb-0.5"></i>
+            <span>精靈</span>
+        </button>
+        <button id="mobNavExecution" onclick="app.switchView('execution')" class="flex flex-col items-center justify-center flex-1 h-full font-bold text-[10px] text-zinc-500 hover:text-black">
+            <i class="fa-solid fa-list-check text-base mb-0.5"></i>
+            <span>控制台</span>
+        </button>
+    </nav>
+
+    <!-- Modal 1: Google Apps Script 雲端設定 modal -->
+    <div id="gasModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+        <div class="bg-white border-2 border-black p-5 md:p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto flat-shadow-lg space-y-4">
+            <div class="flex items-center justify-between border-b-2 border-black pb-3">
+                <h3 class="font-black text-base uppercase font-mono">☁️ Google Apps Script 雲端同步</h3>
+                <button onclick="app.closeGasModal()" class="text-lg font-bold hover:text-red-600 p-1">&times;</button>
+            </div>
                             <div id="kanbanColTodo" class="flex-1 overflow-y-auto space-y-2 pr-1">
                                 <!-- Tasks -->
                             </div>
@@ -458,8 +524,14 @@
             </div>
 
             <p class="text-xs text-zinc-600 leading-relaxed">
-                綁定您的 Google Apps Script Web App URL 後，系統將在背景打字與修改時<strong>自動發送同步請求</strong>至您的 Google 試算表。
+                綁定您的 Google Apps Script Web App URL 後，系統將支援<strong>跨裝置雲端讀取與寫入</strong>。
             </p>
+
+            <!-- 權限提示 Warning -->
+            <div class="p-2 border border-red-500 bg-red-50 text-[11px] text-red-700 font-bold space-y-1">
+                <p>⚠️ 跨裝置無效關鍵檢查：</p>
+                <p>Google Apps Script 部署時，『誰可以存取 (Who has access)』必須設定為 <strong>『所有人 (Anyone)』</strong>，否則其他裝置無法讀取！</p>
+            </div>
 
             <div class="space-y-2">
                 <label class="block font-bold text-xs uppercase font-mono">GAS Web App API URL *</label>
@@ -471,8 +543,18 @@
                 <input type="checkbox" id="gasAutoSyncToggle" class="w-4 h-4 border-2 border-black cursor-pointer">
             </div>
 
-            <div class="flex items-center space-x-2 pt-2">
-                <button onclick="app.saveGasConfig()" class="flex-1 py-2 border-2 border-black bg-emerald-400 font-bold text-xs uppercase hover:bg-emerald-300">
+            <!-- 新增雲端雙向手動按鈕組 -->
+            <div class="grid grid-cols-2 gap-2 pt-1">
+                <button onclick="app.pullFromGas()" class="py-2 border-2 border-black bg-sky-200 font-bold text-xs hover:bg-sky-300">
+                    <i class="fa-solid fa-cloud-arrow-down mr-1"></i>📥 從雲端拉取 (Pull)
+                </button>
+                <button onclick="app.triggerBgSync(true)" class="py-2 border-2 border-black bg-emerald-300 font-bold text-xs hover:bg-emerald-400">
+                    <i class="fa-solid fa-cloud-arrow-up mr-1"></i>📤 上傳至雲端 (Push)
+                </button>
+            </div>
+
+            <div class="flex items-center space-x-2 pt-2 border-t border-zinc-200">
+                <button onclick="app.saveGasConfig()" class="flex-1 py-2 border-2 border-black bg-black text-white font-bold text-xs uppercase hover:bg-zinc-800">
                     儲存連線設定
                 </button>
                 <button onclick="app.testGasConnection()" class="px-3 py-2 border-2 border-black bg-zinc-100 font-bold text-xs hover:bg-zinc-200">
@@ -484,10 +566,10 @@
 
     <!-- Modal 2: 新建專案 modal -->
     <div id="newProjectModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-        <div class="bg-white border-2 border-black p-6 max-w-md w-full flat-shadow-lg space-y-4">
+        <div class="bg-white border-2 border-black p-5 md:p-6 max-w-md w-full max-h-[90vh] overflow-y-auto flat-shadow-lg space-y-4">
             <div class="flex items-center justify-between border-b-2 border-black pb-3">
                 <h3 class="font-black text-base uppercase font-mono">+ 建立新專案</h3>
-                <button onclick="app.closeNewProjectModal()" class="text-lg font-bold hover:text-red-600">&times;</button>
+                <button onclick="app.closeNewProjectModal()" class="text-lg font-bold hover:text-red-600 p-1">&times;</button>
             </div>
 
             <div class="space-y-2">
@@ -504,10 +586,10 @@
 
     <!-- Modal 3: 新建檔案 modal -->
     <div id="newDocModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-        <div class="bg-white border-2 border-black p-6 max-w-md w-full flat-shadow-lg space-y-4">
+        <div class="bg-white border-2 border-black p-5 md:p-6 max-w-md w-full max-h-[90vh] overflow-y-auto flat-shadow-lg space-y-4">
             <div class="flex items-center justify-between border-b-2 border-black pb-3">
                 <h3 class="font-black text-base uppercase font-mono">+ 新增專案文檔/筆記</h3>
-                <button onclick="app.closeNewDocModal()" class="text-lg font-bold hover:text-red-600">&times;</button>
+                <button onclick="app.closeNewDocModal()" class="text-lg font-bold hover:text-red-600 p-1">&times;</button>
             </div>
 
             <div class="space-y-2">
@@ -543,6 +625,7 @@
                 // 背景同步與防抖機制 State
                 this.bgSyncTimer = null;
                 this.bgSyncStatus = 'saved'; // 'saved' | 'syncing' | 'synced' | 'offline' | 'error'
+                this.isInitialCloudPullDone = false; // 關鍵安全鎖：未讀取完雲端資料前不允許背景自動覆蓋
 
                 // 預設固定寫入的 GAS Web App API URL
                 const defaultGasUrl = 'https://script.google.com/macros/s/AKfycbxPLTdFYgqSv3PrGxK7U-UTIj3YIiJPU-QbMhLYq4NVyRd77263-xFsbFaFovHoKoC3/exec';
@@ -563,22 +646,8 @@
                 this.init();
             }
 
-            init() {
+            async init() {
                 this.loadFromLocalStorage();
-                
-                // 如果是第一次使用，建立範例專案
-                if (this.projects.length === 0) {
-                    this.createDefaultProject();
-                } else if (!this.currentProjectId && this.projects.length > 0) {
-                    this.currentProjectId = this.projects[0].id;
-                }
-
-                if (this.currentProjectId) {
-                    const proj = this.getCurrentProject();
-                    if (proj && proj.docs.length > 0) {
-                        this.currentDocId = proj.docs[0].id;
-                    }
-                }
 
                 // 綁定視窗關閉前強制同步事件
                 window.addEventListener('beforeunload', () => {
@@ -589,12 +658,26 @@
                 window.addEventListener('online', () => this.updateSyncBadge('saved', '恢復連線'));
                 window.addEventListener('offline', () => this.updateSyncBadge('offline', '離線模式'));
 
-                this.renderAll();
-
-                // 啟動時自動進行第一次背景雲端拉取/備份驗證
-                if (this.gasUrl && this.gasAutoSync) {
-                    this.triggerBgSync(true);
+                // 🚀 關鍵修復：啟動時優先嘗試從 GAS 雲端拉取最新資料 (Pull First Guard)
+                if (this.gasUrl) {
+                    await this.pullFromGas(true);
+                } else if (this.projects.length === 0) {
+                    this.createDefaultProject();
+                    this.isInitialCloudPullDone = true;
                 }
+
+                if (this.projects.length > 0 && !this.currentProjectId) {
+                    this.currentProjectId = this.projects[0].id;
+                }
+
+                if (this.currentProjectId) {
+                    const proj = this.getCurrentProject();
+                    if (proj && proj.docs.length > 0) {
+                        this.currentDocId = proj.docs[0].id;
+                    }
+                }
+
+                this.renderAll();
             }
 
             loadFromLocalStorage() {
@@ -619,8 +702,75 @@
                 }
             }
 
+            // 🚀 從 GAS 雲端拉取資料 (Pull)
+            async pullFromGas(isStartup = false) {
+                if (!this.gasUrl) {
+                    this.isInitialCloudPullDone = true;
+                    return;
+                }
+
+                try {
+                    this.updateSyncBadge('syncing', '☁️ 雲端讀取中...');
+                    
+                    const response = await fetch(this.gasUrl, {
+                        method: 'GET',
+                        cache: 'no-cache'
+                    });
+
+                    if (response.ok) {
+                        const textData = await response.text();
+
+                        // 判斷是否被 Google 登入重定向 (回傳了 HTML 頁面)
+                        if (textData.trim().startsWith('<')) {
+                            throw new Error('GAS 回傳了 Google 登入頁面。請確認 GAS 部署時「誰可以存取 (Who has access)」設定為「所有人 (Anyone)」。');
+                        }
+
+                        const cloudData = JSON.parse(textData);
+                        
+                        if (Array.isArray(cloudData) && cloudData.length > 0) {
+                            this.projects = cloudData;
+                            localStorage.setItem(this.storageKey, JSON.stringify(this.projects));
+                            
+                            if (!this.currentProjectId || !this.projects.find(p => p.id === this.currentProjectId)) {
+                                this.currentProjectId = this.projects[0].id;
+                            }
+                            const proj = this.getCurrentProject();
+                            if (proj && proj.docs.length > 0) {
+                                this.currentDocId = proj.docs[0].id;
+                            }
+
+                            this.updateSyncBadge('synced', '✅ 雲端已同步');
+                            this.renderAll();
+                            if (!isStartup) alert('已成功從雲端同步最新專案資料！');
+                        } else {
+                            // 雲端資料為空陣列
+                            if (this.projects.length === 0) {
+                                this.createDefaultProject();
+                            }
+                            this.updateSyncBadge('synced', '✅ 雲端尚無專案');
+                        }
+                    } else {
+                        throw new Error('HTTP 狀態碼 ' + response.status);
+                    }
+                } catch (err) {
+                    console.warn("從 GAS 拉取資料失敗:", err);
+                    if (this.projects.length === 0) {
+                        this.createDefaultProject();
+                    }
+                    this.updateSyncBadge('error', '⚠️ 雲端讀取失敗');
+                    
+                    if (isStartup) {
+                        alert(`⚠️ 雲端資料同步提示：\n${err.message}\n\n已切換為本地預載資料。您可於右上角「GAS 雲端同步」進行設定或重新拉取。`);
+                    }
+                } finally {
+                    // 解鎖背景同步安全鎖
+                    this.isInitialCloudPullDone = true;
+                }
+            }
+
             scheduleBgSync() {
-                if (!this.gasUrl || !this.gasAutoSync) return;
+                // 安全鎖防護：未完成第一次雲端 Pull 之前，絕不發起背景 Push 覆蓋！
+                if (!this.gasUrl || !this.gasAutoSync || !this.isInitialCloudPullDone) return;
                 
                 this.updateSyncBadge('syncing', '☁️ 背景同步中...');
                 
@@ -632,11 +782,18 @@
                 }, 1500);
             }
 
-            async triggerBgSync(isInitial = false) {
+            // 🚀 上傳至 GAS 雲端 (Push)
+            async triggerBgSync(isManual = false) {
                 if (!this.gasUrl) return;
 
+                // 再次驗證防護鎖
+                if (!this.isInitialCloudPullDone && !isManual) {
+                    console.warn("尚未完成初始雲端拉取，暫緩背景覆蓋上傳。");
+                    return;
+                }
+
                 try {
-                    this.updateSyncBadge('syncing', '☁️ 背景同步中...');
+                    this.updateSyncBadge('syncing', '☁️ 背景上傳中...');
                     
                     const payload = JSON.stringify(this.projects);
                     
@@ -649,8 +806,9 @@
 
                     if (response.ok) {
                         this.updateSyncBadge('synced', '✅ 雲端已同步');
+                        if (isManual) alert('已成功將最新資料上傳覆蓋至雲端！');
                     } else {
-                        this.updateSyncBadge('error', '⚠️ 同步重試中');
+                        this.updateSyncBadge('error', '⚠️ 上傳失敗');
                     }
                 } catch (err) {
                     console.warn("背景同步暫時無法連線", err);
@@ -830,22 +988,29 @@
                 ['Dashboard', 'Docs', 'Wizard', 'Execution'].forEach(v => {
                     const el = document.getElementById(`view${v}`);
                     const tabBtn = document.getElementById(`navTab${v}`);
+                    const mobBtn = document.getElementById(`mobNav${v}`);
+
                     if (el) el.classList.add('hidden');
                     if (tabBtn) {
                         tabBtn.className = 'px-3 py-1 font-bold text-xs uppercase transition-colors hover:bg-zinc-200';
+                    }
+                    if (mobBtn) {
+                        mobBtn.className = 'flex flex-col items-center justify-center flex-1 h-full font-bold text-[10px] text-zinc-500 hover:text-black';
                     }
                 });
 
                 const activeEl = document.getElementById(`view${viewName.charAt(0).toUpperCase() + viewName.slice(1)}`);
                 const activeBtn = document.getElementById(`navTab${viewName.charAt(0).toUpperCase() + viewName.slice(1)}`);
+                const activeMobBtn = document.getElementById(`mobNav${viewName.charAt(0).toUpperCase() + viewName.slice(1)}`);
 
                 if (activeEl) activeEl.classList.remove('hidden');
                 if (activeBtn) activeBtn.className = 'px-3 py-1 font-bold text-xs uppercase transition-colors bg-black text-white';
+                if (activeMobBtn) activeMobBtn.className = 'flex flex-col items-center justify-center flex-1 h-full font-bold text-[10px] text-black bg-zinc-100 border-t-2 border-black';
 
                 this.renderAll();
 
-                // 手機版自動收折側邊欄
-                if (window.innerWidth < 768) {
+                // 手機版切換視圖時自動收折側邊欄
+                if (window.innerWidth < 1024) {
                     this.toggleSidebar(false);
                 }
             }
@@ -1234,69 +1399,10 @@
                 this.currentDocId = id;
                 this.renderSidebar();
                 if (this.currentView === 'docs') this.renderDocs();
-            }
 
-            deleteDocById(docId) {
-                const proj = this.getCurrentProject();
-                if (!proj) return;
-                if (proj.docs.length <= 1) {
-                    alert('專案必須保留至少一個文檔！');
-                    return;
-                }
-                proj.docs = proj.docs.filter(d => d.id !== docId);
-                if (this.currentDocId === docId) {
-                    this.currentDocId = proj.docs[0].id;
-                }
-                this.saveToLocalStorage();
-                this.renderAll();
-            }
-
-            deleteCurrentDoc() {
-                this.deleteDocById(this.currentDocId);
-            }
-
-            handleSearch(query) {
-                this.searchQuery = query;
-                this.renderSidebar();
-            }
-
-            openGasModal() {
-                document.getElementById('gasUrlInput').value = this.gasUrl;
-                document.getElementById('gasAutoSyncToggle').checked = this.gasAutoSync;
-                document.getElementById('gasModal').classList.remove('hidden');
-            }
-            closeGasModal() {
-                document.getElementById('gasModal').classList.add('hidden');
-            }
-            saveGasConfig() {
-                const url = document.getElementById('gasUrlInput').value.trim();
-                const auto = document.getElementById('gasAutoSyncToggle').checked;
-
-                this.gasUrl = url;
-                this.gasAutoSync = auto;
-
-                localStorage.setItem(this.gasUrlKey, url);
-                localStorage.setItem(this.gasAutoSyncKey, auto ? 'true' : 'false');
-
-                this.closeGasModal();
-                this.triggerBgSync(true);
-            }
-
-            async testGasConnection() {
-                const url = document.getElementById('gasUrlInput').value.trim();
-                if (!url) {
-                    alert('請輸入 GAS URL');
-                    return;
-                }
-                try {
-                    const res = await fetch(url);
-                    if (res.ok) {
-                        alert('連線成功！Google Apps Script API 正常運作中。');
-                    } else {
-                        alert('無法連線，請檢查 URL 與權限設定。');
-                    }
-                } catch (e) {
-                    alert('連線失敗: ' + e.toString());
+                // 手機版選取檔案時自動關閉側邊欄
+                if (window.innerWidth < 1024) {
+                    this.toggleSidebar(false);
                 }
             }
 
