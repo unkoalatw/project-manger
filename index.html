@@ -1,0 +1,1376 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>FlatSpec Drive - 扁平化專案設計與執行系統</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@400;500;600;700;800&display=swap');
+        
+        * {
+            border-radius: 0px !important; /* 強制全直角 */
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
+        .font-mono {
+            font-family: 'Fira Code', monospace;
+        }
+
+        /* 硬朗扁平陰影風格 */
+        .flat-shadow {
+            box-shadow: 3px 3px 0px 0px rgba(0, 0, 0, 1);
+        }
+        .flat-shadow-lg {
+            box-shadow: 5px 5px 0px 0px rgba(0, 0, 0, 1);
+        }
+        .flat-shadow-sm {
+            box-shadow: 2px 2px 0px 0px rgba(0, 0, 0, 1);
+        }
+        
+        .flat-btn-active {
+            transform: translate(2px, 2px);
+            box-shadow: 1px 1px 0px 0px rgba(0, 0, 0, 1) !important;
+        }
+
+        /* 滾動條樣式 */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-left: 1px solid #000;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #000;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #333;
+        }
+
+        /* 看板 Snap 效果 */
+        .kanban-scroll {
+            scroll-snap-type: x mandatory;
+        }
+        .kanban-col {
+            scroll-snap-align: start;
+        }
+    </style>
+</head>
+<body class="bg-zinc-100 text-zinc-900 antialiased h-screen overflow-hidden flex flex-col selection:bg-black selection:text-white">
+
+    <!-- 頂部導覽列 (Header Bar) -->
+    <header class="bg-white border-b-2 border-black px-3 py-2 flex items-center justify-between z-30 shrink-0">
+        <div class="flex items-center space-x-3">
+            <!-- 側邊欄切換按鈕 -->
+            <button id="sidebarToggleBtn" onclick="app.toggleSidebar()" class="p-1.5 border-2 border-black bg-zinc-100 hover:bg-black hover:text-white transition-colors flat-shadow-sm" title="切換側邊欄 (Ctrl+B)">
+                <i class="fa-solid fa-bars text-sm"></i>
+            </button>
+            
+            <!-- 標誌 -->
+            <div class="flex items-center space-x-2 cursor-pointer" onclick="app.switchView('dashboard')">
+                <span class="bg-black text-white px-2 py-0.5 font-black text-sm tracking-wider font-mono">FLATSPEC</span>
+                <span class="hidden sm:inline-block font-bold text-xs uppercase tracking-widest text-zinc-500">DRIVE</span>
+            </div>
+
+            <!-- 頂部專案狀態快捷儀表 -->
+            <div class="hidden md:flex items-center space-x-3 pl-3 border-l-2 border-zinc-300">
+                <span id="headerProjectName" class="font-bold text-xs max-w-[150px] truncate">無專案</span>
+                <div class="w-24 bg-zinc-200 h-2 border border-black overflow-hidden">
+                    <div id="headerProgressBar" class="bg-emerald-500 h-full w-0 transition-all duration-300"></div>
+                </div>
+                <span id="headerProgressText" class="text-[10px] font-mono font-bold">0%</span>
+            </div>
+        </div>
+
+        <!-- 視圖切換標籤 (Desktop) -->
+        <nav class="hidden lg:flex items-center space-x-1 border-2 border-black bg-zinc-100 p-0.5">
+            <button id="navTabDashboard" onclick="app.switchView('dashboard')" class="px-3 py-1 font-bold text-xs uppercase transition-colors bg-black text-white">
+                <i class="fa-solid fa-chart-pie mr-1"></i>儀表板
+            </button>
+            <button id="navTabDocs" onclick="app.switchView('docs')" class="px-3 py-1 font-bold text-xs uppercase transition-colors hover:bg-zinc-200">
+                <i class="fa-solid fa-file-lines mr-1"></i>文檔
+            </button>
+            <button id="navTabWizard" onclick="app.switchView('wizard')" class="px-3 py-1 font-bold text-xs uppercase transition-colors hover:bg-zinc-200">
+                <i class="fa-solid fa-wand-magic-sparkles mr-1"></i>引導精靈
+            </button>
+            <button id="navTabExecution" onclick="app.switchView('execution')" class="px-3 py-1 font-bold text-xs uppercase transition-colors hover:bg-zinc-200">
+                <i class="fa-solid fa-list-check mr-1"></i>執行控制台
+            </button>
+        </nav>
+
+        <!-- 雲端同步狀態 & 動作按鈕 -->
+        <div class="flex items-center space-x-2">
+            <!-- 背景同步狀態指示燈 -->
+            <div id="bgSyncBadge" onclick="app.openGasModal()" class="flex items-center space-x-1.5 px-2 py-1 border-2 border-black bg-amber-100 cursor-pointer text-[11px] font-mono font-bold flat-shadow-sm hover:bg-amber-200 transition-colors" title="點擊設定 GAS 雲端同步">
+                <span id="bgSyncDot" class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+                <span id="bgSyncText" class="hidden sm:inline">檢查同步中</span>
+            </div>
+
+            <button onclick="app.openNewProjectModal()" class="px-2.5 py-1 bg-emerald-400 border-2 border-black font-bold text-xs flat-shadow-sm hover:bg-emerald-300 active:translate-x-0.5 active:translate-y-0.5 transition-all">
+                <i class="fa-solid fa-plus mr-1"></i><span class="hidden sm:inline">新建專案</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- 主要內容區域 (Sidebar + Viewports) -->
+    <div class="flex flex-1 overflow-hidden relative">
+
+        <!-- 行動端側邊欄遮罩 -->
+        <div id="sidebarBackdrop" onclick="app.toggleSidebar(false)" class="fixed inset-0 bg-black/50 z-20 hidden md:hidden transition-opacity"></div>
+
+        <!-- 側邊欄 (Sidebar) -->
+        <aside id="mainSidebar" class="w-72 bg-white border-r-2 border-black flex flex-col z-20 absolute md:relative inset-y-0 left-0 transition-transform duration-200 ease-in-out shrink-0">
+            <!-- 專案切換器 -->
+            <div class="p-3 border-b-2 border-black bg-zinc-50 space-y-2">
+                <div class="flex items-center justify-between">
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-zinc-500">Current Project</span>
+                    <button onclick="app.openNewProjectModal()" class="text-xs text-black font-bold hover:underline">+ 新建</button>
+                </div>
+                <select id="projectSelector" onchange="app.selectProject(this.value)" class="w-full p-2 border-2 border-black font-bold text-xs bg-white focus:outline-none focus:ring-2 focus:ring-black cursor-pointer">
+                    <!-- 動態渲染專案選項 -->
+                </select>
+            </div>
+
+            <!-- 檔案與任務搜尋列 -->
+            <div class="p-2 border-b-2 border-black bg-white">
+                <div class="relative">
+                    <i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-zinc-400 text-xs"></i>
+                    <input type="text" id="searchInput" oninput="app.handleSearch(this.value)" placeholder="搜尋文檔與任務..." class="w-full pl-7 pr-2 py-1.5 border border-black text-xs font-mono bg-zinc-50 focus:bg-white focus:outline-none">
+                </div>
+            </div>
+
+            <!-- 檔案目錄樹狀圖 (Directory Tree) -->
+            <div class="flex-1 overflow-y-auto p-2 space-y-4">
+                <!-- 專案核心規格檔案 -->
+                <div>
+                    <div class="flex items-center justify-between px-1 mb-1">
+                        <span class="text-[10px] font-bold uppercase text-zinc-400 font-mono">📂 CORE SPECS</span>
+                        <button onclick="app.openNewDocModal('spec')" class="text-[10px] font-bold text-zinc-600 hover:text-black">+ 檔案</button>
+                    </div>
+                    <div id="specFilesList" class="space-y-0.5">
+                        <!-- 動態生成核心規格列表 -->
+                    </div>
+                </div>
+
+                <!-- 自訂筆記檔案 -->
+                <div>
+                    <div class="flex items-center justify-between px-1 mb-1">
+                        <span class="text-[10px] font-bold uppercase text-zinc-400 font-mono">📄 NOTES & EXTRA</span>
+                        <button onclick="app.openNewDocModal('note')" class="text-[10px] font-bold text-zinc-600 hover:text-black">+ 筆記</button>
+                    </div>
+                    <div id="noteFilesList" class="space-y-0.5">
+                        <!-- 動態生成筆記列表 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 側邊欄底部工具列 -->
+            <div class="p-2 border-t-2 border-black bg-zinc-50 flex items-center justify-between text-xs">
+                <button onclick="app.exportMasterMarkdown()" class="p-1.5 border border-black bg-white hover:bg-black hover:text-white transition-colors" title="打包匯出完整 Markdown">
+                    <i class="fa-solid fa-file-export mr-1"></i>匯出 MD
+                </button>
+                <button onclick="app.exportBackupJSON()" class="p-1.5 border border-black bg-white hover:bg-black hover:text-white transition-colors" title="備份 JSON">
+                    <i class="fa-solid fa-download"></i>
+                </button>
+                <label class="p-1.5 border border-black bg-white hover:bg-black hover:text-white transition-colors cursor-pointer" title="還原 JSON">
+                    <i class="fa-solid fa-upload"></i>
+                    <input type="file" onchange="app.importBackupJSON(event)" class="hidden" accept=".json">
+                </label>
+                <button onclick="app.deleteCurrentProject()" class="p-1.5 border border-red-600 text-red-600 hover:bg-red-600 hover:text-white transition-colors" title="刪除當前專案">
+                    <i class="fa-solid fa-trash"></i>
+                </button>
+            </div>
+        </aside>
+
+        <!-- 主內容視圖區域 (Main Workspace) -->
+        <main class="flex-1 bg-zinc-100 flex flex-col min-w-0 overflow-hidden relative">
+
+            <!-- 行動端底部視圖切換列 -->
+            <div class="lg:hidden flex border-b-2 border-black bg-white shrink-0">
+                <button onclick="app.switchView('dashboard')" class="flex-1 py-2 text-center text-xs font-bold border-r border-black hover:bg-zinc-100">儀表板</button>
+                <button onclick="app.switchView('docs')" class="flex-1 py-2 text-center text-xs font-bold border-r border-black hover:bg-zinc-100">文檔</button>
+                <button onclick="app.switchView('wizard')" class="flex-1 py-2 text-center text-xs font-bold border-r border-black hover:bg-zinc-100">精靈</button>
+                <button onclick="app.switchView('execution')" class="flex-1 py-2 text-center text-xs font-bold hover:bg-zinc-100">控制台</button>
+            </div>
+
+            <!-- 視圖 1: 儀表板 (Dashboard View) -->
+            <div id="viewDashboard" class="flex-1 p-4 md:p-6 overflow-y-auto space-y-6">
+                <!-- 歡迎與專案標頭 -->
+                <div class="bg-white border-2 border-black p-4 md:p-6 flat-shadow">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                        <div>
+                            <span class="text-xs font-mono font-bold bg-black text-white px-2 py-0.5">PROJECT DASHBOARD</span>
+                            <h1 id="dashProjectName" class="text-2xl md:text-3xl font-black mt-2">載入中...</h1>
+                            <p id="dashProjectVision" class="text-sm text-zinc-600 mt-1 max-w-2xl">點擊引導精靈來建立專案願景與目標...</p>
+                        </div>
+                        <div class="flex items-center space-x-2 shrink-0">
+                            <button onclick="app.switchView('wizard')" class="px-4 py-2 border-2 border-black bg-amber-300 font-bold text-xs flat-shadow-sm hover:bg-amber-200">
+                                <i class="fa-solid fa-wand-magic-sparkles mr-1"></i>啟動設計精靈
+                            </button>
+                            <button onclick="app.switchView('execution')" class="px-4 py-2 border-2 border-black bg-emerald-400 font-bold text-xs flat-shadow-sm hover:bg-emerald-300">
+                                <i class="fa-solid fa-play mr-1"></i>執行專案
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 四大指標卡片 (Metrics Grid) -->
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="bg-white border-2 border-black p-4 flat-shadow-sm">
+                        <span class="text-[10px] font-bold text-zinc-500 uppercase font-mono">EXECUTION PROGRESS</span>
+                        <div class="text-3xl font-black font-mono mt-1" id="dashMetricProgress">0%</div>
+                        <div class="w-full bg-zinc-200 h-1.5 border border-black mt-2 overflow-hidden">
+                            <div id="dashMetricProgressBar" class="bg-emerald-500 h-full w-0"></div>
+                        </div>
+                    </div>
+                    <div class="bg-white border-2 border-black p-4 flat-shadow-sm">
+                        <span class="text-[10px] font-bold text-zinc-500 uppercase font-mono">PENDING TASKS</span>
+                        <div class="text-3xl font-black font-mono mt-1 text-amber-600" id="dashMetricPending">0</div>
+                        <span class="text-[10px] text-zinc-400">待完成步驟</span>
+                    </div>
+                    <div class="bg-white border-2 border-black p-4 flat-shadow-sm">
+                        <span class="text-[10px] font-bold text-zinc-500 uppercase font-mono">COMPLETED TASKS</span>
+                        <div class="text-3xl font-black font-mono mt-1 text-emerald-600" id="dashMetricCompleted">0</div>
+                        <span class="text-[10px] text-zinc-400">已達成步驟</span>
+                    </div>
+                    <div class="bg-white border-2 border-black p-4 flat-shadow-sm">
+                        <span class="text-[10px] font-bold text-zinc-500 uppercase font-mono">DOCUMENTS COUNT</span>
+                        <div class="text-3xl font-black font-mono mt-1" id="dashMetricDocs">0</div>
+                        <span class="text-[10px] text-zinc-400">包含規格與筆記</span>
+                    </div>
+                </div>
+
+                <!-- 快速執行控制台 & 文檔檔案庫雙欄 layout -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- 左欄: 關鍵執行任務 -->
+                    <div class="bg-white border-2 border-black p-4 flat-shadow space-y-3">
+                        <div class="flex items-center justify-between border-b-2 border-black pb-2">
+                            <h3 class="font-bold text-sm uppercase font-mono"><i class="fa-solid fa-list-check mr-2"></i>執行任務速覽</h3>
+                            <button onclick="app.switchView('execution')" class="text-xs font-bold hover:underline">查看完整看板 &rarr;</button>
+                        </div>
+                        <div id="dashTaskList" class="space-y-2 max-h-80 overflow-y-auto">
+                            <!-- 動態任務清單 -->
+                        </div>
+                    </div>
+
+                    <!-- 右欄: 文檔檔案快捷卡片 -->
+                    <div class="bg-white border-2 border-black p-4 flat-shadow space-y-3">
+                        <div class="flex items-center justify-between border-b-2 border-black pb-2">
+                            <h3 class="font-bold text-sm uppercase font-mono"><i class="fa-solid fa-folder-open mr-2"></i>文檔快捷檔案庫</h3>
+                            <button onclick="app.openNewDocModal()" class="text-xs font-bold hover:underline">+ 新增文檔</button>
+                        </div>
+                        <div id="dashDocCards" class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-80 overflow-y-auto">
+                            <!-- 動態文檔卡片 -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 視圖 2: 文檔編輯器 (Docs View) -->
+            <div id="viewDocs" class="hidden flex-1 flex flex-col overflow-hidden">
+                <!-- 頂部工具列 -->
+                <div class="bg-white border-b-2 border-black px-4 py-2 flex flex-wrap items-center justify-between gap-2 shrink-0">
+                    <div class="flex items-center space-x-2">
+                        <i class="fa-solid fa-file-code text-zinc-500"></i>
+                        <input type="text" id="docTitleInput" onchange="app.updateCurrentDocTitle(this.value)" class="font-bold text-sm bg-transparent border-b border-transparent hover:border-black focus:border-black focus:outline-none px-1 py-0.5">
+                        <span id="docTypeBadge" class="text-[10px] font-mono px-1.5 py-0.5 border border-black bg-zinc-100">SPEC</span>
+                    </div>
+
+                    <div class="flex items-center space-x-2">
+                        <span id="docWordCount" class="text-xs font-mono text-zinc-500 mr-2">0 字</span>
+                        <button id="docPreviewToggleBtn" onclick="app.toggleDocPreview()" class="px-2.5 py-1 border border-black bg-zinc-100 font-bold text-xs hover:bg-black hover:text-white transition-colors">
+                            <i class="fa-solid fa-eye mr-1"></i>預覽
+                        </button>
+                        <button onclick="app.downloadCurrentDoc()" class="px-2.5 py-1 border border-black bg-zinc-100 font-bold text-xs hover:bg-black hover:text-white transition-colors">
+                            <i class="fa-solid fa-download mr-1"></i>下載 .md
+                        </button>
+                        <button onclick="app.deleteCurrentDoc()" class="px-2 py-1 border border-red-600 text-red-600 hover:bg-red-600 hover:text-white font-bold text-xs transition-colors">
+                            <i class="fa-solid fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 編輯區與預覽區容器 -->
+                <div class="flex-1 flex overflow-hidden relative">
+                    <!-- 編輯區 -->
+                    <textarea id="docTextarea" oninput="app.handleDocInput(this.value)" placeholder="在此使用 Markdown 撰寫您的專案文檔與規格..." class="w-full h-full p-4 md:p-6 font-mono text-sm bg-zinc-50 focus:bg-white focus:outline-none resize-none leading-relaxed border-none"></textarea>
+                    
+                    <!-- 預覽區 -->
+                    <div id="docPreviewArea" class="hidden absolute inset-0 bg-white p-6 md:p-8 overflow-y-auto font-sans prose max-w-none">
+                        <!-- 動態解析 Markdown 預覽 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 視圖 3: 引導設計精靈 (Wizard View) -->
+            <div id="viewWizard" class="hidden flex-1 p-4 md:p-6 overflow-y-auto">
+                <div class="max-w-3xl mx-auto bg-white border-2 border-black p-6 md:p-8 flat-shadow space-y-6">
+                    <div class="border-b-2 border-black pb-4">
+                        <span class="text-xs font-mono font-bold bg-amber-300 text-black px-2 py-0.5">GUIDED SPEC WIZARD</span>
+                        <h2 class="text-2xl font-black mt-2">專案規格設計精靈</h2>
+                        <p class="text-xs text-zinc-600 mt-1">回答以下四個核心維度，系統將自動組裝完整專案文檔並拆解可執行的任務。</p>
+                    </div>
+
+                    <!-- 精靈表單 -->
+                    <form id="wizardForm" onsubmit="app.handleWizardSubmit(event)" class="space-y-6">
+                        <!-- 步驟 1: 專案名稱與願景 -->
+                        <div class="space-y-2">
+                            <label class="block font-bold text-xs uppercase font-mono">1. 核心願景與解決痛點 (Vision & Pain Point)</label>
+                            <textarea id="wizVision" rows="3" required placeholder="例如：開發一個全直角極簡風格的專案設計軟體，解決現有軟體太過複雜、無法隨時掌握執行步驟的問題..." class="w-full p-3 border-2 border-black font-sans text-xs focus:outline-none bg-zinc-50"></textarea>
+                        </div>
+
+                        <!-- 步驟 2: MVP 核心功能 -->
+                        <div class="space-y-2">
+                            <label class="block font-bold text-xs uppercase font-mono">2. MVP 核心功能規格 (Key Features)</label>
+                            <textarea id="wizFeatures" rows="4" required placeholder="例如：
+- 側邊欄檔案目錄與搜尋功能
+- 步驟式規格產生器
+- 可直接勾選的雙模式執行控制台
+- GAS 雲端背景備份" class="w-full p-3 border-2 border-black font-sans text-xs focus:outline-none bg-zinc-50"></textarea>
+                        </div>
+
+                        <!-- 步驟 3: 技術與工具選型 -->
+                        <div class="space-y-2">
+                            <label class="block font-bold text-xs uppercase font-mono">3. 技術選型與技術棧 (Tech Stack)</label>
+                            <input type="text" id="wizTech" required placeholder="例如：HTML5, Tailwind CSS, Pure JS, Google Apps Script, Google Sheets" class="w-full p-3 border-2 border-black font-sans text-xs focus:outline-none bg-zinc-50">
+                        </div>
+
+                        <!-- 步驟 4: 里程碑與任務拆解 -->
+                        <div class="space-y-2">
+                            <label class="block font-bold text-xs uppercase font-mono">4. 執行里程碑步驟拆解 (一行一個任務)</label>
+                            <textarea id="wizMilestones" rows="5" required placeholder="建立 HTML 全直角基本佈局結構
+整合 Tailwind CSS 與 FontAwesome 圖示
+撰寫引導設計精靈與數據同步引擎
+對接 Google Apps Script 自動備份
+完成行動端響應式與觸控體驗調優" class="w-full p-3 border-2 border-black font-mono text-xs focus:outline-none bg-zinc-50"></textarea>
+                        </div>
+
+                        <div class="pt-4 border-t-2 border-black flex justify-end">
+                            <button type="submit" class="px-6 py-3 border-2 border-black bg-emerald-400 font-black text-sm uppercase flat-shadow-sm hover:bg-emerald-300">
+                                <i class="fa-solid fa-check mr-2"></i>生成文檔並發佈至控制台
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 視圖 4: 執行控制台 (Execution View) -->
+            <div id="viewExecution" class="hidden flex-1 flex flex-col overflow-hidden p-4 md:p-6 space-y-4">
+                <!-- 控制台頂部欄 -->
+                <div class="bg-white border-2 border-black p-4 flat-shadow flex flex-col md:flex-row md:items-center justify-between gap-4 shrink-0">
+                    <div>
+                        <span class="text-xs font-mono font-bold bg-black text-white px-2 py-0.5">EXECUTION ENGINE</span>
+                        <h2 class="text-xl font-black mt-1">專案執行任務控制台</h2>
+                    </div>
+
+                    <div class="flex items-center space-x-2">
+                        <!-- 模式切換 -->
+                        <div class="border-2 border-black bg-zinc-100 p-0.5 flex">
+                            <button id="execModeListBtn" onclick="app.setExecMode('list')" class="px-3 py-1 font-bold text-xs uppercase bg-black text-white">
+                                <i class="fa-solid fa-list mr-1"></i>清單
+                            </button>
+                            <button id="execModeKanbanBtn" onclick="app.setExecMode('kanban')" class="px-3 py-1 font-bold text-xs uppercase hover:bg-zinc-200">
+                                <i class="fa-solid fa-columns mr-1"></i>看板
+                            </button>
+                        </div>
+
+                        <!-- 任務篩選 -->
+                        <select id="execFilterSelect" onchange="app.renderExecution()" class="p-1.5 border-2 border-black font-bold text-xs bg-white focus:outline-none">
+                            <option value="all">全部任務</option>
+                            <option value="active">進行中/待處理</option>
+                            <option value="completed">已完成</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- 快速新增任務輸入列 -->
+                <div class="bg-white border-2 border-black p-2 flat-shadow-sm flex items-center gap-2 shrink-0">
+                    <input type="text" id="newTaskTitleInput" placeholder="+ 輸入新任務標題並按 Enter..." onkeydown="if(event.key==='Enter') app.addNewTask()" class="flex-1 p-2 font-sans text-xs border border-black bg-zinc-50 focus:bg-white focus:outline-none">
+                    <select id="newTaskPrioritySelect" class="p-2 border border-black text-xs font-mono bg-white">
+                        <option value="MED">MED 優先級</option>
+                        <option value="HIGH">HIGH 高優先</option>
+                        <option value="LOW">LOW 低優先</option>
+                    </select>
+                    <button onclick="app.addNewTask()" class="px-4 py-2 border border-black bg-black text-white font-bold text-xs hover:bg-zinc-800">
+                        新增
+                    </button>
+                </div>
+
+                <!-- 任務清單 / 看板主區域 -->
+                <div class="flex-1 overflow-y-auto relative">
+                    <!-- 清單模式 (List Mode) -->
+                    <div id="execListView" class="space-y-2">
+                        <!-- 動態清單條目 -->
+                    </div>
+
+                    <!-- 看板模式 (Kanban Mode - 3 Columns) -->
+                    <div id="execKanbanView" class="hidden h-full grid grid-cols-1 md:grid-cols-3 gap-4 kanban-scroll overflow-x-auto pb-4">
+                        <!-- TODO 欄位 -->
+                        <div class="bg-white border-2 border-black p-3 flex flex-col h-full flat-shadow-sm kanban-col">
+                            <div class="font-bold text-xs font-mono uppercase bg-zinc-100 p-2 border border-black mb-3 flex justify-between">
+                                <span>📋 待處理 (TODO)</span>
+                                <span id="countTodo" class="font-bold">0</span>
+                            </div>
+                            <div id="kanbanColTodo" class="flex-1 overflow-y-auto space-y-2 pr-1">
+                                <!-- Tasks -->
+                            </div>
+                        </div>
+
+                        <!-- IN_PROGRESS 欄位 -->
+                        <div class="bg-white border-2 border-black p-3 flex flex-col h-full flat-shadow-sm kanban-col">
+                            <div class="font-bold text-xs font-mono uppercase bg-amber-100 p-2 border border-black mb-3 flex justify-between">
+                                <span>⏳ 進行中 (IN PROGRESS)</span>
+                                <span id="countInProgress" class="font-bold">0</span>
+                            </div>
+                            <div id="kanbanColInProgress" class="flex-1 overflow-y-auto space-y-2 pr-1">
+                                <!-- Tasks -->
+                            </div>
+                        </div>
+
+                        <!-- DONE 欄位 -->
+                        <div class="bg-white border-2 border-black p-3 flex flex-col h-full flat-shadow-sm kanban-col">
+                            <div class="font-bold text-xs font-mono uppercase bg-emerald-100 p-2 border border-black mb-3 flex justify-between">
+                                <span>✅ 已完成 (DONE)</span>
+                                <span id="countDone" class="font-bold">0</span>
+                            </div>
+                            <div id="kanbanColDone" class="flex-1 overflow-y-auto space-y-2 pr-1">
+                                <!-- Tasks -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Modal 1: Google Apps Script 雲端設定 modal -->
+    <div id="gasModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+        <div class="bg-white border-2 border-black p-6 max-w-lg w-full flat-shadow-lg space-y-4">
+            <div class="flex items-center justify-between border-b-2 border-black pb-3">
+                <h3 class="font-black text-base uppercase font-mono">☁️ Google Apps Script 雲端同步</h3>
+                <button onclick="app.closeGasModal()" class="text-lg font-bold hover:text-red-600">&times;</button>
+            </div>
+
+            <p class="text-xs text-zinc-600 leading-relaxed">
+                綁定您的 Google Apps Script Web App URL 後，系統將在背景打字與修改時<strong>自動發送同步請求</strong>至您的 Google 試算表。
+            </p>
+
+            <div class="space-y-2">
+                <label class="block font-bold text-xs uppercase font-mono">GAS Web App API URL *</label>
+                <input type="url" id="gasUrlInput" class="w-full p-2 border-2 border-black font-mono text-xs focus:outline-none bg-zinc-50" placeholder="https://script.google.com/macros/s/.../exec">
+            </div>
+
+            <div class="flex items-center justify-between p-2 border-2 border-black bg-zinc-50">
+                <span class="text-xs font-bold font-mono">自動背景同步 (Auto Sync)</span>
+                <input type="checkbox" id="gasAutoSyncToggle" class="w-4 h-4 border-2 border-black cursor-pointer">
+            </div>
+
+            <div class="flex items-center space-x-2 pt-2">
+                <button onclick="app.saveGasConfig()" class="flex-1 py-2 border-2 border-black bg-emerald-400 font-bold text-xs uppercase hover:bg-emerald-300">
+                    儲存連線設定
+                </button>
+                <button onclick="app.testGasConnection()" class="px-3 py-2 border-2 border-black bg-zinc-100 font-bold text-xs hover:bg-zinc-200">
+                    測試連線
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 2: 新建專案 modal -->
+    <div id="newProjectModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+        <div class="bg-white border-2 border-black p-6 max-w-md w-full flat-shadow-lg space-y-4">
+            <div class="flex items-center justify-between border-b-2 border-black pb-3">
+                <h3 class="font-black text-base uppercase font-mono">+ 建立新專案</h3>
+                <button onclick="app.closeNewProjectModal()" class="text-lg font-bold hover:text-red-600">&times;</button>
+            </div>
+
+            <div class="space-y-2">
+                <label class="block font-bold text-xs uppercase font-mono">專案名稱 *</label>
+                <input type="text" id="newProjectNameInput" placeholder="例如：FlatSpec 開發計畫" class="w-full p-2 border-2 border-black font-sans text-xs focus:outline-none bg-zinc-50">
+            </div>
+
+            <div class="pt-2 flex justify-end space-x-2">
+                <button onclick="app.closeNewProjectModal()" class="px-4 py-2 border border-black font-bold text-xs">取消</button>
+                <button onclick="app.createProject()" class="px-4 py-2 border-2 border-black bg-black text-white font-bold text-xs hover:bg-zinc-800">建立專案</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal 3: 新建檔案 modal -->
+    <div id="newDocModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+        <div class="bg-white border-2 border-black p-6 max-w-md w-full flat-shadow-lg space-y-4">
+            <div class="flex items-center justify-between border-b-2 border-black pb-3">
+                <h3 class="font-black text-base uppercase font-mono">+ 新增專案文檔/筆記</h3>
+                <button onclick="app.closeNewDocModal()" class="text-lg font-bold hover:text-red-600">&times;</button>
+            </div>
+
+            <div class="space-y-2">
+                <label class="block font-bold text-xs uppercase font-mono">文檔標題 *</label>
+                <input type="text" id="newDocTitleInput" placeholder="例如：API 接口說明" class="w-full p-2 border-2 border-black font-sans text-xs focus:outline-none bg-zinc-50">
+            </div>
+
+            <div class="space-y-2">
+                <label class="block font-bold text-xs uppercase font-mono">文檔類型</label>
+                <select id="newDocTypeSelect" class="w-full p-2 border-2 border-black text-xs font-mono bg-white">
+                    <option value="spec">📂 核心規格 (Spec)</option>
+                    <option value="note">📄 自訂筆記 (Note)</option>
+                </select>
+            </div>
+
+            <div class="pt-2 flex justify-end space-x-2">
+                <button onclick="app.closeNewDocModal()" class="px-4 py-2 border border-black font-bold text-xs">取消</button>
+                <button onclick="app.createDoc()" class="px-4 py-2 border-2 border-black bg-black text-white font-bold text-xs hover:bg-zinc-800">建立檔案</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * FlatSpec Drive Engine Architecture
+         */
+        class FlatSpecEngine {
+            constructor() {
+                this.storageKey = 'flatspec_drive_data_v2';
+                this.gasUrlKey = 'flatspec_gas_url_v2';
+                this.gasAutoSyncKey = 'flatspec_gas_autosync_v2';
+
+                // 背景同步與防抖機制 State
+                this.bgSyncTimer = null;
+                this.bgSyncStatus = 'saved'; // 'saved' | 'syncing' | 'synced' | 'offline' | 'error'
+
+                // 預設固定寫入的 GAS Web App API URL
+                const defaultGasUrl = 'https://script.google.com/macros/s/AKfycbxPLTdFYgqSv3PrGxK7U-UTIj3YIiJPU-QbMhLYq4NVyRd77263-xFsbFaFovHoKoC3/exec';
+                this.gasUrl = localStorage.getItem(this.gasUrlKey) || defaultGasUrl;
+                if (!localStorage.getItem(this.gasUrlKey)) {
+                    localStorage.setItem(this.gasUrlKey, defaultGasUrl);
+                }
+
+                this.gasAutoSync = localStorage.getItem(this.gasAutoSyncKey) !== 'false';
+
+                this.projects = [];
+                this.currentProjectId = null;
+                this.currentDocId = null;
+                this.currentView = 'dashboard';
+                this.execMode = 'list'; // 'list' | 'kanban'
+                this.searchQuery = '';
+
+                this.init();
+            }
+
+            init() {
+                this.loadFromLocalStorage();
+                
+                // 如果是第一次使用，建立範例專案
+                if (this.projects.length === 0) {
+                    this.createDefaultProject();
+                } else if (!this.currentProjectId && this.projects.length > 0) {
+                    this.currentProjectId = this.projects[0].id;
+                }
+
+                if (this.currentProjectId) {
+                    const proj = this.getCurrentProject();
+                    if (proj && proj.docs.length > 0) {
+                        this.currentDocId = proj.docs[0].id;
+                    }
+                }
+
+                // 綁定視窗關閉前強制同步事件
+                window.addEventListener('beforeunload', () => {
+                    this.flushBgSync();
+                });
+
+                // 綁定網路狀態切換
+                window.addEventListener('online', () => this.updateSyncBadge('saved', '恢復連線'));
+                window.addEventListener('offline', () => this.updateSyncBadge('offline', '離線模式'));
+
+                this.renderAll();
+
+                // 啟動時自動進行第一次背景雲端拉取/備份驗證
+                if (this.gasUrl && this.gasAutoSync) {
+                    this.triggerBgSync(true);
+                }
+            }
+
+            loadFromLocalStorage() {
+                try {
+                    const data = localStorage.getItem(this.storageKey);
+                    if (data) {
+                        this.projects = JSON.parse(data);
+                    }
+                } catch (err) {
+                    console.error("載入本地資料失敗", err);
+                    this.projects = [];
+                }
+            }
+
+            saveToLocalStorage() {
+                try {
+                    localStorage.setItem(this.storageKey, JSON.stringify(this.projects));
+                    this.updateSyncBadge('saved', '✓ 已儲存');
+                    this.scheduleBgSync();
+                } catch (err) {
+                    console.error("寫入 LocalStorage 失敗", err);
+                }
+            }
+
+            scheduleBgSync() {
+                if (!this.gasUrl || !this.gasAutoSync) return;
+                
+                this.updateSyncBadge('syncing', '☁️ 背景同步中...');
+                
+                if (this.bgSyncTimer) clearTimeout(this.bgSyncTimer);
+                
+                // 1.5 秒防抖發送
+                this.bgSyncTimer = setTimeout(() => {
+                    this.triggerBgSync();
+                }, 1500);
+            }
+
+            async triggerBgSync(isInitial = false) {
+                if (!this.gasUrl) return;
+
+                try {
+                    this.updateSyncBadge('syncing', '☁️ 背景同步中...');
+                    
+                    const payload = JSON.stringify(this.projects);
+                    
+                    const response = await fetch(this.gasUrl, {
+                        method: 'POST',
+                        mode: 'cors',
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        body: payload
+                    });
+
+                    if (response.ok) {
+                        this.updateSyncBadge('synced', '✅ 雲端已同步');
+                    } else {
+                        this.updateSyncBadge('error', '⚠️ 同步重試中');
+                    }
+                } catch (err) {
+                    console.warn("背景同步暫時無法連線", err);
+                    this.updateSyncBadge('offline', '⚡ 離線儲存');
+                }
+            }
+
+            flushBgSync() {
+                if (!this.gasUrl || !this.gasAutoSync) return;
+                try {
+                    const payload = JSON.stringify(this.projects);
+                    navigator.sendBeacon(this.gasUrl, payload);
+                } catch (e) {}
+            }
+
+            updateSyncBadge(status, text) {
+                this.bgSyncStatus = status;
+                const badge = document.getElementById('bgSyncBadge');
+                const dot = document.getElementById('bgSyncDot');
+                const label = document.getElementById('bgSyncText');
+
+                if (!badge || !dot || !label) return;
+
+                label.innerText = text;
+                dot.className = 'w-2 h-2 rounded-full ';
+
+                if (status === 'syncing') {
+                    dot.classList.add('bg-blue-500', 'animate-ping');
+                    badge.className = 'flex items-center space-x-1.5 px-2 py-1 border-2 border-black bg-blue-100 cursor-pointer text-[11px] font-mono font-bold flat-shadow-sm';
+                } else if (status === 'synced') {
+                    dot.classList.add('bg-emerald-500');
+                    badge.className = 'flex items-center space-x-1.5 px-2 py-1 border-2 border-black bg-emerald-100 cursor-pointer text-[11px] font-mono font-bold flat-shadow-sm';
+                } else if (status === 'offline') {
+                    dot.classList.add('bg-zinc-400');
+                    badge.className = 'flex items-center space-x-1.5 px-2 py-1 border-2 border-black bg-zinc-200 cursor-pointer text-[11px] font-mono font-bold flat-shadow-sm';
+                } else if (status === 'error') {
+                    dot.classList.add('bg-red-500');
+                    badge.className = 'flex items-center space-x-1.5 px-2 py-1 border-2 border-black bg-red-100 cursor-pointer text-[11px] font-mono font-bold flat-shadow-sm';
+                } else {
+                    dot.classList.add('bg-amber-500');
+                    badge.className = 'flex items-center space-x-1.5 px-2 py-1 border-2 border-black bg-amber-100 cursor-pointer text-[11px] font-mono font-bold flat-shadow-sm';
+                }
+            }
+
+            createDefaultProject() {
+                const defaultProj = {
+                    id: 'proj_' + Date.now(),
+                    name: 'FlatSpec 系統開發範例',
+                    vision: '打造一個極簡、全直角、流暢且具備背景備份的專案設計與執行控制台。',
+                    createdAt: new Date().toISOString(),
+                    docs: [
+                        {
+                            id: 'doc_spec_1',
+                            title: '專案核心規格書',
+                            type: 'spec',
+                            content: `# FlatSpec 專案核心規格書\n\n## 1. 專案願景\n打造一個全直角極簡風格的專案設計軟體，解決現有軟體太過複雜、無法隨時掌握執行步驟的問題。\n\n## 2. MVP 核心功能\n- 側邊欄檔案目錄與搜尋功能\n- 步驟式規格產生器\n- 可直接勾選的雙模式執行控制台\n- Google Apps Script 雲端背景備份`
+                        },
+                        {
+                            id: 'doc_note_1',
+                            title: '設計架構筆記',
+                            type: 'note',
+                            content: `# 設計架構筆記\n\n- 採用 Tailwind CSS 配合 0px border-radius。\n- 完全不依賴外部大型框架，實現單一 HTML 檔案完全運作。`
+                        }
+                    ],
+                    tasks: [
+                        { id: 'task_1', title: '建立 HTML 全直角基本佈局結構', status: 'DONE', priority: 'HIGH' },
+                        { id: 'task_2', title: '整合 Tailwind CSS 與 FontAwesome 圖示', status: 'DONE', priority: 'HIGH' },
+                        { id: 'task_3', title: '撰寫引導設計精靈與數據同步引擎', status: 'IN_PROGRESS', priority: 'HIGH' },
+                        { id: 'task_4', title: '對接 Google Apps Script 自動備份', status: 'DONE', priority: 'MED' },
+                        { id: 'task_5', title: '完成行動端響應式與觸控體驗調優', status: 'TODO', priority: 'LOW' }
+                    ]
+                };
+
+                this.projects.push(defaultProj);
+                this.currentProjectId = defaultProj.id;
+                this.currentDocId = defaultProj.docs[0].id;
+                this.saveToLocalStorage();
+            }
+
+            getCurrentProject() {
+                return this.projects.find(p => p.id === this.currentProjectId) || null;
+            }
+
+            getCurrentDoc() {
+                const proj = this.getCurrentProject();
+                if (!proj) return null;
+                return proj.docs.find(d => d.id === this.currentDocId) || null;
+            }
+
+            renderAll() {
+                this.renderHeader();
+                this.renderSidebar();
+                
+                if (this.currentView === 'dashboard') {
+                    this.renderDashboard();
+                } else if (this.currentView === 'docs') {
+                    this.renderDocs();
+                } else if (this.currentView === 'execution') {
+                    this.renderExecution();
+                }
+            }
+
+            renderHeader() {
+                const proj = this.getCurrentProject();
+                const nameEl = document.getElementById('headerProjectName');
+                const barEl = document.getElementById('headerProgressBar');
+                const textEl = document.getElementById('headerProgressText');
+
+                if (proj && nameEl) {
+                    nameEl.innerText = proj.name;
+                    const total = proj.tasks.length;
+                    const done = proj.tasks.filter(t => t.status === 'DONE').length;
+                    const pct = total === 0 ? 0 : Math.round((done / total) * 100);
+
+                    if (barEl) barEl.style.width = `${pct}%`;
+                    if (textEl) textEl.innerText = `${pct}%`;
+                }
+            }
+
+            renderSidebar() {
+                const selector = document.getElementById('projectSelector');
+                if (selector) {
+                    selector.innerHTML = this.projects.map(p => 
+                        `<option value="${p.id}" ${p.id === this.currentProjectId ? 'selected' : ''}>${p.name}</option>`
+                    ).join('');
+                }
+
+                const proj = this.getCurrentProject();
+                const specList = document.getElementById('specFilesList');
+                const noteList = document.getElementById('noteFilesList');
+
+                if (!proj || !specList || !noteList) return;
+
+                const q = this.searchQuery.toLowerCase();
+
+                // 核心規格列表
+                const specs = proj.docs.filter(d => d.type === 'spec' && d.title.toLowerCase().includes(q));
+                specList.innerHTML = specs.map(d => `
+                    <div onclick="app.selectDoc('${d.id}')" class="group flex items-center justify-between p-1.5 border border-black ${d.id === this.currentDocId ? 'bg-black text-white font-bold' : 'bg-white hover:bg-zinc-100'} cursor-pointer text-xs">
+                        <span class="truncate max-w-[140px]"><i class="fa-regular fa-file-code mr-1.5"></i>${d.title}</span>
+                        <div class="hidden group-hover:flex items-center space-x-1">
+                            <button onclick="event.stopPropagation(); app.deleteDocById('${d.id}')" class="text-[10px] hover:text-red-500" title="刪除"><i class="fa-solid fa-xmark"></i></button>
+                        </div>
+                    </div>
+                `).join('');
+
+                // 筆記列表
+                const notes = proj.docs.filter(d => d.type === 'note' && d.title.toLowerCase().includes(q));
+                noteList.innerHTML = notes.map(d => `
+                    <div onclick="app.selectDoc('${d.id}')" class="group flex items-center justify-between p-1.5 border border-black ${d.id === this.currentDocId ? 'bg-black text-white font-bold' : 'bg-white hover:bg-zinc-100'} cursor-pointer text-xs">
+                        <span class="truncate max-w-[140px]"><i class="fa-regular fa-file-lines mr-1.5"></i>${d.title}</span>
+                        <div class="hidden group-hover:flex items-center space-x-1">
+                            <button onclick="event.stopPropagation(); app.deleteDocById('${d.id}')" class="text-[10px] hover:text-red-500" title="刪除"><i class="fa-solid fa-xmark"></i></button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            toggleSidebar(force) {
+                const sidebar = document.getElementById('mainSidebar');
+                const backdrop = document.getElementById('sidebarBackdrop');
+                if (!sidebar) return;
+
+                const isHidden = sidebar.classList.contains('-translate-x-full');
+                if (force === false || (force === undefined && !isHidden)) {
+                    sidebar.classList.add('-translate-x-full');
+                    if (backdrop) backdrop.classList.add('hidden');
+                } else {
+                    sidebar.classList.remove('-translate-x-full');
+                    if (backdrop) backdrop.classList.remove('hidden');
+                }
+            }
+
+            switchView(viewName) {
+                this.currentView = viewName;
+
+                ['Dashboard', 'Docs', 'Wizard', 'Execution'].forEach(v => {
+                    const el = document.getElementById(`view${v}`);
+                    const tabBtn = document.getElementById(`navTab${v}`);
+                    if (el) el.classList.add('hidden');
+                    if (tabBtn) {
+                        tabBtn.className = 'px-3 py-1 font-bold text-xs uppercase transition-colors hover:bg-zinc-200';
+                    }
+                });
+
+                const activeEl = document.getElementById(`view${viewName.charAt(0).toUpperCase() + viewName.slice(1)}`);
+                const activeBtn = document.getElementById(`navTab${viewName.charAt(0).toUpperCase() + viewName.slice(1)}`);
+
+                if (activeEl) activeEl.classList.remove('hidden');
+                if (activeBtn) activeBtn.className = 'px-3 py-1 font-bold text-xs uppercase transition-colors bg-black text-white';
+
+                this.renderAll();
+
+                // 手機版自動收折側邊欄
+                if (window.innerWidth < 768) {
+                    this.toggleSidebar(false);
+                }
+            }
+
+            renderDashboard() {
+                const proj = this.getCurrentProject();
+                if (!proj) return;
+
+                document.getElementById('dashProjectName').innerText = proj.name;
+                document.getElementById('dashProjectVision').innerText = proj.vision || '未設定願景目標，可點擊設計精靈建立。';
+
+                // 指標計算
+                const total = proj.tasks.length;
+                const done = proj.tasks.filter(t => t.status === 'DONE').length;
+                const pending = total - done;
+                const pct = total === 0 ? 0 : Math.round((done / total) * 100);
+
+                document.getElementById('dashMetricProgress').innerText = `${pct}%`;
+                document.getElementById('dashMetricProgressBar').style.width = `${pct}%`;
+                document.getElementById('dashMetricPending').innerText = pending;
+                document.getElementById('dashMetricCompleted').innerText = done;
+                document.getElementById('dashMetricDocs').innerText = proj.docs.length;
+
+                // 任務列表
+                const taskListEl = document.getElementById('dashTaskList');
+                if (taskListEl) {
+                    if (proj.tasks.length === 0) {
+                        taskListEl.innerHTML = `<div class="text-xs text-zinc-400 p-2 font-mono">尚未建立任務...</div>`;
+                    } else {
+                        taskListEl.innerHTML = proj.tasks.slice(0, 5).map(t => `
+                            <div class="flex items-center justify-between p-2 border border-black bg-zinc-50 text-xs">
+                                <div class="flex items-center space-x-2">
+                                    <input type="checkbox" ${t.status === 'DONE' ? 'checked' : ''} onchange="app.toggleTaskStatus('${t.id}')" class="w-4 h-4 border-2 border-black">
+                                    <span class="${t.status === 'DONE' ? 'line-through text-zinc-400' : 'font-bold'}">${t.title}</span>
+                                </div>
+                                <span class="text-[9px] font-mono px-1 py-0.5 border border-black ${t.priority === 'HIGH' ? 'bg-red-200' : 'bg-zinc-200'}">${t.priority}</span>
+                            </div>
+                        `).join('');
+                    }
+                }
+
+                // 文檔快捷卡片
+                const docCardsEl = document.getElementById('dashDocCards');
+                if (docCardsEl) {
+                    docCardsEl.innerHTML = proj.docs.map(d => `
+                        <div onclick="app.selectDoc('${d.id}'); app.switchView('docs')" class="p-3 border border-black bg-zinc-50 hover:bg-black hover:text-white cursor-pointer transition-colors space-y-1">
+                            <div class="flex items-center justify-between">
+                                <span class="font-bold text-xs truncate max-w-[120px]">${d.title}</span>
+                                <span class="text-[9px] font-mono border border-current px-1 uppercase">${d.type}</span>
+                            </div>
+                            <p class="text-[10px] text-zinc-500 line-clamp-2">${d.content.replace(/[#*`]/g, '')}</p>
+                        </div>
+                    `).join('');
+                }
+            }
+
+            renderDocs() {
+                const doc = this.getCurrentDoc();
+                const textarea = document.getElementById('docTextarea');
+                const titleInput = document.getElementById('docTitleInput');
+                const typeBadge = document.getElementById('docTypeBadge');
+
+                if (!doc || !textarea || !titleInput) return;
+
+                titleInput.value = doc.title;
+                textarea.value = doc.content;
+                if (typeBadge) typeBadge.innerText = doc.type.toUpperCase();
+
+                this.updateWordCount(doc.content);
+            }
+
+            handleDocInput(val) {
+                const doc = this.getCurrentDoc();
+                if (!doc) return;
+                doc.content = val;
+                this.updateWordCount(val);
+                this.saveToLocalStorage();
+            }
+
+            updateCurrentDocTitle(val) {
+                const doc = this.getCurrentDoc();
+                if (!doc) return;
+                doc.title = val;
+                this.saveToLocalStorage();
+                this.renderSidebar();
+            }
+
+            updateWordCount(str) {
+                const el = document.getElementById('docWordCount');
+                if (el) el.innerText = `${str.length} 字`;
+            }
+
+            toggleDocPreview() {
+                const textarea = document.getElementById('docTextarea');
+                const preview = document.getElementById('docPreviewArea');
+                const btn = document.getElementById('docPreviewToggleBtn');
+
+                if (!textarea || !preview || !btn) return;
+
+                if (preview.classList.contains('hidden')) {
+                    const doc = this.getCurrentDoc();
+                    preview.innerHTML = this.parseSimpleMarkdown(doc ? doc.content : '');
+                    preview.classList.remove('hidden');
+                    btn.innerHTML = `<i class="fa-solid fa-pen mr-1"></i>編輯`;
+                } else {
+                    preview.classList.add('hidden');
+                    btn.innerHTML = `<i class="fa-solid fa-eye mr-1"></i>預覽`;
+                }
+            }
+
+            parseSimpleMarkdown(md) {
+                return md
+                    .replace(/^# (.*$)/gim, '<h1 class="text-2xl font-black border-b-2 border-black pb-1 my-3">$1</h1>')
+                    .replace(/^## (.*$)/gim, '<h2 class="text-xl font-bold border-b border-black pb-1 my-2">$1</h2>')
+                    .replace(/^### (.*$)/gim, '<h3 class="text-lg font-bold my-2">$1</h3>')
+                    .replace(/^\- (.*$)/gim, '<li class="ml-4 list-disc">$1</li>')
+                    .replace(/\n/g, '<br>');
+            }
+
+            handleWizardSubmit(e) {
+                e.preventDefault();
+                const proj = this.getCurrentProject();
+                if (!proj) return;
+
+                const vision = document.getElementById('wizVision').value;
+                const features = document.getElementById('wizFeatures').value;
+                const tech = document.getElementById('wizTech').value;
+                const milestones = document.getElementById('wizMilestones').value;
+
+                proj.vision = vision;
+
+                // 組裝核心規格書文檔
+                const specContent = `# ${proj.name} - 核心規格書\n\n## 1. 核心願景\n${vision}\n\n## 2. MVP 核心功能\n${features}\n\n## 3. 技術選型\n${tech}\n\n## 4. 執行里程碑\n${milestones}`;
+
+                let mainSpecDoc = proj.docs.find(d => d.type === 'spec');
+                if (mainSpecDoc) {
+                    mainSpecDoc.content = specContent;
+                } else {
+                    proj.docs.push({
+                        id: 'doc_' + Date.now(),
+                        title: '專案核心規格書',
+                        type: 'spec',
+                        content: specContent
+                    });
+                }
+
+                // 將里程碑轉換為執行任務
+                const milestoneLines = milestones.split('\n').filter(line => line.trim() !== '');
+                proj.tasks = milestoneLines.map((line, idx) => ({
+                    id: 'task_wiz_' + Date.now() + '_' + idx,
+                    title: line.replace(/^[\d\.\-\*]\s*/, '').trim(),
+                    status: 'TODO',
+                    priority: 'HIGH'
+                }));
+
+                this.saveToLocalStorage();
+                alert('已成功將設計規格組裝並發佈至執行控制台！');
+                this.switchView('execution');
+            }
+
+            renderExecution() {
+                const proj = this.getCurrentProject();
+                if (!proj) return;
+
+                const filter = document.getElementById('execFilterSelect').value;
+                let tasks = proj.tasks;
+
+                if (filter === 'active') {
+                    tasks = tasks.filter(t => t.status !== 'DONE');
+                } else if (filter === 'completed') {
+                    tasks = tasks.filter(t => t.status === 'DONE');
+                }
+
+                if (this.execMode === 'list') {
+                    document.getElementById('execListView').classList.remove('hidden');
+                    document.getElementById('execKanbanView').classList.add('hidden');
+                    this.renderExecutionList(tasks);
+                } else {
+                    document.getElementById('execListView').classList.add('hidden');
+                    document.getElementById('execKanbanView').classList.remove('hidden');
+                    this.renderExecutionKanban(tasks);
+                }
+            }
+
+            setExecMode(mode) {
+                this.execMode = mode;
+                document.getElementById('execModeListBtn').className = mode === 'list' ? 'px-3 py-1 font-bold text-xs uppercase bg-black text-white' : 'px-3 py-1 font-bold text-xs uppercase hover:bg-zinc-200';
+                document.getElementById('execModeKanbanBtn').className = mode === 'kanban' ? 'px-3 py-1 font-bold text-xs uppercase bg-black text-white' : 'px-3 py-1 font-bold text-xs uppercase hover:bg-zinc-200';
+                this.renderExecution();
+            }
+
+            renderExecutionList(tasks) {
+                const container = document.getElementById('execListView');
+                if (!container) return;
+
+                if (tasks.length === 0) {
+                    container.innerHTML = `<div class="p-4 bg-white border-2 border-black text-xs font-mono text-zinc-400">尚無符合條件的任務...</div>`;
+                    return;
+                }
+
+                container.innerHTML = tasks.map(t => `
+                    <div class="flex items-center justify-between p-3 bg-white border-2 border-black flat-shadow-sm">
+                        <div class="flex items-center space-x-3">
+                            <input type="checkbox" ${t.status === 'DONE' ? 'checked' : ''} onchange="app.toggleTaskStatus('${t.id}')" class="w-4 h-4 border-2 border-black cursor-pointer">
+                            <span class="${t.status === 'DONE' ? 'line-through text-zinc-400' : 'font-bold'} text-xs">${t.title}</span>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <select onchange="app.updateTaskStatus('${t.id}', this.value)" class="p-1 border border-black text-[10px] font-mono bg-zinc-50">
+                                <option value="TODO" ${t.status === 'TODO' ? 'selected' : ''}>TODO</option>
+                                <option value="IN_PROGRESS" ${t.status === 'IN_PROGRESS' ? 'selected' : ''}>IN_PROGRESS</option>
+                                <option value="DONE" ${t.status === 'DONE' ? 'selected' : ''}>DONE</option>
+                            </select>
+                            <span class="text-[9px] font-mono px-1.5 py-0.5 border border-black ${t.priority === 'HIGH' ? 'bg-red-200' : 'bg-zinc-200'}">${t.priority}</span>
+                            <button onclick="app.deleteTask('${t.id}')" class="text-xs text-red-600 hover:text-black px-1">&times;</button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            renderExecutionKanban(tasks) {
+                const todoCol = document.getElementById('kanbanColTodo');
+                const progCol = document.getElementById('kanbanColInProgress');
+                const doneCol = document.getElementById('kanbanColDone');
+
+                const todos = tasks.filter(t => t.status === 'TODO');
+                const progs = tasks.filter(t => t.status === 'IN_PROGRESS');
+                const dones = tasks.filter(t => t.status === 'DONE');
+
+                document.getElementById('countTodo').innerText = todos.length;
+                document.getElementById('countInProgress').innerText = progs.length;
+                document.getElementById('countDone').innerText = dones.length;
+
+                const renderCard = (t) => `
+                    <div class="p-2.5 border border-black bg-zinc-50 space-y-2 flat-shadow-sm">
+                        <div class="flex items-start justify-between">
+                            <span class="text-xs font-bold leading-tight">${t.title}</span>
+                            <button onclick="app.deleteTask('${t.id}')" class="text-xs text-zinc-400 hover:text-red-600">&times;</button>
+                        </div>
+                        <div class="flex items-center justify-between text-[9px] font-mono pt-1 border-t border-zinc-200">
+                            <span class="px-1 border border-black ${t.priority === 'HIGH' ? 'bg-red-200' : 'bg-zinc-200'}">${t.priority}</span>
+                            <select onchange="app.updateTaskStatus('${t.id}', this.value)" class="border border-black bg-white p-0.5">
+                                <option value="TODO" ${t.status === 'TODO' ? 'selected' : ''}>-> TODO</option>
+                                <option value="IN_PROGRESS" ${t.status === 'IN_PROGRESS' ? 'selected' : ''}>-> PROGRESS</option>
+                                <option value="DONE" ${t.status === 'DONE' ? 'selected' : ''}>-> DONE</option>
+                            </select>
+                        </div>
+                    </div>
+                `;
+
+                todoCol.innerHTML = todos.map(renderCard).join('');
+                progCol.innerHTML = progs.map(renderCard).join('');
+                doneCol.innerHTML = dones.map(renderCard).join('');
+            }
+
+            addNewTask() {
+                const proj = this.getCurrentProject();
+                const titleInput = document.getElementById('newTaskTitleInput');
+                const prioSelect = document.getElementById('newTaskPrioritySelect');
+
+                if (!proj || !titleInput || !titleInput.value.trim()) return;
+
+                proj.tasks.unshift({
+                    id: 'task_' + Date.now(),
+                    title: titleInput.value.trim(),
+                    status: 'TODO',
+                    priority: prioSelect ? prioSelect.value : 'MED'
+                });
+
+                titleInput.value = '';
+                this.saveToLocalStorage();
+                this.renderAll();
+            }
+
+            toggleTaskStatus(taskId) {
+                const proj = this.getCurrentProject();
+                if (!proj) return;
+                const task = proj.tasks.find(t => t.id === taskId);
+                if (task) {
+                    task.status = task.status === 'DONE' ? 'TODO' : 'DONE';
+                    this.saveToLocalStorage();
+                    this.renderAll();
+                }
+            }
+
+            updateTaskStatus(taskId, newStatus) {
+                const proj = this.getCurrentProject();
+                if (!proj) return;
+                const task = proj.tasks.find(t => t.id === taskId);
+                if (task) {
+                    task.status = newStatus;
+                    this.saveToLocalStorage();
+                    this.renderAll();
+                }
+            }
+
+            deleteTask(taskId) {
+                const proj = this.getCurrentProject();
+                if (!proj) return;
+                proj.tasks = proj.tasks.filter(t => t.id !== taskId);
+                this.saveToLocalStorage();
+                this.renderAll();
+            }
+
+            openNewProjectModal() {
+                document.getElementById('newProjectModal').classList.remove('hidden');
+            }
+            closeNewProjectModal() {
+                document.getElementById('newProjectModal').classList.add('hidden');
+            }
+            createProject() {
+                const input = document.getElementById('newProjectNameInput');
+                if (!input || !input.value.trim()) return;
+
+                const newProj = {
+                    id: 'proj_' + Date.now(),
+                    name: input.value.trim(),
+                    vision: '',
+                    createdAt: new Date().toISOString(),
+                    docs: [
+                        { id: 'doc_' + Date.now(), title: '核心規格書', type: 'spec', content: `# ${input.value.trim()} 核心規格書` }
+                    ],
+                    tasks: []
+                };
+
+                this.projects.push(newProj);
+                this.currentProjectId = newProj.id;
+                this.currentDocId = newProj.docs[0].id;
+                input.value = '';
+                this.closeNewProjectModal();
+                this.saveToLocalStorage();
+                this.renderAll();
+            }
+
+            selectProject(id) {
+                this.currentProjectId = id;
+                const proj = this.getCurrentProject();
+                if (proj && proj.docs.length > 0) {
+                    this.currentDocId = proj.docs[0].id;
+                }
+                this.renderAll();
+            }
+
+            deleteCurrentProject() {
+                if (this.projects.length <= 1) {
+                    alert('系統必須保留至少一個專案！');
+                    return;
+                }
+                if (confirm('確定要刪除當前專案嗎？此操作無法復原。')) {
+                    this.projects = this.projects.filter(p => p.id !== this.currentProjectId);
+                    this.currentProjectId = this.projects[0].id;
+                    this.saveToLocalStorage();
+                    this.renderAll();
+                }
+            }
+
+            openNewDocModal(type = 'note') {
+                document.getElementById('newDocTypeSelect').value = type;
+                document.getElementById('newDocModal').classList.remove('hidden');
+            }
+            closeNewDocModal() {
+                document.getElementById('newDocModal').classList.add('hidden');
+            }
+            createDoc() {
+                const proj = this.getCurrentProject();
+                const titleInput = document.getElementById('newDocTitleInput');
+                const typeSelect = document.getElementById('newDocTypeSelect');
+
+                if (!proj || !titleInput || !titleInput.value.trim()) return;
+
+                const newDoc = {
+                    id: 'doc_' + Date.now(),
+                    title: titleInput.value.trim(),
+                    type: typeSelect.value,
+                    content: `# ${titleInput.value.trim()}\n\n在此撰寫內容...`
+                };
+
+                proj.docs.push(newDoc);
+                this.currentDocId = newDoc.id;
+                titleInput.value = '';
+                this.closeNewDocModal();
+                this.saveToLocalStorage();
+                this.switchView('docs');
+            }
+
+            selectDoc(id) {
+                this.currentDocId = id;
+                this.renderSidebar();
+                if (this.currentView === 'docs') this.renderDocs();
+            }
+
+            deleteDocById(docId) {
+                const proj = this.getCurrentProject();
+                if (!proj) return;
+                if (proj.docs.length <= 1) {
+                    alert('專案必須保留至少一個文檔！');
+                    return;
+                }
+                proj.docs = proj.docs.filter(d => d.id !== docId);
+                if (this.currentDocId === docId) {
+                    this.currentDocId = proj.docs[0].id;
+                }
+                this.saveToLocalStorage();
+                this.renderAll();
+            }
+
+            deleteCurrentDoc() {
+                this.deleteDocById(this.currentDocId);
+            }
+
+            handleSearch(query) {
+                this.searchQuery = query;
+                this.renderSidebar();
+            }
+
+            openGasModal() {
+                document.getElementById('gasUrlInput').value = this.gasUrl;
+                document.getElementById('gasAutoSyncToggle').checked = this.gasAutoSync;
+                document.getElementById('gasModal').classList.remove('hidden');
+            }
+            closeGasModal() {
+                document.getElementById('gasModal').classList.add('hidden');
+            }
+            saveGasConfig() {
+                const url = document.getElementById('gasUrlInput').value.trim();
+                const auto = document.getElementById('gasAutoSyncToggle').checked;
+
+                this.gasUrl = url;
+                this.gasAutoSync = auto;
+
+                localStorage.setItem(this.gasUrlKey, url);
+                localStorage.setItem(this.gasAutoSyncKey, auto ? 'true' : 'false');
+
+                this.closeGasModal();
+                this.triggerBgSync(true);
+            }
+
+            async testGasConnection() {
+                const url = document.getElementById('gasUrlInput').value.trim();
+                if (!url) {
+                    alert('請輸入 GAS URL');
+                    return;
+                }
+                try {
+                    const res = await fetch(url);
+                    if (res.ok) {
+                        alert('連線成功！Google Apps Script API 正常運作中。');
+                    } else {
+                        alert('無法連線，請檢查 URL 與權限設定。');
+                    }
+                } catch (e) {
+                    alert('連線失敗: ' + e.toString());
+                }
+            }
+
+            exportMasterMarkdown() {
+                const proj = this.getCurrentProject();
+                if (!proj) return;
+
+                let masterMd = `# ${proj.name} - 專案 master 規格書\n\n`;
+                masterMd += `> 匯出時間: ${new Date().toLocaleString()}\n\n`;
+                
+                proj.docs.forEach(d => {
+                    masterMd += `---\n\n${d.content}\n\n`;
+                });
+
+                masterMd += `---\n\n## 執行任務清單\n\n`;
+                proj.tasks.forEach(t => {
+                    masterMd += `- [${t.status === 'DONE' ? 'x' : ' '}] ${t.title} (${t.priority})\n`;
+                });
+
+                this.downloadBlob(masterMd, `${proj.name}_MasterSpec.md`, 'text/markdown');
+            }
+
+            exportBackupJSON() {
+                const jsonStr = JSON.stringify(this.projects, null, 2);
+                this.downloadBlob(jsonStr, `FlatSpec_Backup_${Date.now()}.json`, 'application/json');
+            }
+
+            importBackupJSON(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (evt) => {
+                    try {
+                        const imported = JSON.parse(evt.target.result);
+                        if (Array.isArray(imported)) {
+                            this.projects = imported;
+                            if (this.projects.length > 0) {
+                                this.currentProjectId = this.projects[0].id;
+                                if (this.projects[0].docs.length > 0) {
+                                    this.currentDocId = this.projects[0].docs[0].id;
+                                }
+                            }
+                            this.saveToLocalStorage();
+                            this.renderAll();
+                            alert('JSON 數據已成功還原！');
+                        }
+                    } catch (err) {
+                        alert('備份檔案格式無效');
+                    }
+                };
+                reader.readAsText(file);
+            }
+
+            downloadCurrentDoc() {
+                const doc = this.getCurrentDoc();
+                if (!doc) return;
+                this.downloadBlob(doc.content, `${doc.title}.md`, 'text/markdown');
+            }
+
+            downloadBlob(content, filename, contentType) {
+                const blob = new Blob([content], { type: contentType });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = filename;
+                a.click();
+            }
+        }
+
+        // 啟動單例應用程式 Engine
+        let app;
+        window.onload = function() {
+            app = new FlatSpecEngine();
+        };
+    </script>
+</body>
+</html>
