@@ -1,0 +1,15 @@
+{
+  "name": "flatspec-drive",
+  "version": "1.0.0",
+  "description": "FlatSpec Drive - 專案設計與執行系統",
+  "scripts": {
+    "gas:login": "clasp login",
+    "gas:push": "clasp push",
+    "gas:watch": "clasp push --watch",
+    "gas:deploy": "clasp deploy --description \"Update FlatSpec GAS backend\"",
+    "gas:open": "clasp open"
+  },
+  "devDependencies": {
+    "@google/clasp": "^2.4.2"
+  }
+}
