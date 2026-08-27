@@ -122,16 +122,20 @@
         </div>
 
         <!-- 側邊欄底部快捷列 -->
-        <div class="p-2.5 border-t-2 border-black bg-zinc-300 grid grid-cols-3 gap-1">
-            <button onclick="app.openBackupModal()" class="p-1.5 hover:bg-zinc-100 border-2 border-transparent hover:border-black font-bold text-[11px] flex flex-col items-center gap-0.5 transition-colors flat-box" title="本機檔案備份與還原">
+        <div class="p-2 border-t-2 border-black bg-zinc-300 grid grid-cols-4 gap-1">
+            <button onclick="app.openTeamModal()" class="p-1 hover:bg-zinc-100 border-2 border-transparent hover:border-black font-bold text-[10px] flex flex-col items-center gap-0.5 transition-colors flat-box" title="團隊成員與協作分享">
+                <span class="text-base">👥</span>
+                <span>團隊</span>
+            </button>
+            <button onclick="app.openBackupModal()" class="p-1 hover:bg-zinc-100 border-2 border-transparent hover:border-black font-bold text-[10px] flex flex-col items-center gap-0.5 transition-colors flat-box" title="本機檔案備份與還原">
                 <span class="text-base">💾</span>
                 <span>備份</span>
             </button>
-            <button onclick="app.exportMasterMarkdown()" class="p-1.5 hover:bg-zinc-100 border-2 border-transparent hover:border-black font-bold text-[11px] flex flex-col items-center gap-0.5 transition-colors flat-box" title="匯出 Markdown 規格書">
+            <button onclick="app.exportMasterMarkdown()" class="p-1 hover:bg-zinc-100 border-2 border-transparent hover:border-black font-bold text-[10px] flex flex-col items-center gap-0.5 transition-colors flat-box" title="匯出 Markdown 規格書">
                 <span class="text-base">📦</span>
                 <span>匯出</span>
             </button>
-            <button onclick="app.openGasModal()" class="p-1.5 hover:bg-zinc-100 border-2 border-transparent hover:border-black font-bold text-[11px] flex flex-col items-center gap-0.5 transition-colors flat-box" title="GAS 雲端同步設定">
+            <button onclick="app.openGasModal()" class="p-1 hover:bg-zinc-100 border-2 border-transparent hover:border-black font-bold text-[10px] flex flex-col items-center gap-0.5 transition-colors flat-box" title="GAS 雲端同步設定">
                 <span class="text-base">☁️</span>
                 <span>雲端</span>
             </button>
@@ -163,8 +167,12 @@
                 <button id="viewTabWizard" onclick="app.switchView('Wizard')" class="px-4 py-1 border-2 border-black bg-violet-200 hover:bg-violet-100 transition-colors uppercase">✨ 精靈</button>
             </div>
 
-            <!-- 搜尋與同步狀態燈 -->
+            <!-- 協作、搜尋與同步狀態燈 -->
             <div class="flex items-center gap-2 shrink-0">
+                <button onclick="app.openTeamModal()" class="p-1.5 px-2 bg-violet-100 hover:bg-violet-200 border-2 border-black font-bold text-xs flat-box flex items-center gap-1 transition-colors text-violet-950" title="團隊成員管理與一鍵邀請">
+                    <span class="text-sm">👥</span>
+                    <span class="hidden sm:inline">團隊協作</span>
+                </button>
                 <button onclick="app.openSearchModal()" class="p-1.5 px-2 bg-zinc-100 hover:bg-yellow-200 border-2 border-black font-bold text-xs flat-box flex items-center gap-1.5 transition-colors" title="快速全域搜尋 (快捷鍵: Ctrl+K / Cmd+K)">
                     <span class="text-sm">🔍</span>
                     <span class="hidden lg:inline text-zinc-800">搜尋</span>
@@ -370,15 +378,26 @@
                     </div>
                 </div>
 
-                <!-- 任務新增區 -->
-                <div class="flex gap-2 mb-6">
-                    <input type="text" id="newTaskInput" placeholder="輸入新任務... (按 Enter 新增)" class="flat-input flex-1 p-3 font-bold text-sm" onkeypress="if(event.key==='Enter') app.addTask()">
-                    <select id="newTaskPriority" class="flat-input p-3 font-bold text-sm bg-zinc-100 cursor-pointer">
-                        <option value="HIGH">🔴 高</option>
-                        <option value="MED" selected>🟡 中</option>
-                        <option value="LOW">🔵 低</option>
-                    </select>
-                    <button onclick="app.addTask()" class="bg-black text-white px-6 border-2 border-black font-bold flat-box whitespace-nowrap">新增</button>
+                <!-- 成員篩選與任務新增區 -->
+                <div class="space-y-3 mb-5">
+                    <!-- 成員過濾 Chips -->
+                    <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 text-xs font-bold" id="taskMemberFilterBar">
+                        <!-- 動態載入成員過濾按鈕 -->
+                    </div>
+
+                    <!-- 任務新增列 -->
+                    <div class="flex flex-wrap sm:flex-nowrap gap-2">
+                        <input type="text" id="newTaskInput" placeholder="輸入新任務... (按 Enter 新增)" class="flat-input flex-1 p-2.5 font-bold text-sm min-w-[180px]" onkeypress="if(event.key==='Enter') app.addTask()">
+                        <select id="newTaskAssignee" class="flat-input p-2.5 font-bold text-xs bg-zinc-100 cursor-pointer w-32 shrink-0">
+                            <!-- 動態載入指派成員 -->
+                        </select>
+                        <select id="newTaskPriority" class="flat-input p-2.5 font-bold text-xs bg-zinc-100 cursor-pointer w-24 shrink-0">
+                            <option value="HIGH">🔴 高</option>
+                            <option value="MED" selected>🟡 中</option>
+                            <option value="LOW">🔵 低</option>
+                        </select>
+                        <button onclick="app.addTask()" class="bg-black text-white px-5 py-2.5 border-2 border-black font-bold text-xs flat-box whitespace-nowrap hover:bg-zinc-800">＋ 新增任務</button>
+                    </div>
                 </div>
 
                 <!-- 清單模式 (List View) -->
@@ -626,6 +645,12 @@
                     <input type="text" id="editTaskTitleInput" class="flat-input w-full p-2 text-sm font-bold">
                 </div>
                 <div>
+                    <label class="block font-bold text-xs mb-1">負責成員 (Assignee)</label>
+                    <select id="editTaskAssigneeInput" class="flat-input w-full p-2 text-sm font-bold bg-zinc-100 cursor-pointer">
+                        <option value="">👤 未指派成員</option>
+                    </select>
+                </div>
+                <div>
                     <label class="block font-bold text-xs mb-1">優先級</label>
                     <select id="editTaskPriorityInput" class="flat-input w-full p-2 text-sm font-bold bg-zinc-100">
                         <option value="HIGH">🔴 高 (HIGH)</option>
@@ -640,6 +665,10 @@
                         <option value="DOING">進行中 (DOING)</option>
                         <option value="DONE">已完成 (DONE)</option>
                     </select>
+                </div>
+                <div>
+                    <label class="block font-bold text-xs mb-1">任務詳細說明 / 備註</label>
+                    <textarea id="editTaskDescInput" class="flat-input w-full p-2 text-xs font-mono h-16" placeholder="輸入任務備註..."></textarea>
                 </div>
             </div>
             
@@ -774,6 +803,177 @@
         </div>
     </div>
 
+    <!-- Modal: 團隊協作中心 -->
+    <div id="teamModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-3 md:p-6" onclick="app.closeTeamModal()">
+        <div class="bg-white border-2 border-black w-full max-w-xl flat-shadow-lg flex flex-col max-h-[88vh] overflow-hidden" onclick="event.stopPropagation()">
+            <!-- 標題 -->
+            <div class="p-4 border-b-2 border-black bg-zinc-100 flex items-center justify-between shrink-0">
+                <div class="flex items-center gap-2">
+                    <span class="text-2xl">👥</span>
+                    <div>
+                        <h3 class="font-black text-lg uppercase leading-tight">團隊協作中心</h3>
+                        <p class="text-[11px] font-bold text-zinc-500">成員管理、任務指派與即時邀請連結</p>
+                    </div>
+                </div>
+                <button onclick="app.closeTeamModal()" class="text-xl font-bold hover:text-red-600 px-2">&times;</button>
+            </div>
+
+            <!-- Tab 切換 -->
+            <div class="flex border-b-2 border-black bg-zinc-200 p-1 shrink-0 gap-1 text-xs font-bold">
+                <button type="button" id="tabTeamMembers" onclick="app.switchTeamTab('members')" class="flex-1 py-1.5 bg-black text-white transition-colors">👥 成員名單 (<span id="teamMemberCountBadge">0</span>)</button>
+                <button type="button" id="tabTeamInvite" onclick="app.switchTeamTab('invite')" class="flex-1 py-1.5 bg-zinc-100 text-black hover:bg-zinc-200 transition-colors">🔗 邀請連結 / 掃碼</button>
+                <button type="button" id="tabTeamProfile" onclick="app.switchTeamTab('profile')" class="flex-1 py-1.5 bg-zinc-100 text-black hover:bg-zinc-200 transition-colors">👤 我的身分</button>
+                <button type="button" id="tabTeamActivity" onclick="app.switchTeamTab('activity')" class="flex-1 py-1.5 bg-zinc-100 text-black hover:bg-zinc-200 transition-colors">📜 協作日誌</button>
+            </div>
+
+            <!-- 內容區 -->
+            <div class="flex-1 overflow-y-auto p-4 space-y-4">
+                <!-- Tab 1: 成員管理 -->
+                <div id="panelTeamMembers" class="space-y-4">
+                    <!-- 新增成員輸入框 -->
+                    <div class="p-3 bg-zinc-100 border-2 border-black space-y-2">
+                        <label class="block font-black text-xs uppercase">＋ 新增團隊成員</label>
+                        <div class="flex flex-wrap gap-2">
+                            <select id="newMemberAvatar" class="flat-input p-2 text-base bg-white w-14 text-center cursor-pointer">
+                                <option value="👑">👑</option>
+                                <option value="🐱">🐱</option>
+                                <option value="🐶">🐶</option>
+                                <option value="🦊">🦊</option>
+                                <option value="🦁">🦁</option>
+                                <option value="🚀">🚀</option>
+                                <option value="💻">💻</option>
+                                <option value="🎨">🎨</option>
+                                <option value="⚡">⚡</option>
+                                <option value="🎯">🎯</option>
+                            </select>
+                            <input type="text" id="newMemberName" placeholder="姓名 / 暱稱 (例如: Alex)" class="flat-input p-2 text-sm flex-1 min-w-[110px] bg-white">
+                            <input type="text" id="newMemberRole" placeholder="角色 (例如: 前端工程師)" class="flat-input p-2 text-sm flex-1 min-w-[110px] bg-white">
+                            <button onclick="app.addTeamMember()" class="px-3.5 py-2 bg-black text-white font-bold text-xs flat-box hover:bg-zinc-800 shrink-0">加入團隊</button>
+                        </div>
+                    </div>
+
+                    <!-- 成員清單 -->
+                    <div class="space-y-2">
+                        <div class="text-xs font-black text-zinc-500 uppercase tracking-wider">目前專案成員清單</div>
+                        <div id="teamMemberList" class="space-y-2">
+                            <!-- 動態注入成員卡片 -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Tab 2: 邀請連結 -->
+                <div id="panelTeamInvite" class="hidden space-y-4">
+                    <div class="p-4 bg-yellow-50 border-2 border-black space-y-3">
+                        <h4 class="font-black text-sm uppercase flex items-center gap-1.5">
+                            <span>🚀</span> <span>一鍵協作邀請連結 (Share & Sync URL)</span>
+                        </h4>
+                        <p class="text-xs text-zinc-700 leading-relaxed font-medium">
+                            將下方專屬連結傳送給團隊夥伴，對方點開後即可<strong>自動載入此 Google 雲端試算表與專案資料庫</strong>，不需手動複製貼上複雜的 API 網址！
+                        </p>
+                        
+                        <div class="flex gap-2">
+                            <input type="text" id="teamInviteUrlInput" readonly class="flat-input w-full p-2.5 text-xs font-mono bg-white select-all border-2 border-black">
+                            <button onclick="app.copyInviteUrl()" class="px-4 py-2 bg-black text-white font-bold text-xs flat-box hover:bg-zinc-800 shrink-0 flex items-center gap-1">
+                                <span>📋</span> <span>複製連結</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 手機掃描 QR Code 加入 -->
+                    <div class="p-4 bg-zinc-100 border-2 border-black flex flex-col items-center text-center space-y-2">
+                        <span class="font-black text-xs uppercase">📱 手機掃碼直接進入協作</span>
+                        <div id="inviteQrCodeContainer" class="p-2 bg-white border-2 border-black">
+                            <img id="inviteQrCodeImg" src="" alt="邀請 QR Code" class="w-36 h-36">
+                        </div>
+                        <p class="text-[11px] text-zinc-500 font-mono">使用手機相機掃描上方 QR 碼立即開啟專案</p>
+                    </div>
+                </div>
+
+                <!-- Tab 3: 我的身分設定 -->
+                <div id="panelTeamProfile" class="hidden space-y-4">
+                    <div class="p-4 bg-zinc-100 border-2 border-black space-y-3">
+                        <h4 class="font-black text-sm uppercase flex items-center gap-1.5">
+                            <span>👤</span> <span>設定我在這台裝置上的協作身分</span>
+                        </h4>
+                        <p class="text-xs text-zinc-600">設定後，您在任務中的留言、編輯或指派都會顯示您的頭像與暱稱。</p>
+                        
+                        <div class="space-y-3">
+                            <div>
+                                <label class="block font-bold text-xs mb-1">我的頭像 Emoji</label>
+                                <select id="myProfileAvatar" class="flat-input p-2 text-base bg-white w-24 text-center cursor-pointer">
+                                    <option value="👑">👑 國王</option>
+                                    <option value="🐱">🐱 貓咪</option>
+                                    <option value="🐶">🐶 狗狗</option>
+                                    <option value="🦊">🦊 狐狸</option>
+                                    <option value="🦁">🦁 獅子</option>
+                                    <option value="🚀">🚀 火箭</option>
+                                    <option value="💻">💻 工程師</option>
+                                    <option value="🎨">🎨 設計師</option>
+                                    <option value="⚡">⚡ 閃電</option>
+                                    <option value="🎯">🎯 射手</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block font-bold text-xs mb-1">我的暱稱 / 姓名 *</label>
+                                <input type="text" id="myProfileName" class="flat-input w-full p-2 text-sm bg-white" placeholder="例如：Alex">
+                            </div>
+                            <div>
+                                <label class="block font-bold text-xs mb-1">我的主要角色 / 職位</label>
+                                <input type="text" id="myProfileRole" class="flat-input w-full p-2 text-sm bg-white" placeholder="例如：前端負責人 / PM">
+                            </div>
+                        </div>
+
+                        <button onclick="app.saveMyProfile()" class="w-full mt-2 bg-black text-white py-2.5 font-bold text-xs border-2 border-black flat-box hover:bg-zinc-800">
+                            💾 儲存我的身分
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tab 4: 協作動態日誌 -->
+                <div id="panelTeamActivity" class="hidden space-y-3">
+                    <div class="text-xs font-black text-zinc-500 uppercase tracking-wider flex justify-between items-center">
+                        <span>📜 團隊協作近期動態</span>
+                        <button onclick="app.clearActivityLog()" class="text-[10px] text-red-600 hover:underline">清空日誌</button>
+                    </div>
+                    <div id="teamActivityList" class="space-y-2 max-h-72 overflow-y-auto no-scrollbar">
+                        <!-- 動態載入活動紀錄 -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- 底部按鈕 -->
+            <div class="p-3 border-t-2 border-black bg-zinc-100 flex justify-end shrink-0">
+                <button onclick="app.closeTeamModal()" class="px-5 py-2 border-2 border-black font-bold text-xs bg-black text-white flat-box hover:bg-zinc-800">完成關閉</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: 任務討論串與留言 -->
+    <div id="taskCommentsModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-3 md:p-6" onclick="app.closeTaskCommentsModal()">
+        <div class="bg-white border-2 border-black w-full max-w-lg flat-shadow-lg flex flex-col max-h-[85vh] overflow-hidden" onclick="event.stopPropagation()">
+            <div class="p-3 md:p-4 border-b-2 border-black bg-zinc-100 flex items-center justify-between shrink-0">
+                <div class="min-w-0 pr-2">
+                    <span class="text-[10px] font-black text-zinc-500 uppercase tracking-widest block">💬 任務討論串</span>
+                    <h3 id="commentTaskTitle" class="font-black text-base truncate"></h3>
+                </div>
+                <button onclick="app.closeTaskCommentsModal()" class="text-xl font-bold hover:text-red-600 px-2 shrink-0">&times;</button>
+            </div>
+
+            <!-- 留言清單 -->
+            <div id="taskCommentsList" class="flex-1 overflow-y-auto p-4 space-y-3 min-h-[160px] bg-zinc-50">
+                <!-- 動態注入留言 -->
+            </div>
+
+            <!-- 新增留言輸入區 -->
+            <div class="p-3 border-t-2 border-black bg-white space-y-2 shrink-0">
+                <div class="flex gap-2">
+                    <input type="text" id="newTaskCommentInput" placeholder="寫下留言、進度更新或備註... (按 Enter 發布)" class="flat-input flex-1 p-2 text-sm" onkeypress="if(event.key==='Enter') app.addTaskComment()">
+                    <button onclick="app.addTaskComment()" class="px-4 py-2 bg-black text-white font-bold text-xs flat-box hover:bg-zinc-800 shrink-0">發布</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- 系統訊息 Toast -->
     <div id="toast" class="fixed top-4 left-1/2 transform -translate-x-1/2 bg-black text-white px-4 py-2 font-bold text-sm border-2 border-black shadow-[4px_4px_0px_0px_#cbd5e1] z-[100] transition-all duration-300 opacity-0 pointer-events-none translate-y-[-20px]">
         訊息
@@ -846,6 +1046,25 @@
                     }));
                 }
 
+                // 團隊成員結構
+                if (!Array.isArray(p.members) || p.members.length === 0) {
+                    p.members = [
+                        { id: 'mem_owner', name: '專案負責人', role: 'Owner', avatar: '👑' }
+                    ];
+                } else {
+                    p.members = p.members.map((m, idx) => ({
+                        id: m.id || 'mem_' + (Date.now() + idx),
+                        name: m.name || '成員',
+                        role: m.role || '成員',
+                        avatar: m.avatar || '👤'
+                    }));
+                }
+
+                // 協作動態紀錄
+                if (!Array.isArray(p.activities)) {
+                    p.activities = [];
+                }
+
                 // 任務陣列
                 if (!Array.isArray(p.tasks)) {
                     p.tasks = [];
@@ -861,8 +1080,11 @@
                         return {
                             id: t.id || 'task_' + (Date.now() + idx),
                             title: t.title || '未命名任務',
+                            desc: t.desc || '',
                             status: status,
-                            priority: priority
+                            priority: priority,
+                            assignee: t.assignee || '',
+                            comments: Array.isArray(t.comments) ? t.comments : []
                         };
                     });
                 }
@@ -929,6 +1151,24 @@
             // ================= 初始化與生命週期 =================
             async init() {
                 try {
+                    // 0. 檢查是否有邀請連結參數 (?gasUrl=...&proj=...)
+                    try {
+                        const urlParams = new URLSearchParams(window.location.search);
+                        const inviteGasUrl = urlParams.get('gasUrl');
+                        const inviteProjId = urlParams.get('proj');
+
+                        if (inviteGasUrl && inviteGasUrl.startsWith('http')) {
+                            this.state.gasUrl = decodeURIComponent(inviteGasUrl).trim();
+                            localStorage.setItem('flatSpecGasUrl', this.state.gasUrl);
+                            if (inviteProjId) {
+                                this.state.activeProjectId = inviteProjId;
+                            }
+                            this.showToast('🎉 已透過邀請連結成功加入團隊雲端專案！');
+                        }
+                    } catch(e) {
+                        console.warn("Invite URL parsing skipped", e);
+                    }
+
                     // 1. 載入本地快取（快速渲染，杜絕白屏）
                     this.loadLocalData();
                     if (this.state.projects.length === 0) {
@@ -2328,7 +2568,6 @@
                 }
 
                 if (this.state.docMode === 'preview') {
-                    // 純檢視模式：隱藏所有編輯工具列與輸入框，呈現純淨閱讀排版
                     if (editHeader) editHeader.classList.add('hidden');
                     if (editToolbar) editToolbar.classList.add('hidden');
                     editorEl.classList.add('hidden');
@@ -2348,7 +2587,6 @@
                     btnPrev.className = 'px-3 py-1 bg-black text-white font-bold text-xs transition-colors flex items-center gap-1';
                     btnEdit.className = 'px-3 py-1 bg-zinc-100 text-black font-bold text-xs transition-colors hover:bg-zinc-200 flex items-center gap-1';
                 } else {
-                    // 編輯模式：顯示編輯器輸入框與所有編輯工具
                     if (editHeader) editHeader.classList.remove('hidden');
                     if (editToolbar) editToolbar.classList.remove('hidden');
                     editorEl.classList.remove('hidden');
@@ -2409,7 +2647,9 @@
                             id: 't_' + Date.now() + Math.random().toString(36).substr(2, 5),
                             title: cleanTitle,
                             status: 'TODO',
-                            priority: 'MED'
+                            priority: 'MED',
+                            assignee: '',
+                            comments: []
                         });
                         added++;
                     }
@@ -2450,28 +2690,41 @@
                 this.renderExecution();
             },
 
+            // ================= 任務與團隊協作管理 =================
+            taskMemberFilter: 'ALL',
+            activeCommentTaskId: null,
+
             addTask() {
                 const input = document.getElementById('newTaskInput');
                 const prio = document.getElementById('newTaskPriority');
-                const title = input.value.trim();
+                const assignee = document.getElementById('newTaskAssignee')?.value || '';
+                const title = input?.value.trim();
                 
                 if (!title) return;
 
                 const p = this.getCurrentProject();
                 if (p) {
                     if(!p.tasks) p.tasks = [];
-                    p.tasks.push({
+                    const newTask = {
                         id: 't_' + Date.now() + Math.random().toString(36).substr(2, 4),
                         title: title,
+                        desc: '',
                         status: 'TODO',
-                        priority: prio.value
-                    });
+                        priority: prio ? prio.value : 'MED',
+                        assignee: assignee,
+                        comments: []
+                    };
+                    p.tasks.push(newTask);
                     p.updatedAt = new Date().toISOString();
                     
+                    const myProfile = this.getMyProfile();
+                    this.logActivity(`${myProfile.name} 新增了任務「${title}」`);
+
                     input.value = '';
                     this.debouncedSaveAndSync();
                     this.renderExecution();
                     this.renderHeader();
+                    this.showToast('✅ 任務已新增');
                 }
             },
 
@@ -2484,6 +2737,18 @@
                 document.getElementById('editTaskTitleInput').value = task.title || '';
                 document.getElementById('editTaskPriorityInput').value = task.priority || 'MED';
                 document.getElementById('editTaskStatusInput').value = task.status || 'TODO';
+                document.getElementById('editTaskDescInput').value = task.desc || '';
+
+                // 填充成員下拉選單
+                const assigneeSelect = document.getElementById('editTaskAssigneeInput');
+                if (assigneeSelect) {
+                    let optHtml = '<option value="">👤 未指派成員</option>';
+                    (p.members || []).forEach(m => {
+                        const isSel = task.assignee === m.id || task.assignee === m.name;
+                        optHtml += `<option value="${this.escapeHtml(m.id)}" ${isSel ? 'selected' : ''}>${m.avatar} ${this.escapeHtml(m.name)} (${this.escapeHtml(m.role)})</option>`;
+                    });
+                    assigneeSelect.innerHTML = optHtml;
+                }
 
                 document.getElementById('editTaskModal')?.classList.remove('hidden');
             },
@@ -2491,8 +2756,10 @@
             saveTaskEdit() {
                 const taskId = document.getElementById('editTaskId')?.value;
                 const newTitle = document.getElementById('editTaskTitleInput')?.value.trim();
+                const newAssignee = document.getElementById('editTaskAssigneeInput')?.value || '';
                 const newPrio = document.getElementById('editTaskPriorityInput')?.value;
                 const newStatus = document.getElementById('editTaskStatusInput')?.value;
+                const newDesc = document.getElementById('editTaskDescInput')?.value || '';
 
                 if (!newTitle) {
                     this.showToast('任務標題不能為空', 'error');
@@ -2503,9 +2770,14 @@
                 const task = p?.tasks?.find(t => t.id === taskId);
                 if (task) {
                     task.title = newTitle;
+                    task.assignee = newAssignee;
                     task.priority = newPrio;
                     task.status = newStatus;
+                    task.desc = newDesc;
                     p.updatedAt = new Date().toISOString();
+
+                    const myProfile = this.getMyProfile();
+                    this.logActivity(`${myProfile.name} 更新了任務「${newTitle}」`);
 
                     this.closeModals();
                     this.debouncedSaveAndSync();
@@ -2522,6 +2794,10 @@
                     if (task) {
                         task.status = newStatus;
                         p.updatedAt = new Date().toISOString();
+                        
+                        const myProfile = this.getMyProfile();
+                        this.logActivity(`${myProfile.name} 將任務「${task.title}」狀態變更為 ${newStatus}`);
+
                         this.debouncedSaveAndSync();
                         this.renderExecution();
                         this.renderHeader();
@@ -2532,12 +2808,24 @@
             deleteTask(taskId) {
                 const p = this.getCurrentProject();
                 if (p && p.tasks) {
-                    p.tasks = p.tasks.filter(t => t.id !== taskId);
+                    const t = p.tasks.find(x => x.id === taskId);
+                    p.tasks = p.tasks.filter(x => x.id !== taskId);
                     p.updatedAt = new Date().toISOString();
+                    
+                    if (t) {
+                        const myProfile = this.getMyProfile();
+                        this.logActivity(`${myProfile.name} 刪除了任務「${t.title}」`);
+                    }
+
                     this.debouncedSaveAndSync();
                     this.renderExecution();
                     this.renderHeader();
                 }
+            },
+
+            setTaskMemberFilter(filter) {
+                this.taskMemberFilter = filter;
+                this.renderExecution();
             },
 
             renderExecution() {
@@ -2545,38 +2833,98 @@
                 if (!p) return;
                 
                 const tasks = p.tasks || [];
-                
+                const members = p.members || [];
+
+                // 1. 填充新增任務列的成員下拉
+                const newAssigneeSelect = document.getElementById('newTaskAssignee');
+                if (newAssigneeSelect) {
+                    let optHtml = '<option value="">👤 未指派</option>';
+                    members.forEach(m => {
+                        optHtml += `<option value="${this.escapeHtml(m.id)}">${m.avatar} ${this.escapeHtml(m.name)}</option>`;
+                    });
+                    newAssigneeSelect.innerHTML = optHtml;
+                }
+
+                // 2. 渲染成員過濾列
+                const filterBar = document.getElementById('taskMemberFilterBar');
+                if (filterBar) {
+                    let barHtml = `
+                        <button onclick="app.setTaskMemberFilter('ALL')" class="px-2.5 py-1 border-2 border-black font-bold text-xs shrink-0 transition-colors ${this.taskMemberFilter === 'ALL' ? 'bg-black text-white' : 'bg-white hover:bg-zinc-100'}">👥 全部 (${tasks.length})</button>
+                    `;
+                    members.forEach(m => {
+                        const count = tasks.filter(t => t.assignee === m.id || t.assignee === m.name).length;
+                        const isSel = this.taskMemberFilter === m.id;
+                        barHtml += `
+                            <button onclick="app.setTaskMemberFilter('${this.escapeHtml(m.id)}')" class="px-2.5 py-1 border-2 border-black font-bold text-xs shrink-0 flex items-center gap-1 transition-colors ${isSel ? 'bg-black text-white' : 'bg-white hover:bg-zinc-100'}">
+                                <span>${m.avatar}</span> <span>${this.escapeHtml(m.name)}</span> <span class="text-[10px] opacity-75">(${count})</span>
+                            </button>
+                        `;
+                    });
+                    const unassignedCount = tasks.filter(t => !t.assignee).length;
+                    if (unassignedCount > 0) {
+                        const isSel = this.taskMemberFilter === 'UNASSIGNED';
+                        barHtml += `
+                            <button onclick="app.setTaskMemberFilter('UNASSIGNED')" class="px-2.5 py-1 border-2 border-black font-bold text-xs shrink-0 transition-colors ${isSel ? 'bg-black text-white' : 'bg-white hover:bg-zinc-100'}">👤 未指派 (${unassignedCount})</button>
+                        `;
+                    }
+                    filterBar.innerHTML = barHtml;
+                }
+
+                // 3. 過濾任務清單
+                const filteredTasks = tasks.filter(t => {
+                    if (this.taskMemberFilter === 'ALL') return true;
+                    if (this.taskMemberFilter === 'UNASSIGNED') return !t.assignee;
+                    return t.assignee === this.taskMemberFilter || t.assignee === members.find(m => m.id === this.taskMemberFilter)?.name;
+                });
+
                 const getPrioBadge = (prio) => {
-                    if (prio === 'HIGH') return `<span class="bg-red-200 text-red-800 border-2 border-red-800 px-1.5 py-0.5 text-[10px] font-black">🔴 HIGH</span>`;
-                    if (prio === 'LOW') return `<span class="bg-blue-200 text-blue-800 border-2 border-blue-800 px-1.5 py-0.5 text-[10px] font-black">🔵 LOW</span>`;
-                    return `<span class="bg-yellow-200 text-yellow-800 border-2 border-yellow-800 px-1.5 py-0.5 text-[10px] font-black">🟡 MED</span>`;
+                    if (prio === 'HIGH') return `<span class="bg-red-100 text-red-900 border border-red-500 px-1.5 py-0.2 text-[10px] font-black">🔴 HIGH</span>`;
+                    if (prio === 'LOW') return `<span class="bg-blue-100 text-blue-900 border border-blue-500 px-1.5 py-0.2 text-[10px] font-black">🔵 LOW</span>`;
+                    return `<span class="bg-yellow-100 text-yellow-900 border border-yellow-500 px-1.5 py-0.2 text-[10px] font-black">🟡 MED</span>`;
+                };
+
+                const getAssigneeBadge = (assigneeId) => {
+                    if (!assigneeId) return '';
+                    const m = members.find(x => x.id === assigneeId || x.name === assigneeId);
+                    if (!m) return `<span class="bg-zinc-100 text-zinc-700 border border-zinc-400 px-1.5 py-0.2 text-[10px] font-bold">👤 ${this.escapeHtml(assigneeId)}</span>`;
+                    return `<span class="bg-violet-100 text-violet-900 border border-violet-400 px-1.5 py-0.2 text-[10px] font-bold flex items-center gap-0.5"><span>${m.avatar}</span> <span>${this.escapeHtml(m.name)}</span></span>`;
                 };
 
                 // 清單模式渲染
                 if (this.state.execViewMode === 'list') {
                     const listEl = document.getElementById('execListView');
                     if(listEl) {
-                        listEl.innerHTML = tasks.length === 0 ? `<div class="p-8 text-center text-zinc-400 font-bold border-2 border-dashed border-zinc-300">目前尚無任務，請從上方新增或由精靈產生。</div>` : 
-                            tasks.map(t => `
-                            <div class="bg-white border-2 border-black p-3 flat-box flex items-center justify-between gap-3 ${t.status === 'DONE' ? 'opacity-60 bg-zinc-50' : ''}">
-                                <div class="flex items-center gap-3 flex-1 min-w-0">
-                                    <input type="checkbox" class="w-5 h-5 border-2 border-black accent-black cursor-pointer shrink-0" 
-                                        ${t.status === 'DONE' ? 'checked' : ''} 
-                                        onchange="app.updateTaskStatus('${t.id}', this.checked ? 'DONE' : 'TODO')">
-                                    <span onclick="app.openEditTaskModal('${t.id}')" class="font-bold text-sm truncate cursor-pointer hover:underline ${t.status === 'DONE' ? 'line-through text-zinc-500' : ''}" title="點擊編輯任務">${this.escapeHtml(t.title)}</span>
-                                </div>
-                                <div class="flex items-center gap-2 shrink-0">
-                                    ${getPrioBadge(t.priority)}
-                                    <select onchange="app.updateTaskStatus('${t.id}', this.value)" class="flat-input text-xs font-bold p-1 bg-zinc-100 cursor-pointer hidden sm:block">
-                                        <option value="TODO" ${t.status === 'TODO' ? 'selected' : ''}>TODO</option>
-                                        <option value="DOING" ${t.status === 'DOING' ? 'selected' : ''}>DOING</option>
-                                        <option value="DONE" ${t.status === 'DONE' ? 'selected' : ''}>DONE</option>
-                                    </select>
-                                    <button onclick="app.openEditTaskModal('${t.id}')" class="text-zinc-600 hover:bg-zinc-200 p-1 border-2 border-transparent hover:border-black transition-colors text-xs font-bold" title="編輯">✏️</button>
-                                    <button onclick="app.deleteTask('${t.id}')" class="text-red-500 hover:bg-red-100 p-1 border-2 border-transparent hover:border-red-500 transition-colors" title="刪除">🗑️</button>
-                                </div>
-                            </div>
-                        `).join('');
+                        listEl.innerHTML = filteredTasks.length === 0 ? `<div class="p-8 text-center text-zinc-400 font-bold border-2 border-dashed border-zinc-300">目前尚無符合的任務。</div>` : 
+                            filteredTasks.map(t => {
+                                const commentCount = (t.comments || []).length;
+                                return `
+                                    <div id="task_${t.id}" class="bg-white border-2 border-black p-3 flat-box flex items-center justify-between gap-3 ${t.status === 'DONE' ? 'opacity-60 bg-zinc-50' : ''}">
+                                        <div class="flex items-center gap-2.5 flex-1 min-w-0">
+                                            <input type="checkbox" class="w-5 h-5 border-2 border-black accent-black cursor-pointer shrink-0" 
+                                                ${t.status === 'DONE' ? 'checked' : ''} 
+                                                onchange="app.updateTaskStatus('${t.id}', this.checked ? 'DONE' : 'TODO')">
+                                            <div class="flex flex-col min-w-0">
+                                                <span onclick="app.openEditTaskModal('${t.id}')" class="font-black text-sm truncate cursor-pointer hover:underline ${t.status === 'DONE' ? 'line-through text-zinc-500' : ''}" title="點擊編輯任務">${this.escapeHtml(t.title)}</span>
+                                                ${t.desc ? `<span class="text-[11px] text-zinc-500 font-mono truncate max-w-md">${this.escapeHtml(t.desc)}</span>` : ''}
+                                            </div>
+                                        </div>
+                                        <div class="flex items-center gap-1.5 shrink-0">
+                                            ${getAssigneeBadge(t.assignee)}
+                                            ${getPrioBadge(t.priority)}
+                                            <button onclick="app.openTaskComments('${t.id}')" class="p-1 px-1.5 border-2 border-black font-bold text-[11px] bg-white hover:bg-yellow-200 flat-box flex items-center gap-1" title="任務討論串">
+                                                <span>💬</span> <span>${commentCount}</span>
+                                            </button>
+                                            <select onchange="app.updateTaskStatus('${t.id}', this.value)" class="flat-input text-xs font-bold p-1 bg-zinc-100 cursor-pointer hidden sm:block">
+                                                <option value="TODO" ${t.status === 'TODO' ? 'selected' : ''}>TODO</option>
+                                                <option value="DOING" ${t.status === 'DOING' ? 'selected' : ''}>DOING</option>
+                                                <option value="DONE" ${t.status === 'DONE' ? 'selected' : ''}>DONE</option>
+                                            </select>
+                                            <button onclick="app.openEditTaskModal('${t.id}')" class="text-zinc-600 hover:bg-zinc-200 p-1 border-2 border-transparent hover:border-black transition-colors text-xs font-bold" title="編輯">✏️</button>
+                                            <button onclick="app.deleteTask('${t.id}')" class="text-red-500 hover:bg-red-100 p-1 border-2 border-transparent hover:border-red-500 transition-colors" title="刪除">🗑️</button>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('');
                     }
                 } 
                 // 看板模式渲染
@@ -2584,20 +2932,28 @@
                     const kanbans = { 'TODO': '', 'DOING': '', 'DONE': '' };
                     let counts = { 'TODO': 0, 'DOING': 0, 'DONE': 0 };
 
-                    tasks.forEach(t => {
+                    filteredTasks.forEach(t => {
                         const status = t.status || 'TODO';
                         if(counts[status] !== undefined) counts[status]++;
+                        const commentCount = (t.comments || []).length;
                         
                         const renderCard = `
-                            <div class="bg-white border-2 border-black p-3 flat-box text-sm font-bold flex flex-col gap-2">
+                            <div id="task_${t.id}" class="bg-white border-2 border-black p-3 flat-box text-sm font-bold flex flex-col gap-2">
                                 <div class="flex justify-between items-start">
-                                    <span onclick="app.openEditTaskModal('${t.id}')" class="leading-tight cursor-pointer hover:underline" title="點擊編輯任務">${this.escapeHtml(t.title)}</span>
+                                    <span onclick="app.openEditTaskModal('${t.id}')" class="leading-tight cursor-pointer hover:underline font-black" title="點擊編輯任務">${this.escapeHtml(t.title)}</span>
                                     <div class="flex items-center gap-1 shrink-0">
                                         <button onclick="app.openEditTaskModal('${t.id}')" class="text-[10px] text-zinc-500 hover:text-black">✏️</button>
                                         <button onclick="app.deleteTask('${t.id}')" class="text-xs text-zinc-400 hover:text-red-500">✕</button>
                                     </div>
                                 </div>
-                                <div class="flex justify-between items-center mt-2 border-t-2 border-zinc-100 pt-2">
+                                ${t.desc ? `<p class="text-[11px] text-zinc-500 font-mono line-clamp-2">${this.escapeHtml(t.desc)}</p>` : ''}
+                                <div class="flex items-center justify-between gap-1 flex-wrap">
+                                    ${getAssigneeBadge(t.assignee)}
+                                    <button onclick="app.openTaskComments('${t.id}')" class="text-[10px] text-zinc-600 hover:text-black flex items-center gap-0.5 bg-zinc-100 px-1.5 py-0.5 border border-zinc-300">
+                                        <span>💬</span> <span>${commentCount}</span>
+                                    </button>
+                                </div>
+                                <div class="flex justify-between items-center mt-1 border-t-2 border-zinc-100 pt-2">
                                     ${getPrioBadge(t.priority)}
                                     <select onchange="app.updateTaskStatus('${t.id}', this.value)" class="flat-input text-[10px] font-bold p-0.5 bg-zinc-100 cursor-pointer">
                                         <option value="TODO" ${t.status === 'TODO' ? 'selected' : ''}>到 TODO</option>
@@ -2611,13 +2967,345 @@
                     });
 
                     const setInner = (id, html) => { const el = document.getElementById(id); if(el) el.innerHTML = html; };
-                    setInner('kanbanTodo', kanbans['TODO']);
-                    setInner('kanbanDoing', kanbans['DOING']);
-                    setInner('kanbanDone', kanbans['DONE']);
+                    setInner('kanbanTodo', kanbans['TODO'] || '<div class="text-xs text-zinc-400 p-4 text-center italic">無任務</div>');
+                    setInner('kanbanDoing', kanbans['DOING'] || '<div class="text-xs text-zinc-400 p-4 text-center italic">無任務</div>');
+                    setInner('kanbanDone', kanbans['DONE'] || '<div class="text-xs text-zinc-400 p-4 text-center italic">無任務</div>');
                     
                     setInner('countTodo', counts['TODO']);
                     setInner('countDoing', counts['DOING']);
                     setInner('countDone', counts['DONE']);
+                }
+            },
+
+            // ================= 團隊協作管理方法 =================
+            currentTeamTab: 'members',
+
+            openTeamModal() {
+                this.renderTeamModal();
+                document.getElementById('teamModal')?.classList.remove('hidden');
+            },
+
+            closeTeamModal() {
+                document.getElementById('teamModal')?.classList.add('hidden');
+            },
+
+            switchTeamTab(tab) {
+                this.currentTeamTab = tab;
+                ['members', 'invite', 'profile', 'activity'].forEach(t => {
+                    const btn = document.getElementById(`tabTeam${t.charAt(0).toUpperCase() + t.slice(1)}`);
+                    const panel = document.getElementById(`panelTeam${t.charAt(0).toUpperCase() + t.slice(1)}`);
+                    if (btn) {
+                        btn.className = t === tab 
+                            ? 'flex-1 py-1.5 bg-black text-white transition-colors' 
+                            : 'flex-1 py-1.5 bg-zinc-100 text-black hover:bg-zinc-200 transition-colors';
+                    }
+                    if (panel) {
+                        if (t === tab) panel.classList.remove('hidden');
+                        else panel.classList.add('hidden');
+                    }
+                });
+
+                if (tab === 'invite') {
+                    this.renderInviteLink();
+                } else if (tab === 'profile') {
+                    this.renderMyProfile();
+                } else if (tab === 'activity') {
+                    this.renderActivityLog();
+                }
+            },
+
+            renderTeamModal() {
+                const p = this.getCurrentProject();
+                if (!p) return;
+
+                const members = p.members || [];
+                const countBadge = document.getElementById('teamMemberCountBadge');
+                if (countBadge) countBadge.innerText = members.length;
+
+                const listEl = document.getElementById('teamMemberList');
+                if (listEl) {
+                    if (members.length === 0) {
+                        listEl.innerHTML = `<div class="p-4 bg-zinc-50 border border-dashed border-zinc-300 text-center text-xs text-zinc-400">目前尚無團隊成員</div>`;
+                    } else {
+                        listEl.innerHTML = members.map(m => `
+                            <div class="p-2.5 bg-white border-2 border-black flex items-center justify-between flat-box">
+                                <div class="flex items-center gap-2.5">
+                                    <span class="text-xl p-1 bg-zinc-100 border border-black">${m.avatar || '👤'}</span>
+                                    <div>
+                                        <div class="font-black text-sm text-zinc-900">${this.escapeHtml(m.name)}</div>
+                                        <div class="text-[11px] font-bold text-zinc-500">${this.escapeHtml(m.role || '成員')}</div>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-1">
+                                    <button onclick="app.deleteTeamMember('${this.escapeHtml(m.id)}')" class="p-1 text-red-500 hover:bg-red-50 border border-transparent hover:border-red-400 font-bold text-xs" title="移除成員">✕ 移除</button>
+                                </div>
+                            </div>
+                        `).join('');
+                    }
+                }
+
+                this.switchTeamTab(this.currentTeamTab || 'members');
+            },
+
+            addTeamMember() {
+                const avatar = document.getElementById('newMemberAvatar')?.value || '👤';
+                const name = document.getElementById('newMemberName')?.value.trim();
+                const role = document.getElementById('newMemberRole')?.value.trim() || '團隊成員';
+
+                if (!name) {
+                    this.showToast('請輸入成員姓名或暱稱', 'error');
+                    return;
+                }
+
+                const p = this.getCurrentProject();
+                if (p) {
+                    if (!p.members) p.members = [];
+                    const newMem = {
+                        id: 'mem_' + Date.now(),
+                        name: name,
+                        role: role,
+                        avatar: avatar
+                    };
+                    p.members.push(newMem);
+                    p.updatedAt = new Date().toISOString();
+
+                    const myProfile = this.getMyProfile();
+                    this.logActivity(`${myProfile.name} 將新成員「${name} (${role})」加入專案`);
+
+                    document.getElementById('newMemberName').value = '';
+                    document.getElementById('newMemberRole').value = '';
+
+                    this.debouncedSaveAndSync();
+                    this.renderTeamModal();
+                    this.renderExecution();
+                    this.showToast(`🎉 已成功將 ${name} 加入團隊！`);
+                }
+            },
+
+            deleteTeamMember(memberId) {
+                const p = this.getCurrentProject();
+                if (p && p.members) {
+                    const m = p.members.find(x => x.id === memberId);
+                    p.members = p.members.filter(x => x.id !== memberId);
+                    p.updatedAt = new Date().toISOString();
+
+                    if (m) {
+                        const myProfile = this.getMyProfile();
+                        this.logActivity(`${myProfile.name} 移除了成員「${m.name}」`);
+                    }
+
+                    this.debouncedSaveAndSync();
+                    this.renderTeamModal();
+                    this.renderExecution();
+                    this.showToast('已移除成員');
+                }
+            },
+
+            renderInviteLink() {
+                const p = this.getCurrentProject();
+                const input = document.getElementById('teamInviteUrlInput');
+                const img = document.getElementById('inviteQrCodeImg');
+                if (!input) return;
+
+                const base = window.location.origin + window.location.pathname;
+                const gas = encodeURIComponent(this.state.gasUrl || '');
+                const proj = p ? encodeURIComponent(p.id) : '';
+                const inviteUrl = `${base}?gasUrl=${gas}&proj=${proj}`;
+
+                input.value = inviteUrl;
+
+                if (img) {
+                    img.src = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(inviteUrl)}`;
+                }
+            },
+
+            copyInviteUrl() {
+                const input = document.getElementById('teamInviteUrlInput');
+                if (input && input.value) {
+                    navigator.clipboard.writeText(input.value)
+                        .then(() => this.showToast('📋 邀請連結已複製到剪貼簿！傳送給隊友即可一鍵加入！'))
+                        .catch(() => {
+                            input.select();
+                            document.execCommand('copy');
+                            this.showToast('📋 邀請連結已複製！');
+                        });
+                }
+            },
+
+            getMyProfile() {
+                try {
+                    const saved = localStorage.getItem('flatSpecProfile');
+                    if (saved) return JSON.parse(saved);
+                } catch (e) {}
+                return { name: '我', avatar: '🐱', role: '協作者' };
+            },
+
+            renderMyProfile() {
+                const prof = this.getMyProfile();
+                const nameEl = document.getElementById('myProfileName');
+                const roleEl = document.getElementById('myProfileRole');
+                const avatarEl = document.getElementById('myProfileAvatar');
+                if (nameEl) nameEl.value = prof.name || '';
+                if (roleEl) roleEl.value = prof.role || '';
+                if (avatarEl) avatarEl.value = prof.avatar || '🐱';
+            },
+
+            saveMyProfile() {
+                const name = document.getElementById('myProfileName')?.value.trim() || '協作者';
+                const role = document.getElementById('myProfileRole')?.value.trim() || '成員';
+                const avatar = document.getElementById('myProfileAvatar')?.value || '🐱';
+
+                const profile = { name, role, avatar };
+                localStorage.setItem('flatSpecProfile', JSON.stringify(profile));
+                this.showToast(`👤 已儲存身分設定：${avatar} ${name}`);
+            },
+
+            logActivity(actionText) {
+                const p = this.getCurrentProject();
+                if (!p) return;
+                if (!p.activities) p.activities = [];
+                
+                p.activities.unshift({
+                    id: 'act_' + Date.now(),
+                    text: actionText,
+                    time: new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', month: '2-digit', day: '2-digit' })
+                });
+
+                if (p.activities.length > 50) p.activities = p.activities.slice(0, 50);
+            },
+
+            clearActivityLog() {
+                const p = this.getCurrentProject();
+                if (p) {
+                    p.activities = [];
+                    this.debouncedSaveAndSync();
+                    this.renderActivityLog();
+                    this.showToast('📜 已清空活動紀錄');
+                }
+            },
+
+            renderActivityLog() {
+                const p = this.getCurrentProject();
+                const listEl = document.getElementById('teamActivityList');
+                if (!listEl || !p) return;
+
+                const acts = p.activities || [];
+                if (acts.length === 0) {
+                    listEl.innerHTML = `<div class="p-4 text-center text-xs text-zinc-400 italic">尚無任何活動紀錄</div>`;
+                    return;
+                }
+
+                listEl.innerHTML = acts.map(a => `
+                    <div class="p-2 bg-white border border-zinc-300 text-xs flex items-center justify-between font-mono">
+                        <span class="text-zinc-800">${this.escapeHtml(a.text)}</span>
+                        <span class="text-zinc-400 text-[10px] shrink-0 ml-2">${this.escapeHtml(a.time)}</span>
+                    </div>
+                `).join('');
+            },
+
+            // ================= 任務留言討論串 =================
+            openTaskComments(taskId) {
+                const p = this.getCurrentProject();
+                const task = p?.tasks?.find(t => t.id === taskId);
+                if (!task) return;
+
+                this.activeCommentTaskId = taskId;
+                const titleEl = document.getElementById('commentTaskTitle');
+                if (titleEl) titleEl.innerText = task.title;
+                this.renderTaskComments();
+                document.getElementById('taskCommentsModal')?.classList.remove('hidden');
+                
+                const input = document.getElementById('newTaskCommentInput');
+                if (input) {
+                    input.value = '';
+                    setTimeout(() => input.focus(), 60);
+                }
+            },
+
+            closeTaskCommentsModal() {
+                document.getElementById('taskCommentsModal')?.classList.add('hidden');
+                this.activeCommentTaskId = null;
+            },
+
+            renderTaskComments() {
+                const p = this.getCurrentProject();
+                const task = p?.tasks?.find(t => t.id === this.activeCommentTaskId);
+                const listEl = document.getElementById('taskCommentsList');
+                if (!task || !listEl) return;
+
+                const comments = task.comments || [];
+                if (comments.length === 0) {
+                    listEl.innerHTML = `
+                        <div class="py-8 text-center text-zinc-400">
+                            <span class="text-3xl block mb-1">💬</span>
+                            <p class="font-bold text-xs text-zinc-500">尚無任何留言討論</p>
+                            <p class="text-[11px] text-zinc-400 mt-0.5">在下方輸入留言開始團隊討論吧！</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                listEl.innerHTML = comments.map((c, idx) => `
+                    <div class="p-2.5 bg-white border-2 border-black flat-box space-y-1">
+                        <div class="flex items-center justify-between text-xs">
+                            <div class="flex items-center gap-1.5 font-black text-zinc-900">
+                                <span>${c.avatar || '👤'}</span>
+                                <span>${this.escapeHtml(c.author || '團隊成員')}</span>
+                                ${c.role ? `<span class="text-[10px] font-bold text-zinc-400 bg-zinc-100 px-1 border border-zinc-300">${this.escapeHtml(c.role)}</span>` : ''}
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-[10px] text-zinc-400 font-mono">${this.escapeHtml(c.time || '')}</span>
+                                <button onclick="app.deleteTaskComment(${idx})" class="text-zinc-400 hover:text-red-600 text-xs">✕</button>
+                            </div>
+                        </div>
+                        <div class="text-xs text-zinc-800 font-mono leading-relaxed whitespace-pre-wrap pl-5">${this.escapeHtml(c.text)}</div>
+                    </div>
+                `).join('');
+
+                listEl.scrollTop = listEl.scrollHeight;
+            },
+
+            addTaskComment() {
+                const input = document.getElementById('newTaskCommentInput');
+                const text = input?.value.trim();
+                if (!text) return;
+
+                const p = this.getCurrentProject();
+                const task = p?.tasks?.find(t => t.id === this.activeCommentTaskId);
+                if (task) {
+                    if (!task.comments) task.comments = [];
+                    const profile = this.getMyProfile();
+                    
+                    task.comments.push({
+                        id: 'cmt_' + Date.now(),
+                        author: profile.name,
+                        avatar: profile.avatar,
+                        role: profile.role,
+                        text: text,
+                        time: new Date().toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', month: '2-digit', day: '2-digit' })
+                    });
+                    p.updatedAt = new Date().toISOString();
+
+                    this.logActivity(`${profile.name} 在任務「${task.title}」留下了新評論`);
+
+                    input.value = '';
+                    this.debouncedSaveAndSync();
+                    this.renderTaskComments();
+                    this.renderExecution();
+                    this.showToast('💬 留言已發布！');
+                }
+            },
+
+            deleteTaskComment(commentIndex) {
+                const p = this.getCurrentProject();
+                const task = p?.tasks?.find(t => t.id === this.activeCommentTaskId);
+                if (task && task.comments && task.comments[commentIndex]) {
+                    task.comments.splice(commentIndex, 1);
+                    p.updatedAt = new Date().toISOString();
+                    this.debouncedSaveAndSync();
+                    this.renderTaskComments();
+                    this.renderExecution();
+                    this.showToast('留言已刪除');
                 }
             },
 
@@ -2785,7 +3473,7 @@
                 document.getElementById('newDocModal')?.classList.remove('hidden');
             },
             closeModals() {
-                ['gasModal', 'newProjectModal', 'newDocModal', 'backupModal', 'editProjectModal', 'editTaskModal', 'insertImageModal', 'imageViewerModal', 'searchModal'].forEach(id => {
+                ['gasModal', 'newProjectModal', 'newDocModal', 'backupModal', 'editProjectModal', 'editTaskModal', 'insertImageModal', 'imageViewerModal', 'searchModal', 'teamModal', 'taskCommentsModal'].forEach(id => {
                     const el = document.getElementById(id);
                     if(el) el.classList.add('hidden');
                 });
