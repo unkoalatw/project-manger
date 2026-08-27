@@ -126,6 +126,8 @@ function testRun() {
  * 輔助函式：獲取或創建資料 Sheet
  */
 function getOrCreateDataSheet(ss) {
+  ss = ss || getTargetSpreadsheet();
+  
   var sheet = ss.getSheetByName(SHEET_NAME_DATA);
   if (!sheet) {
     sheet = ss.insertSheet(SHEET_NAME_DATA);
