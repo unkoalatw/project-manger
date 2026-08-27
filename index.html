@@ -514,6 +514,25 @@
                         </button>
                     </div>
                 </div>
+
+                <!-- 過時與過期 LocalStorage 快取清理工具 -->
+                <div class="p-4 bg-red-50 border-2 border-red-900 space-y-3 text-red-950">
+                    <div class="flex items-center justify-between">
+                        <span class="font-black text-sm uppercase flex items-center gap-1.5">🧹 過時資料清理工具</span>
+                        <span class="text-[10px] font-mono bg-red-200 px-2 py-0.5 border border-red-900 font-bold">快取管理</span>
+                    </div>
+                    <p class="text-xs text-zinc-700 leading-relaxed font-medium">
+                        可安全清除過期的本地快取資料（例如歷史測試暫存），並保留合法的最新專案。
+                    </p>
+                    <div class="flex flex-col sm:flex-row gap-2 pt-1">
+                        <button onclick="app.purgeOutdatedLocalData('2026-08-27T14:00:00+08:00')" class="flex-1 bg-white hover:bg-red-100 text-red-900 font-bold py-2 px-2 border-2 border-red-900 flat-box text-xs flex items-center justify-center gap-1" title="清理 2026/8/27 14:00 以前的本地專案">
+                            <span>🧹</span> 清除 2026/8/27 14:00 以前資料
+                        </button>
+                        <button onclick="app.resetLocalStorageAndPull()" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-2 border-2 border-black flat-box text-xs flex items-center justify-center gap-1" title="徹底清空本機快取並從 Google 試算表載入">
+                            <span>🗑️</span> 重置本機並從雲端重新載入
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -874,12 +893,28 @@
             // ================= 本機儲存 (離線快取層) =================
             loadLocalData() {
                 const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbyKQNxw0NiU87rx9pxgb0r1XN74A2WLVAYeVLimNBZYYiY-07G1tK-pi1EXLhYn1nSyFw/exec';
+                const CUTOFF_TIME = new Date('2026-08-27T14:00:00+08:00').getTime();
+
                 try {
                     const localData = localStorage.getItem('flatSpecData');
                     if (localData) {
                         const parsed = JSON.parse(localData);
                         if (Array.isArray(parsed) && parsed.length > 0) {
-                            this.state.projects = parsed.map(p => this.normalizeProject(p)).filter(Boolean);
+                            const normalized = parsed.map(p => this.normalizeProject(p)).filter(Boolean);
+                            // 自動清理 2026/8/27 14:00 以前的過時本地快取資料
+                            const validProjects = normalized.filter(p => {
+                                if (!p.updatedAt) return false;
+                                const pTime = new Date(p.updatedAt).getTime();
+                                if (pTime < CUTOFF_TIME) return false;
+                                if (p.title && (p.title.includes('FlatSpec 實測專案') || p.title.includes('跨裝置同步與CORS優化版')) && pTime < CUTOFF_TIME) return false;
+                                return true;
+                            });
+
+                            this.state.projects = validProjects;
+                            if (validProjects.length !== normalized.length) {
+                                localStorage.setItem('flatSpecData', JSON.stringify(validProjects));
+                                console.log(`[Storage] 🧹 已自動清理 ${normalized.length - validProjects.length} 個 2026/8/27 14:00 以前的過時本地快取專案。`);
+                            }
                         }
                     }
                     
@@ -2490,6 +2525,67 @@
                 this.saveToLocal();
                 this.renderBackupModalInfo();
                 this.showToast('💾 已強制寫入瀏覽器 LocalStorage！');
+            },
+            // 清除過期/過時 LocalStorage 快取資料
+            purgeOutdatedLocalData(cutoffStr = '2026-08-27T14:00:00+08:00') {
+                const cutoffTime = new Date(cutoffStr).getTime();
+                const initialCount = this.state.projects.length;
+                
+                // 1. 過濾掉 updatedAt 早於指定時間的專案，或舊版測試專案
+                const validProjects = this.state.projects.filter(p => {
+                    if (!p.updatedAt) return false;
+                    const pTime = new Date(p.updatedAt).getTime();
+                    // 若時間早於 2026/8/27 14:00:00 (UTC+8) 或是早期測試專案
+                    if (pTime < cutoffTime) return false;
+                    if (p.title && (p.title.includes('FlatSpec 實測專案') || p.title.includes('跨裝置同步與CORS優化版')) && pTime < cutoffTime) return false;
+                    return true;
+                });
+
+                const removedCount = initialCount - validProjects.length;
+                this.state.projects = validProjects;
+                
+                // 2. 修正當前選中的 activeProjectId
+                if (this.state.projects.length > 0) {
+                    if (!this.state.projects.some(p => p.id === this.state.activeProjectId)) {
+                        this.state.activeProjectId = this.state.projects[0].id;
+                        this.state.activeDocId = this.state.projects[0].docs?.[0]?.id || null;
+                    }
+                } else {
+                    this.state.activeProjectId = null;
+                    this.state.activeDocId = null;
+                }
+
+                // 3. 寫入清理後的 LocalStorage 並更新畫面
+                this.saveToLocal();
+                this.smartRenderAll();
+                this.renderBackupModalInfo();
+                
+                if (removedCount > 0) {
+                    this.showToast(`🧹 已清理 ${removedCount} 個 2026/8/27 14:00 以前的過時本地資料！`);
+                } else {
+                    this.showToast('✅ 本地快取中沒有 2026/8/27 14:00 以前的過時資料。');
+                }
+            },
+            // 徹底重置本機 LocalStorage 並從雲端重新載入
+            async resetLocalStorageAndPull() {
+                if (!confirm('確定要清空瀏覽器 LocalStorage 快取，並自 Google 試算表雲端重新拉取最新資料嗎？')) {
+                    return;
+                }
+                
+                try {
+                    localStorage.removeItem('flatSpecData');
+                    localStorage.removeItem('flatSpecHasPendingChanges');
+                    this.state.projects = [];
+                    this.state.activeProjectId = null;
+                    this.state.activeDocId = null;
+                    this.showToast('🧹 已清除本機 LocalStorage，正在從雲端載入...');
+                    
+                    await this.pullFromCloud(true);
+                    this.renderBackupModalInfo();
+                    this.showToast('✨ 已成功重置本機並同步雲端最新資料！');
+                } catch (e) {
+                    this.showToast('重置雲端拉取失敗: ' + e.message, 'error');
+                }
             },
             openGasModal() {
                 const el = document.getElementById('gasUrlInput');
