@@ -105,14 +105,18 @@
         </div>
 
         <!-- 側邊欄底部快捷列 -->
-        <div class="p-3 border-t-2 border-black bg-zinc-300 flex justify-around">
-            <button onclick="app.exportMasterMarkdown()" class="p-2 hover:bg-zinc-100 border-2 border-transparent hover:border-black font-bold text-xs flex flex-col items-center gap-1 transition-colors" title="匯出 Markdown">
-                <span class="text-lg">📦</span>
+        <div class="p-2.5 border-t-2 border-black bg-zinc-300 grid grid-cols-3 gap-1">
+            <button onclick="app.openBackupModal()" class="p-1.5 hover:bg-zinc-100 border-2 border-transparent hover:border-black font-bold text-[11px] flex flex-col items-center gap-0.5 transition-colors flat-box" title="本機檔案備份與還原">
+                <span class="text-base">💾</span>
+                <span>備份</span>
+            </button>
+            <button onclick="app.exportMasterMarkdown()" class="p-1.5 hover:bg-zinc-100 border-2 border-transparent hover:border-black font-bold text-[11px] flex flex-col items-center gap-0.5 transition-colors flat-box" title="匯出 Markdown 規格書">
+                <span class="text-base">📦</span>
                 <span>匯出</span>
             </button>
-            <button onclick="app.openGasModal()" class="p-2 hover:bg-zinc-100 border-2 border-transparent hover:border-black font-bold text-xs flex flex-col items-center gap-1 transition-colors" title="雲端設定">
-                <span class="text-lg">☁️</span>
-                <span>同步</span>
+            <button onclick="app.openGasModal()" class="p-1.5 hover:bg-zinc-100 border-2 border-transparent hover:border-black font-bold text-[11px] flex flex-col items-center gap-0.5 transition-colors flat-box" title="GAS 雲端同步設定">
+                <span class="text-base">☁️</span>
+                <span>雲端</span>
             </button>
         </div>
     </aside>
@@ -408,6 +412,53 @@
                         <li>確保「誰可以存取 (Who has access)」設定為<strong>「所有人 (Anyone)」</strong>。</li>
                         <li>確保複製的網址結尾是 <code>/exec</code>。</li>
                     </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: 本機檔案備份與還原 -->
+    <div id="backupModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+        <div class="bg-white border-2 border-black p-6 max-w-lg w-full flat-shadow-lg flex flex-col max-h-[90vh]">
+            <div class="flex items-center justify-between border-b-2 border-black pb-3 mb-4 shrink-0">
+                <h3 class="font-black text-lg uppercase flex items-center gap-2">💾 本機檔案備份與還原</h3>
+                <button onclick="app.closeModals()" class="text-xl font-bold hover:text-red-600 px-2">&times;</button>
+            </div>
+            
+            <div class="overflow-y-auto space-y-4 pr-1 no-scrollbar pb-2">
+                <!-- 檔案匯出與匯入 (實體 JSON 檔案) -->
+                <div class="p-4 bg-zinc-100 border-2 border-black space-y-3">
+                    <h4 class="font-black text-sm uppercase flex items-center gap-1.5">
+                        <span>📁</span> 本地實體 JSON 檔案 (安全離線備份)
+                    </h4>
+                    <p class="text-xs text-zinc-600 font-medium leading-relaxed">
+                        一鍵將所有專案、文檔與任務完整下載至電腦本機磁碟，或選取先前的 <code>.json</code> 備份檔進行還原。
+                    </p>
+                    <div class="flex flex-col sm:flex-row gap-2 pt-1">
+                        <button onclick="app.exportLocalJson()" class="flex-1 bg-black text-white font-bold py-2.5 px-3 border-2 border-black flat-box text-xs flex items-center justify-center gap-1.5">
+                            <span>📥</span> 下載本機 JSON 備份檔
+                        </button>
+                        <button onclick="document.getElementById('importJsonInput').click()" class="flex-1 bg-white hover:bg-zinc-100 text-black font-bold py-2.5 px-3 border-2 border-black flat-box text-xs flex items-center justify-center gap-1.5">
+                            <span>📤</span> 選取 JSON 檔案還原
+                        </button>
+                        <input type="file" id="importJsonInput" accept=".json" class="hidden" onchange="app.importLocalJson(event)">
+                    </div>
+                </div>
+
+                <!-- 瀏覽器 LocalStorage 診斷與手動強制寫入 -->
+                <div class="p-4 bg-amber-50 border-2 border-amber-900 space-y-3 text-amber-950">
+                    <div class="flex items-center justify-between">
+                        <span class="font-black text-sm uppercase flex items-center gap-1.5">⚡ 瀏覽器 LocalStorage 狀態</span>
+                        <span id="backupStorageSize" class="text-[11px] font-mono font-bold bg-amber-200 px-2 py-0.5 border border-amber-900">計算中...</span>
+                    </div>
+                    <div id="backupHealthInfo" class="text-xs font-mono space-y-1 bg-white p-2.5 border border-amber-800 text-zinc-800">
+                        <!-- 動態載入 -->
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="app.forceSaveToLocalWithToast()" class="flex-1 bg-amber-200 hover:bg-amber-300 text-amber-950 font-bold py-2 border-2 border-amber-950 flat-box text-xs">
+                            💾 立即強制寫入 LocalStorage
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -1612,6 +1663,93 @@
             },
 
             // ================= 實用工具 (Utilities) =================
+            openBackupModal() {
+                this.renderBackupModalInfo();
+                document.getElementById('backupModal').classList.remove('hidden');
+            },
+            closeBackupModal() {
+                document.getElementById('backupModal').classList.add('hidden');
+            },
+            renderBackupModalInfo() {
+                const totalProjects = this.state.projects.length;
+                let totalDocs = 0;
+                let totalTasks = 0;
+                this.state.projects.forEach(p => {
+                    totalDocs += (p.docs || []).length;
+                    totalTasks += (p.tasks || []).length;
+                });
+                
+                const rawData = localStorage.getItem('flatSpecData') || '[]';
+                const sizeKb = (new Blob([rawData]).size / 1024).toFixed(2);
+                
+                const sizeBadge = document.getElementById('backupStorageSize');
+                if (sizeBadge) sizeBadge.innerText = `${sizeKb} KB`;
+
+                const healthBox = document.getElementById('backupHealthInfo');
+                if (healthBox) {
+                    const lastSave = this.state.lastLocalSaveTime ? this.state.lastLocalSaveTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '剛剛';
+                    healthBox.innerHTML = `
+                        <div>📊 專案數量：<span class="font-bold">${totalProjects}</span> 個</div>
+                        <div>📄 文檔總數：<span class="font-bold">${totalDocs}</span> 份</div>
+                        <div>✅ 任務總數：<span class="font-bold">${totalTasks}</span> 項</div>
+                        <div>⏱️ 本機最後寫入：<span class="font-bold text-amber-800">${lastSave}</span></div>
+                    `;
+                }
+            },
+            exportLocalJson() {
+                try {
+                    const dataStr = JSON.stringify(this.state.projects, null, 2);
+                    const blob = new Blob([dataStr], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    const now = new Date();
+                    const dateStr = now.toISOString().slice(0, 10) + '_' + now.toTimeString().slice(0, 8).replace(/:/g, '');
+                    a.href = url;
+                    a.download = `FlatSpec_Backup_${dateStr}.json`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                    this.showToast('💾 本機 JSON 備份檔已成功下載！');
+                } catch (e) {
+                    this.showToast('匯出失敗: ' + e.message, 'error');
+                }
+            },
+            importLocalJson(event) {
+                const file = event.target.files?.[0];
+                if (!file) return;
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const content = e.target.result;
+                        const parsed = JSON.parse(content);
+                        if (Array.isArray(parsed) && parsed.length > 0) {
+                            this.state.projects = parsed.map(p => this.normalizeProject(p)).filter(Boolean);
+                            this.state.activeProjectId = this.state.projects[0].id;
+                            this.state.activeDocId = this.state.projects[0].docs?.[0]?.id || null;
+                            this.saveToLocal();
+                            this.renderAll();
+                            this.switchView('Dashboard');
+                            this.showToast(`🎉 成功從本機檔案還原 ${this.state.projects.length} 個專案！`);
+                            this.closeModals();
+                            this.debouncedSaveAndSync();
+                        } else {
+                            this.showToast('檔案格式不符合專案陣列結構', 'error');
+                        }
+                    } catch (err) {
+                        console.error("Import error:", err);
+                        this.showToast('解析 JSON 檔案失敗: ' + err.message, 'error');
+                    }
+                };
+                reader.readAsText(file);
+                event.target.value = '';
+            },
+            forceSaveToLocalWithToast() {
+                this.saveToLocal();
+                this.renderBackupModalInfo();
+                this.showToast('💾 已強制寫入瀏覽器 LocalStorage！');
+            },
             openGasModal() {
                 const el = document.getElementById('gasUrlInput');
                 if(el) el.value = this.state.gasUrl;
@@ -1627,7 +1765,7 @@
                 document.getElementById('newDocModal').classList.remove('hidden');
             },
             closeModals() {
-                ['gasModal', 'newProjectModal', 'newDocModal'].forEach(id => {
+                ['gasModal', 'newProjectModal', 'newDocModal', 'backupModal'].forEach(id => {
                     const el = document.getElementById(id);
                     if(el) el.classList.add('hidden');
                 });
