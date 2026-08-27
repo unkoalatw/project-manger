@@ -516,7 +516,7 @@
                 currentView: 'Dashboard', // Dashboard, Docs, Wizard, Execution
                 execViewMode: 'list', // list, kanban
                 docMode: 'edit', // edit, preview (mobile only)
-                gasUrl: 'https://script.google.com/macros/s/AKfycbxQPnq1PJlbGJ2b4n2j2c7KAWItDx6zhBigbQqz5ad8YA5gLb6Rka_BSxdyJX9x46BqTA/exec',
+                gasUrl: 'https://script.google.com/macros/s/AKfycbyKQNxw0NiU87rx9pxgb0r1XN74A2WLVAYeVLimNBZYYiY-07G1tK-pi1EXLhYn1nSyFw/exec',
                 syncTimeout: null,
                 isCloudPulled: false,
                 isSyncing: false,
@@ -644,7 +644,7 @@
 
             // ================= 資料庫處理 (核心防護區) =================
             loadLocalData() {
-                const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbxQPnq1PJlbGJ2b4n2j2c7KAWItDx6zhBigbQqz5ad8YA5gLb6Rka_BSxdyJX9x46BqTA/exec';
+                const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbyKQNxw0NiU87rx9pxgb0r1XN74A2WLVAYeVLimNBZYYiY-07G1tK-pi1EXLhYn1nSyFw/exec';
                 try {
                     const localData = localStorage.getItem('flatSpecData');
                     if (localData) {
@@ -655,8 +655,8 @@
                     }
                     
                     let savedUrl = localStorage.getItem('flatSpecGasUrl');
-                    // 自動升級無效或舊的 GAS URL (包含舊的 AKfycbzKRyo 等)
-                    if (!savedUrl || savedUrl.includes('AKfycbxPLTdFYgq') || savedUrl.includes('AKfycbzKRyo')) {
+                    // 自動升級所有舊的 GAS URL 到最新有效部署
+                    if (!savedUrl || !savedUrl.includes('AKfycbyKQNxw0NiU')) {
                         savedUrl = DEFAULT_GAS_URL;
                         localStorage.setItem('flatSpecGasUrl', DEFAULT_GAS_URL);
                     }
