@@ -17,7 +17,7 @@ function doGet(e) {
   try {
     var ss = getTargetSpreadsheet();
     var sheet = getOrCreateDataSheet(ss);
-    var rawData = sheet.getRange('A1').getValue();
+    var rawData = readDataChunks(sheet);
     
     var jsonResponse = rawData ? rawData : '[]';
 
@@ -53,9 +53,9 @@ function doPost(e) {
 
     var ss = getTargetSpreadsheet();
     
-    // 1. 將 JSON 資料寫入 FlatSpecData A1
+    // 1. 將 JSON 資料以分塊形式寫入 FlatSpecData (突破單格 50,000 字元上限)
     var dataSheet = getOrCreateDataSheet(ss);
-    dataSheet.getRange('A1').setValue(contents);
+    writeDataChunks(dataSheet, contents);
     dataSheet.getRange('B1').setValue('最後更新時間: ' + new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' }));
 
     // 2. 自動更新並美化「專案視覺化總覽」表格
@@ -82,6 +82,40 @@ function doPost(e) {
 }
 
 /**
+ * 輔助函式：分塊寫入全量 JSON 資料 (每塊 40,000 字元，徹底杜絕單元格 5 萬字上限問題)
+ */
+function writeDataChunks(sheet, jsonString) {
+  var CHUNK_SIZE = 40000;
+  var chunks = [];
+  for (var i = 0; i < jsonString.length; i += CHUNK_SIZE) {
+    chunks.push([jsonString.substring(i, i + CHUNK_SIZE)]);
+  }
+  if (chunks.length === 0) chunks.push(['[]']);
+
+  var lastRow = sheet.getLastRow();
+  if (lastRow > 0) {
+    sheet.getRange(1, 1, lastRow, 1).clearContent();
+  }
+  sheet.getRange(1, 1, chunks.length, 1).setValues(chunks);
+}
+
+/**
+ * 輔助函式：合併讀取所有分塊 JSON 資料
+ */
+function readDataChunks(sheet) {
+  var lastRow = sheet.getLastRow();
+  if (lastRow === 0) return '[]';
+  var values = sheet.getRange(1, 1, lastRow, 1).getValues();
+  var combined = '';
+  for (var i = 0; i < values.length; i++) {
+    if (values[i][0]) {
+      combined += values[i][0].toString();
+    }
+  }
+  return combined.trim() || '[]';
+}
+
+/**
  * 輔助函式：安全開啟或建立試算表
  */
 function getTargetSpreadsheet() {
@@ -95,16 +129,28 @@ function getTargetSpreadsheet() {
     }
   }
   
+  // 嘗試獲取先前自動建立並持久化於 ScriptProperties 的試算表 ID
+  try {
+    var savedId = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID');
+    if (savedId) {
+      var savedSs = SpreadsheetApp.openById(savedId);
+      if (savedSs) return savedSs;
+    }
+  } catch (e) {}
+
   // 嘗試獲取當前綁定的試算表
   try {
     var activeSs = SpreadsheetApp.getActiveSpreadsheet();
     if (activeSs) return activeSs;
   } catch (e) {}
 
-  // 自動建立一份新試算表作為資料庫備份
+  // 自動建立一份新試算表作為資料庫備份並記錄其 ID (防止重複產生孤立試算表)
   try {
     var newSs = SpreadsheetApp.create('FlatSpec Drive 專案資料庫');
-    if (newSs) return newSs;
+    if (newSs) {
+      PropertiesService.getScriptProperties().setProperty('SPREADSHEET_ID', newSs.getId());
+      return newSs;
+    }
   } catch (err) {
     throw new Error('無法存取或建立試算表，請在編輯器點擊「執行」一次以授予試算表存取權限: ' + err.toString());
   }
@@ -131,7 +177,7 @@ function getOrCreateDataSheet(ss) {
   var sheet = ss.getSheetByName(SHEET_NAME_DATA);
   if (!sheet) {
     sheet = ss.insertSheet(SHEET_NAME_DATA);
-    sheet.getRange('A1').setNote('此儲存格儲存 FlatSpec Drive 的全量 JSON 專案資料，請勿手動隨意修改。');
+    sheet.getRange('A1').setNote('此欄位儲存 FlatSpec Drive 的全量 JSON 專案資料 (支援分塊)，請勿手動隨意修改。');
   }
   return sheet;
 }
