@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>FlatSpec Drive - 專案設計與執行系統</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&family=JetBrains+Mono:wght@400;700&display=swap');
@@ -515,12 +516,13 @@
                 currentView: 'Dashboard', // Dashboard, Docs, Wizard, Execution
                 execViewMode: 'list', // list, kanban
                 docMode: 'edit', // edit, preview (mobile only)
-                gasUrl: 'https://script.google.com/macros/s/AKfycbzKRyoEpWyUwxPxE1cDPr3l6sTQ0Wvye-eERPKZ8dfIwW_tpD0DGqTvZvUuLbtlmJEySQ/exec',
+                gasUrl: 'https://script.google.com/macros/s/AKfycbxQPnq1PJlbGJ2b4n2j2c7KAWItDx6zhBigbQqz5ad8YA5gLb6Rka_BSxdyJX9x46BqTA/exec',
                 syncTimeout: null,
                 isCloudPulled: false,
                 isSyncing: false,
                 hasPendingSync: false,
                 lastSyncTime: null,
+                lastLocalSaveTime: null,
                 isMobileSidebarOpen: false
             },
 
@@ -642,7 +644,7 @@
 
             // ================= 資料庫處理 (核心防護區) =================
             loadLocalData() {
-                const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbzKRyoEpWyUwxPxE1cDPr3l6sTQ0Wvye-eERPKZ8dfIwW_tpD0DGqTvZvUuLbtlmJEySQ/exec';
+                const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbxQPnq1PJlbGJ2b4n2j2c7KAWItDx6zhBigbQqz5ad8YA5gLb6Rka_BSxdyJX9x46BqTA/exec';
                 try {
                     const localData = localStorage.getItem('flatSpecData');
                     if (localData) {
@@ -653,8 +655,8 @@
                     }
                     
                     let savedUrl = localStorage.getItem('flatSpecGasUrl');
-                    // 自動升級無效或舊的 GAS URL
-                    if (!savedUrl || savedUrl.includes('AKfycbxPLTdFYgq') || savedUrl.includes('AKfycbxQPnq1PJlb')) {
+                    // 自動升級無效或舊的 GAS URL (包含舊的 AKfycbzKRyo 等)
+                    if (!savedUrl || savedUrl.includes('AKfycbxPLTdFYgq') || savedUrl.includes('AKfycbzKRyo')) {
                         savedUrl = DEFAULT_GAS_URL;
                         localStorage.setItem('flatSpecGasUrl', DEFAULT_GAS_URL);
                     }
