@@ -649,7 +649,10 @@
                 this.updateSyncStatus('syncing');
                 
                 try {
-                    const response = await fetch(this.state.gasUrl, { method: 'GET' });
+                    const response = await fetch(this.state.gasUrl, { 
+                        method: 'GET',
+                        redirect: 'follow'
+                    });
                     
                     if (!response.ok) {
                         if (response.status === 404) throw new Error("404: 找不到雲端服務，請檢查 URL 結尾是否為 /exec");
@@ -734,7 +737,8 @@
                         body: payload,
                         headers: {
                             'Content-Type': 'text/plain;charset=utf-8',
-                        }
+                        },
+                        redirect: 'follow'
                     });
 
                     if (!response.ok) throw new Error(`HTTP ${response.status}`);
