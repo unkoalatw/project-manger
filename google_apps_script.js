@@ -6,9 +6,9 @@
  */
 
 // 強制綁定指定 Google 試算表 ID
-const TARGET_SPREADSHEET_ID = '1WSViTq8yVVtOt8ubh01l1441-HzgUWcJiiBD4MZgmnU';
-const SHEET_NAME_DATA = 'FlatSpecData';
-const SHEET_NAME_VIEW = '專案視覺化總覽';
+var TARGET_SPREADSHEET_ID = '1WSViTq8yVVtOt8ubh01l1441-HzgUWcJiiBD4MZgmnU';
+var SHEET_NAME_DATA = 'FlatSpecData';
+var SHEET_NAME_VIEW = '專案視覺化總覽';
 
 /**
  * 處理 GET 請求：讀取 JSON 全量專案資料
