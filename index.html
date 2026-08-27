@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
     <title>FlatSpec Drive - 專案設計與執行系統</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -791,10 +794,11 @@
                 try {
                     // 1. 載入本地快取（快速渲染，杜絕白屏）
                     this.loadLocalData();
-                    if (this.state.projects.length > 0) {
-                        this.ensureActivePointers();
-                        this.renderAll();
+                    if (this.state.projects.length === 0) {
+                        this.createInitialDefaultProject();
                     }
+                    this.ensureActivePointers();
+                    this.renderAll();
                     this.switchView('Dashboard');
 
                     // 2. 綁定事件監聽
@@ -803,11 +807,11 @@
                     // 3. 核心：立即從雲端拉取 Single Source of Truth (SSOT)
                     if (this.state.gasUrl) {
                         await this.pullFromCloud(false);
-                    } else {
-                        if (this.state.projects.length === 0) {
-                            this.createInitialDefaultProject();
-                            this.renderAll();
-                        }
+                    }
+                    
+                    if (this.state.projects.length === 0) {
+                        this.createInitialDefaultProject();
+                        this.renderAll();
                     }
 
                     // 4. 啟動背景自動輪詢 (每 15 秒檢查一次跨裝置更新)
@@ -815,7 +819,11 @@
 
                 } catch (error) {
                     console.error("Initialization error:", error);
-                    this.showToast('系統初始化發生錯誤', 'error');
+                    if (this.state.projects.length === 0) {
+                        this.createInitialDefaultProject();
+                    }
+                    this.ensureActivePointers();
+                    this.renderAll();
                 }
             },
 
