@@ -85,28 +85,41 @@ function doPost(e) {
  * 輔助函式：安全開啟或建立試算表
  */
 function getTargetSpreadsheet() {
-  // 1. 嘗試透過指定 ID 開啟試算表
-  if (TARGET_SPREADSHEET_ID && TARGET_SPREADSHEET_ID.trim() !== '') {
+  var targetId = (TARGET_SPREADSHEET_ID || '').trim();
+  if (targetId) {
     try {
-      return SpreadsheetApp.openById(TARGET_SPREADSHEET_ID.trim());
+      var ss = SpreadsheetApp.openById(targetId);
+      if (ss) return ss;
     } catch (e) {
-      console.warn('無法開啟指定 ID 試算表: ' + e.message);
+      Logger.log('無法透過 openById 開啟試算表: ' + e.message);
     }
   }
   
-  // 2. 嘗試獲取當前綁定的試算表
+  // 嘗試獲取當前綁定的試算表
   try {
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    if (ss) return ss;
+    var activeSs = SpreadsheetApp.getActiveSpreadsheet();
+    if (activeSs) return activeSs;
   } catch (e) {}
 
-  // 3. 自動建立一份新試算表作為資料庫備份
+  // 自動建立一份新試算表作為資料庫備份
   try {
     var newSs = SpreadsheetApp.create('FlatSpec Drive 專案資料庫');
-    return newSs;
+    if (newSs) return newSs;
   } catch (err) {
-    throw new Error('無法存取或建立試算表: ' + err.toString());
+    throw new Error('無法存取或建立試算表，請在編輯器點擊「執行」一次以授予試算表存取權限: ' + err.toString());
   }
+
+  throw new Error('無法存取試算表，請確認已授權 Google 試算表存取權限。');
+}
+
+/**
+ * 測試與授權函式：請在 Apps Script 編輯器點擊一次「執行」，完成 Google 試算表存取授權
+ */
+function testRun() {
+  var ss = getTargetSpreadsheet();
+  Logger.log('✅ 成功連接試算表: ' + ss.getName() + ' (ID: ' + ss.getId() + ')');
+  var sheet = getOrCreateDataSheet(ss);
+  Logger.log('✅ 成功獲取資料工作表: ' + sheet.getName());
 }
 
 /**
