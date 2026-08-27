@@ -77,7 +77,16 @@
         .prose h2 { font-size: 1.25rem; font-weight: 800; margin-top: 1.5rem; margin-bottom: 0.75rem; }
         .prose ul { list-style-type: square; padding-left: 1.5rem; margin-bottom: 1rem; }
         .prose p { margin-bottom: 1rem; line-height: 1.6; }
-        .prose strong { font-weight: 800; background-color: #fef08a; padding: 0 4px; border: 1px solid #000; }
+        /* 即時多人協作脈衝與閃爍動畫 */
+        @keyframes liveRemotePulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.9); background-color: #fef08a; }
+            50% { transform: scale(1.02); box-shadow: 0 0 0 10px rgba(234, 179, 8, 0); background-color: #fef9c3; }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(234, 179, 8, 0); }
+        }
+        .live-remote-glow {
+            animation: liveRemotePulse 1.8s ease-in-out 2 !important;
+            border-color: #000 !important;
+        }
     </style>
 </head>
 <body class="text-zinc-900 h-screen w-screen flex flex-col md:flex-row overflow-hidden selection:bg-zinc-900 selection:text-white">
@@ -167,11 +176,23 @@
                 <button id="viewTabWizard" onclick="app.switchView('Wizard')" class="px-4 py-1 border-2 border-black bg-violet-200 hover:bg-violet-100 transition-colors uppercase">✨ 精靈</button>
             </div>
 
+            <!-- 即時在線成員呼吸燈 (Live Presence Bar) -->
+            <div id="headerPresenceBar" onclick="app.openTeamModal()" class="flex items-center gap-1.5 cursor-pointer bg-emerald-50 hover:bg-emerald-100 border-2 border-emerald-900 px-2 py-1 flat-box transition-colors shrink-0" title="點擊查看即時在線成員與活動">
+                <span class="relative flex h-2 w-2">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
+                </span>
+                <div id="presenceAvatarsList" class="flex -space-x-1.5 overflow-hidden">
+                    <!-- 動態注入在線頭像 -->
+                </div>
+                <span id="presenceCountText" class="text-[10px] font-black text-emerald-950 ml-0.5 hidden sm:inline font-mono">1 人在線</span>
+            </div>
+
             <!-- 協作、搜尋與同步狀態燈 -->
             <div class="flex items-center gap-2 shrink-0">
                 <button onclick="app.openTeamModal()" class="p-1.5 px-2 bg-violet-100 hover:bg-violet-200 border-2 border-black font-bold text-xs flat-box flex items-center gap-1 transition-colors text-violet-950" title="團隊成員管理與一鍵邀請">
                     <span class="text-sm">👥</span>
-                    <span class="hidden sm:inline">團隊協作</span>
+                    <span class="hidden md:inline">團隊協作</span>
                 </button>
                 <button onclick="app.openSearchModal()" class="p-1.5 px-2 bg-zinc-100 hover:bg-yellow-200 border-2 border-black font-bold text-xs flat-box flex items-center gap-1.5 transition-colors" title="快速全域搜尋 (快捷鍵: Ctrl+K / Cmd+K)">
                     <span class="text-sm">🔍</span>
@@ -251,6 +272,10 @@
                             </button>
                         </div>
                         <span id="docWordCountBadge" class="hidden sm:inline-block px-2 py-0.5 bg-zinc-100 border border-zinc-300 text-[11px] font-bold text-zinc-600 font-mono"></span>
+                        <span id="docLivePresenceBadge" class="hidden px-2 py-0.5 bg-emerald-100 border border-emerald-500 text-[11px] font-bold text-emerald-900 flex items-center gap-1.5 animate-pulse">
+                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                            <span id="docLivePresenceText">1 人正在此文檔</span>
+                        </span>
                     </div>
 
                     <!-- 純檢視模式專屬頂部操作 -->
@@ -979,6 +1004,15 @@
         訊息
     </div>
 
+    <!-- 即時多人協作異動廣播 Toast -->
+    <div id="liveToast" class="fixed top-16 right-4 max-w-xs md:max-w-sm bg-yellow-300 text-black p-3 font-bold text-xs border-2 border-black shadow-[4px_4px_0px_0px_#000] z-[100] transition-all duration-300 opacity-0 pointer-events-none translate-x-[20px] flex items-center gap-2.5">
+        <span class="text-2xl shrink-0" id="liveToastIcon">🔔</span>
+        <div class="flex-1 min-w-0">
+            <div class="font-black text-[10px] uppercase text-zinc-700 tracking-wider font-mono" id="liveToastSub">隊友即時動態</div>
+            <div class="truncate text-xs font-black text-black" id="liveToastMsg">Alex 剛剛更新了文檔</div>
+        </div>
+    </div>
+
     <script>
         // 支援一鍵重置網址參數 (如 ?reset=1 或 ?clear=1)，方便手機端一鍵掃除所有損壞快取
         if (typeof window !== 'undefined' && window.location && (window.location.search.includes('reset=1') || window.location.search.includes('clear=1'))) {
@@ -1089,6 +1123,11 @@
                     });
                 }
 
+                // 多人在線狀態表
+                if (!p.presence || typeof p.presence !== 'object') {
+                    p.presence = {};
+                }
+
                 return p;
             },
 
@@ -1118,8 +1157,12 @@
                         const localTime = new Date(normLocal.updatedAt || 0).getTime();
                         const cloudTime = new Date(cloudProj.updatedAt || 0).getTime();
 
+                        // 智慧合併 presence 表
+                        const mergedPresence = { ...(cloudProj.presence || {}), ...(normLocal.presence || {}) };
+
                         // 本地較新且本地有未同步變更，以本地為主
                         if (localTime > cloudTime) {
+                            normLocal.presence = mergedPresence;
                             mergedMap.set(normLocal.id, normLocal);
                         } else if (localTime === cloudTime) {
                             // 時間戳相同，合併文檔與任務
@@ -1139,9 +1182,12 @@
                             });
                             cloudProj.docs = mergedDocs;
                             cloudProj.tasks = mergedTasks;
+                            cloudProj.presence = mergedPresence;
+                            mergedMap.set(normLocal.id, cloudProj);
+                        } else {
+                            cloudProj.presence = mergedPresence;
                             mergedMap.set(normLocal.id, cloudProj);
                         }
-                        // 雲端較新則保留 cloudProj
                     }
                 });
 
@@ -1242,11 +1288,13 @@
                 // 4. 跨裝置 / 切換分頁感知：當用戶切回此分頁且無未存修改時，自動檢查雲端更新
                 document.addEventListener('visibilitychange', () => {
                     if (document.visibilityState === 'visible') {
+                        this.startAutoPull(4000);
                         if (!this.state.hasUnsavedChanges && this.state.gasUrl && !this.state.isUserTyping) {
-                            console.log("切回分頁，自動檢查雲端最新資料...");
+                            console.log("切回分頁，自動檢查雲端最新資料與在線狀態...");
                             this.pullFromCloud(false, true);
                         }
                     } else if (document.visibilityState === 'hidden') {
+                        this.startAutoPull(20000);
                         if (this.state.hasUnsavedChanges) {
                             this.pushToCloud(false);
                         }
@@ -1288,14 +1336,16 @@
                 this.setupEditorImageInteractions();
             },
 
-            startAutoPull() {
+            startAutoPull(intervalMs = 4000) {
                 if (this.state.autoPullInterval) clearInterval(this.state.autoPullInterval);
-                // 每 15 秒背景檢查一次雲端資料庫
+                // 預設每 4 秒極速在線心跳 (Presence & Live Remote Diff)
                 this.state.autoPullInterval = setInterval(() => {
                     if (!this.state.isSyncing && !this.state.hasUnsavedChanges && !this.state.isUserTyping && this.state.gasUrl) {
                         this.pullFromCloud(false, true);
+                    } else {
+                        this.updateMyPresence();
                     }
-                }, 15000);
+                }, intervalMs);
             },
 
             setUserTypingState() {
@@ -1424,6 +1474,7 @@
                     
                     if (Array.isArray(data)) {
                         if (data.length > 0) {
+                            const prevActiveProject = JSON.parse(JSON.stringify(this.getCurrentProject() || {}));
                             // ✅ 智慧合併雲端與本地專案
                             const normalizedCloud = data.map(p => this.normalizeProject(p)).filter(Boolean);
                             this.state.projects = this.mergeProjects(normalizedCloud, this.state.projects);
@@ -1433,7 +1484,14 @@
                             this.state.lastSyncTime = new Date();
                             this.saveToLocal();
                             this.ensureActivePointers();
+                            
+                            const newActiveProject = this.getCurrentProject();
+                            if (prevActiveProject && newActiveProject && prevActiveProject.id === newActiveProject.id) {
+                                this.detectRemoteChanges(prevActiveProject, newActiveProject);
+                            }
+
                             this.smartRenderAll();
+                            this.updateMyPresence();
                             this.updateSyncStatus('success');
                             if (isManual) this.showToast('✅ 成功從 Google 試算表載入最新資料！');
                             return true;
@@ -3477,6 +3535,179 @@
                     const el = document.getElementById(id);
                     if(el) el.classList.add('hidden');
                 });
+            },
+
+            // ================= 多人即時在線與協作感知 (Live Presence & Remote Pulse) =================
+            getUserId() {
+                let id = localStorage.getItem('flatSpecUserId');
+                if (!id) {
+                    id = 'usr_' + Date.now() + Math.random().toString(36).substr(2, 4);
+                    localStorage.setItem('flatSpecUserId', id);
+                }
+                return id;
+            },
+
+            cleanStalePresence(presenceMap) {
+                if (!presenceMap || typeof presenceMap !== 'object') return {};
+                const now = Date.now();
+                const fresh = {};
+                Object.entries(presenceMap).forEach(([uid, info]) => {
+                    if (info && (now - (info.lastActive || 0)) < 30000) {
+                        fresh[uid] = info;
+                    }
+                });
+                return fresh;
+            },
+
+            updateMyPresence() {
+                const p = this.getCurrentProject();
+                if (!p) return;
+                if (!p.presence || typeof p.presence !== 'object') p.presence = {};
+
+                const myProfile = this.getMyProfile();
+                const userId = this.getUserId();
+                const activeDoc = p.docs?.find(d => d.id === this.state.activeDocId);
+
+                p.presence[userId] = {
+                    id: userId,
+                    name: myProfile.name,
+                    avatar: myProfile.avatar,
+                    role: myProfile.role,
+                    lastActive: Date.now(),
+                    view: this.state.currentView,
+                    docId: this.state.currentView === 'Docs' ? this.state.activeDocId : null,
+                    docTitle: this.state.currentView === 'Docs' ? (activeDoc?.title || '') : null
+                };
+
+                this.renderPresenceUI();
+            },
+
+            renderPresenceUI() {
+                const p = this.getCurrentProject();
+                if (!p) return;
+
+                const activeMap = this.cleanStalePresence(p.presence || {});
+                const activeUsers = Object.values(activeMap);
+
+                // 1. 頂部導覽列在線頭像清單
+                const avatarsList = document.getElementById('presenceAvatarsList');
+                const countText = document.getElementById('presenceCountText');
+                const myId = this.getUserId();
+
+                if (avatarsList) {
+                    if (activeUsers.length === 0) {
+                        avatarsList.innerHTML = `<span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-white border-2 border-black text-xs font-bold ring-2 ring-emerald-500">👤</span>`;
+                    } else {
+                        avatarsList.innerHTML = activeUsers.slice(0, 4).map(u => `
+                            <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-white border-2 border-black text-xs font-bold ring-2 ring-emerald-500 ${u.id === myId ? 'scale-105' : ''}" title="${this.escapeHtml(u.name)} (${u.id === myId ? '你自己' : (u.view === 'Docs' ? '📄 ' + (u.docTitle || '文檔') : u.view)})">${u.avatar || '👤'}</span>
+                        `).join('');
+                    }
+                }
+
+                if (countText) {
+                    const count = Math.max(1, activeUsers.length);
+                    countText.innerText = `${count} 人在線`;
+                }
+
+                // 2. 文檔編輯器中的同文檔協作者提示
+                const docBadge = document.getElementById('docLivePresenceBadge');
+                const docText = document.getElementById('docLivePresenceText');
+                if (docBadge && docText) {
+                    const othersInDoc = activeUsers.filter(u => u.id !== myId && u.view === 'Docs' && u.docId === this.state.activeDocId);
+                    if (othersInDoc.length > 0) {
+                        docBadge.classList.remove('hidden');
+                        docText.innerText = `${othersInDoc.map(u => `${u.avatar} ${this.escapeHtml(u.name)}`).join('、')} 正在此文檔`;
+                    } else {
+                        docBadge.classList.add('hidden');
+                    }
+                }
+            },
+
+            detectRemoteChanges(oldP, newP) {
+                if (!oldP || !newP) return;
+
+                // 1. 任務狀態與新增檢測
+                const oldTasks = oldP.tasks || [];
+                const newTasks = newP.tasks || [];
+
+                newTasks.forEach(nT => {
+                    const oT = oldTasks.find(x => x.id === nT.id);
+                    if (!oT) {
+                        this.showLiveBroadcast('✨', '隊友新增任務', `新增了「${nT.title}」`);
+                        this.pulseElement(`task_${nT.id}`);
+                    } else {
+                        if (oT.status !== nT.status) {
+                            if (nT.status === 'DONE') {
+                                this.showLiveBroadcast('🎉', '隊友完成任務', `已完成「${nT.title}」！`);
+                            } else if (nT.status === 'DOING') {
+                                this.showLiveBroadcast('⏳', '任務進行中', `開始進行「${nT.title}」`);
+                            } else {
+                                this.showLiveBroadcast('🔄', '任務狀態變更', `「${nT.title}」狀態更新`);
+                            }
+                            this.pulseElement(`task_${nT.id}`);
+                        }
+
+                        // 新留言檢測
+                        const oCommentsCount = (oT.comments || []).length;
+                        const nCommentsCount = (nT.comments || []).length;
+                        if (nCommentsCount > oCommentsCount) {
+                            const latestComment = nT.comments[nCommentsCount - 1];
+                            const author = latestComment?.author || '隊友';
+                            this.showLiveBroadcast('💬', `${author} 發表了新留言`, `在「${nT.title}」：${latestComment?.text || ''}`);
+                            this.pulseElement(`task_${nT.id}`);
+                        }
+                    }
+                });
+
+                // 2. 文檔更新檢測
+                const oldDocs = oldP.docs || [];
+                const newDocs = newP.docs || [];
+
+                newDocs.forEach(nD => {
+                    const oD = oldDocs.find(x => x.id === nD.id);
+                    if (oD) {
+                        if (oD.content !== nD.content || oD.title !== nD.title) {
+                            if (nD.id === this.state.activeDocId) {
+                                this.showLiveBroadcast('📄', '文檔即時更新', `隊友更新了「${nD.title}」內容！`);
+                                this.pulseElement('docEditor');
+                                this.pulseElement('docPreview');
+                            }
+                        }
+                    } else {
+                        this.showLiveBroadcast('📂', '隊友建立了新文檔', `「${nD.title}」`);
+                    }
+                });
+            },
+
+            pulseElement(elementId) {
+                setTimeout(() => {
+                    const el = document.getElementById(elementId);
+                    if (el) {
+                        el.classList.add('live-remote-glow');
+                        setTimeout(() => el.classList.remove('live-remote-glow'), 3600);
+                    }
+                }, 100);
+            },
+
+            showLiveBroadcast(icon, sub, msg) {
+                const toast = document.getElementById('liveToast');
+                const iconEl = document.getElementById('liveToastIcon');
+                const subEl = document.getElementById('liveToastSub');
+                const msgEl = document.getElementById('liveToastMsg');
+                if (!toast) return;
+
+                if (iconEl) iconEl.innerText = icon;
+                if (subEl) subEl.innerText = sub;
+                if (msgEl) msgEl.innerText = msg;
+
+                toast.classList.remove('opacity-0', 'pointer-events-none', 'translate-x-[20px]');
+                toast.classList.add('opacity-100', 'translate-x-0');
+
+                clearTimeout(this._liveToastTimer);
+                this._liveToastTimer = setTimeout(() => {
+                    toast.classList.remove('opacity-100', 'translate-x-0');
+                    toast.classList.add('opacity-0', 'pointer-events-none', 'translate-x-[20px]');
+                }, 4000);
             },
 
             // ================= 全域搜尋與 Command Palette (Ctrl+K) =================
