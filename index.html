@@ -214,9 +214,15 @@
                     <button onclick="app.deleteCurrentDoc()" class="shrink-0 p-2 text-red-600 hover:bg-red-100 border-2 border-transparent hover:border-red-600 font-bold text-sm transition-colors" title="刪除文檔">🗑️</button>
                 </div>
 
-                <!-- 編輯工具列 (支援插入文檔引用與快捷語法) -->
+                <!-- 編輯工具列 (支援模式切換、插入文檔引用與快捷語法) -->
                 <div class="flex flex-wrap items-center justify-between gap-2 mb-3 p-2 bg-zinc-100 border-2 border-black">
                     <div class="flex flex-wrap items-center gap-1.5">
+                        <!-- 模式切換：編輯 / 預覽 (預設為純編輯器) -->
+                        <div class="flex items-center border-2 border-black bg-white mr-1 shadow-[2px_2px_0px_0px_#000]">
+                            <button id="btnEditMode" type="button" onclick="app.toggleDocMode('edit')" class="px-3 py-1 bg-black text-white font-bold text-xs transition-colors" title="切換至編輯模式">✏️ 編輯</button>
+                            <button id="btnPreviewMode" type="button" onclick="app.toggleDocMode('preview')" class="px-3 py-1 bg-zinc-100 text-black font-bold text-xs transition-colors hover:bg-zinc-200" title="切換至預覽模式">👁️ 預覽</button>
+                        </div>
+
                         <!-- 引用文檔下拉選單 -->
                         <div class="relative inline-block" id="docLinkPickerContainer">
                             <button type="button" onclick="app.toggleDocLinkDropdown()" class="px-2.5 py-1 bg-white hover:bg-zinc-200 border-2 border-black font-bold text-xs flex items-center gap-1.5 flat-box" title="在游標處引用專案內其他文檔">
@@ -238,20 +244,14 @@
                         <button type="button" onclick="app.insertMarkdown('> ', '')" class="px-2 py-1 bg-white hover:bg-zinc-200 border-2 border-black font-bold text-xs" title="引言">&gt; 引言</button>
                     </div>
 
-                    <div class="text-[11px] font-bold text-zinc-600 hidden sm:flex items-center gap-1">
+                    <div class="text-[11px] font-bold text-zinc-600 hidden lg:flex items-center gap-1">
                         <span>💡 語法：輸入 <code>[[文檔名稱]]</code> 即可點擊連結跳轉</span>
                     </div>
                 </div>
-                
-                <!-- 雙欄編輯與預覽切換 (小螢幕使用 Tab) -->
-                <div class="flex gap-2 mb-2 md:hidden">
-                    <button id="btnEditMode" onclick="app.toggleDocMode('edit')" class="flex-1 bg-black text-white border-2 border-black font-bold py-1 text-sm">編輯</button>
-                    <button id="btnPreviewMode" onclick="app.toggleDocMode('preview')" class="flex-1 bg-zinc-100 text-black border-2 border-black font-bold py-1 text-sm">預覽</button>
-                </div>
 
-                <div class="flex-1 flex gap-4 min-h-[350px]">
-                    <textarea id="docEditor" oninput="app.updateDocContent(this.value)" class="flex-1 flat-input bg-white p-4 font-mono text-sm leading-relaxed resize-none shadow-inner min-h-[300px]" placeholder="支援 Markdown 語法與 [[文檔名稱]] 引用連結..."></textarea>
-                    <div id="docPreview" class="hidden md:block flex-1 border-2 border-black bg-white p-6 overflow-y-auto prose prose-sm max-w-none shadow-inner min-h-[300px]">
+                <div class="flex-1 flex flex-col min-h-[350px]">
+                    <textarea id="docEditor" oninput="app.updateDocContent(this.value)" class="w-full flex-1 flat-input bg-white p-4 font-mono text-sm leading-relaxed resize-none shadow-inner min-h-[350px]" placeholder="支援 Markdown 語法與 [[文檔名稱]] 引用連結..."></textarea>
+                    <div id="docPreview" class="hidden w-full flex-1 border-2 border-black bg-white p-6 overflow-y-auto prose prose-sm max-w-none shadow-inner min-h-[350px]">
                         <!-- Markdown Preview -->
                     </div>
                 </div>
@@ -1613,6 +1613,7 @@
             // ================= 文檔編輯器與引用連結邏輯 =================
             openDoc(docId) {
                 this.state.activeDocId = docId;
+                this.state.docMode = 'edit';
                 this.renderSidebar();
                 this.switchView('Docs');
                 if(window.innerWidth < 768) this.toggleSidebar(false);
@@ -1938,12 +1939,12 @@
                 if (titleEl && document.activeElement !== titleEl) titleEl.value = doc.title || '';
                 if (editorEl && document.activeElement !== editorEl) editorEl.value = doc.content || '';
                 
-                if (previewEl) {
+                if (previewEl && this.state.docMode === 'preview') {
                     previewEl.innerHTML = this.parseMarkdown(doc.content || '');
                 }
                 
                 this.renderDocLinksPanel(doc);
-                this.toggleDocMode(this.state.docMode);
+                this.toggleDocMode(this.state.docMode || 'edit');
             },
 
             updateDocTitle(val) {
@@ -1968,7 +1969,7 @@
                     p.updatedAt = new Date().toISOString();
                     
                     const previewEl = document.getElementById('docPreview');
-                    if (previewEl && (this.state.docMode === 'preview' || window.innerWidth >= 768)) {
+                    if (previewEl && this.state.docMode === 'preview') {
                         previewEl.innerHTML = this.parseMarkdown(val);
                     }
                     this.renderDocLinksPanel(doc);
@@ -1977,7 +1978,7 @@
             },
 
             toggleDocMode(mode) {
-                this.state.docMode = mode;
+                this.state.docMode = mode || 'edit';
                 const editorEl = document.getElementById('docEditor');
                 const previewEl = document.getElementById('docPreview');
                 const btnEdit = document.getElementById('btnEditMode');
@@ -1985,23 +1986,18 @@
                 
                 if(!editorEl || !previewEl || !btnEdit || !btnPrev) return;
 
-                if (window.innerWidth >= 768) {
-                    editorEl.classList.remove('hidden');
-                    previewEl.classList.remove('hidden');
-                    return;
-                }
-
-                if (mode === 'edit') {
-                    editorEl.classList.remove('hidden');
-                    previewEl.classList.add('hidden');
-                    btnEdit.className = 'flex-1 bg-black text-white border-2 border-black font-bold py-1 text-sm';
-                    btnPrev.className = 'flex-1 bg-zinc-100 text-black border-2 border-black font-bold py-1 text-sm';
-                } else {
+                if (this.state.docMode === 'preview') {
                     editorEl.classList.add('hidden');
                     previewEl.classList.remove('hidden');
-                    previewEl.innerHTML = this.parseMarkdown(editorEl.value);
-                    btnPrev.className = 'flex-1 bg-black text-white border-2 border-black font-bold py-1 text-sm';
-                    btnEdit.className = 'flex-1 bg-zinc-100 text-black border-2 border-black font-bold py-1 text-sm';
+                    previewEl.innerHTML = this.parseMarkdown(editorEl.value || '');
+                    btnPrev.className = 'px-3 py-1 bg-black text-white font-bold text-xs transition-colors';
+                    btnEdit.className = 'px-3 py-1 bg-zinc-100 text-black font-bold text-xs transition-colors hover:bg-zinc-200';
+                } else {
+                    // 預設純編輯器模式
+                    editorEl.classList.remove('hidden');
+                    previewEl.classList.add('hidden');
+                    btnEdit.className = 'px-3 py-1 bg-black text-white font-bold text-xs transition-colors';
+                    btnPrev.className = 'px-3 py-1 bg-zinc-100 text-black font-bold text-xs transition-colors hover:bg-zinc-200';
                 }
             },
 
