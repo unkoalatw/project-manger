@@ -7,6 +7,12 @@
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
     <title>FlatSpec Drive - 專案設計與執行系統</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#000000">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="FlatSpec">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><rect width=%22100%22 height=%22100%22 fill=%22black%22/><text y=%22.75em%22 x=%2250%%22 text-anchor=%22middle%22 font-size=%2265%22>⚡</text></svg>">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⚡</text></svg>">
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -837,7 +843,30 @@
             },
 
             bindEvents() {
-                // 視窗關閉前保證推送至雲端
+                // 1. 註冊 PWA Service Worker (支援 100% 離線本地運作與快取)
+                if ('serviceWorker' in navigator) {
+                    navigator.serviceWorker.register('./sw.js')
+                        .then(reg => console.log('[PWA] Service Worker 註冊成功:', reg.scope))
+                        .catch(err => console.warn('[PWA] Service Worker 註冊略過:', err));
+                }
+
+                // 2. 離線與上線感知監聽
+                window.addEventListener('online', () => {
+                    this.showToast('📶 網路已連線！正在自動同步至雲端...');
+                    this.updateSyncStatus('saved', '已連線');
+                    if (this.state.hasUnsavedChanges || localStorage.getItem('flatSpecHasPendingChanges') === 'true') {
+                        this.pushToCloud(false);
+                    } else {
+                        this.pullFromCloud(false, true);
+                    }
+                });
+
+                window.addEventListener('offline', () => {
+                    this.showToast('⚡ 已切換為本地離線模式 (所有編輯已安全保存在此裝置)');
+                    this.updateSyncStatus('offline', '⚡ 離線模式 (本地已存)');
+                });
+
+                // 3. 視窗關閉前保證推送至雲端
                 window.addEventListener('beforeunload', () => {
                     this.saveToLocal();
                     this.sendBeaconOrKeepalivePush();
@@ -848,7 +877,7 @@
                     this.sendBeaconOrKeepalivePush();
                 });
 
-                // 跨裝置 / 切換分頁感知：當用戶切回此分頁且無未存修改時，自動檢查雲端更新
+                // 4. 跨裝置 / 切換分頁感知：當用戶切回此分頁且無未存修改時，自動檢查雲端更新
                 document.addEventListener('visibilitychange', () => {
                     if (document.visibilityState === 'visible') {
                         if (!this.state.hasUnsavedChanges && this.state.gasUrl && !this.state.isUserTyping) {
@@ -1071,7 +1100,16 @@
 
             async pushToCloud(isManual = false) {
                 if (!this.state.gasUrl) {
-                    this.updateSyncStatus('offline');
+                    this.updateSyncStatus('offline', '離線模式');
+                    return false;
+                }
+
+                // 離線狀態直接靜默保留在本地，不拋出網路錯誤干擾使用者
+                if (typeof navigator !== 'undefined' && !navigator.onLine) {
+                    this.state.hasUnsavedChanges = true;
+                    localStorage.setItem('flatSpecHasPendingChanges', 'true');
+                    this.updateSyncStatus('offline', '⚡ 離線模式 (本地已存)');
+                    if (isManual) this.showToast('⚡ 目前處於離線狀態，資料已安全保存在此裝置！');
                     return false;
                 }
 
@@ -1276,7 +1314,7 @@
                         break;
                     case 'offline':
                         dot.className = 'w-2.5 h-2.5 rounded-full bg-zinc-400 border border-black';
-                        text.innerText = '離線模式';
+                        text.innerText = detail || '⚡ 離線模式 (本地已存)';
                         break;
                 }
             },
