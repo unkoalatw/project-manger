@@ -468,6 +468,8 @@
                 syncTimeout: null,
                 isCloudPulled: false,
                 isSyncing: false,
+                hasPendingSync: false,
+                lastSyncTime: null,
                 isMobileSidebarOpen: false
             },
 
@@ -536,9 +538,23 @@
                     this.renderAll();
                     this.switchView('Dashboard');
 
-                    // 綁定視窗關閉前強制寫入 (防護遺失)
-                    window.addEventListener('beforeunload', () => this.saveToLocal());
-                    
+                    // 綁定視窗關閉前強制寫入本地
+                    window.addEventListener('beforeunload', () => {
+                        this.saveToLocal();
+                    });
+
+                    // 頁面可見度切換或失焦時，強制刷新未完成的雲端同步
+                    document.addEventListener('visibilitychange', () => {
+                        if (document.visibilityState === 'hidden' && this.state.hasPendingSync) {
+                            this.pushToCloud(false);
+                        }
+                    });
+                    window.addEventListener('blur', () => {
+                        if (this.state.hasPendingSync) {
+                            this.pushToCloud(false);
+                        }
+                    });
+
                     // 綁定鍵盤事件 (Escape 關閉 Modal 與 下拉清單)
                     document.addEventListener('keydown', (e) => {
                         if (e.key === 'Escape') {
@@ -555,7 +571,14 @@
                         }
                     });
 
-                    // 背景嘗試同步雲端資料
+                    // 背景自動排程：每 30 秒排查未完成的同步
+                    setInterval(() => {
+                        if (this.state.hasPendingSync && !this.state.isSyncing) {
+                            this.pushToCloud(false);
+                        }
+                    }, 30000);
+
+                    // 背景嘗試同步雲端資料 (具備最新時間戳防護)
                     if (this.state.gasUrl) {
                         this.pullFromCloud(false);
                     }
@@ -568,16 +591,23 @@
 
             // ================= 資料庫處理 (核心防護區) =================
             loadLocalData() {
+                const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbzKRyoEpWyUwxPxE1cDPr3l6sTQ0Wvye-eERPKZ8dfIwW_tpD0DGqTvZvUuLbtlmJEySQ/exec';
                 try {
                     const localData = localStorage.getItem('flatSpecData');
                     if (localData) {
                         const parsed = JSON.parse(localData);
-                        if (Array.isArray(parsed)) {
+                        if (Array.isArray(parsed) && parsed.length > 0) {
                             this.state.projects = parsed.map(p => this.normalizeProject(p)).filter(Boolean);
                         }
                     }
-                    const savedUrl = localStorage.getItem('flatSpecGasUrl');
-                    if (savedUrl) this.state.gasUrl = savedUrl.trim();
+                    
+                    let savedUrl = localStorage.getItem('flatSpecGasUrl');
+                    // 自動升級無效或舊的 GAS URL
+                    if (!savedUrl || savedUrl.includes('AKfycbxPLTdFYgq') || savedUrl.includes('AKfycbxQPnq1PJlb')) {
+                        savedUrl = DEFAULT_GAS_URL;
+                        localStorage.setItem('flatSpecGasUrl', DEFAULT_GAS_URL);
+                    }
+                    this.state.gasUrl = savedUrl.trim();
                 } catch (e) {
                     console.warn("Local storage parse error, resetting data.", e);
                     this.state.projects = [];
@@ -595,16 +625,19 @@
             },
 
             debouncedSaveAndSync() {
-                // 1. 立即儲存本機 (無延遲)
+                // 1. 0ms 立即寫入本地 (防護打字遺失)
                 this.saveToLocal();
                 this.updateSyncStatus('saved');
-                this.renderDashboard(); // 即時更新儀表板數據
+                this.renderDashboard();
 
-                // 2. 防抖延遲上傳雲端 (1.5s)
+                // 2. 標記有未同步到雲端的資料
+                this.state.hasPendingSync = true;
+
+                // 3. 防抖 800ms 在背景自動推送至雲端試算表
                 if (this.state.syncTimeout) clearTimeout(this.state.syncTimeout);
                 this.state.syncTimeout = setTimeout(() => {
                     this.pushToCloud(false);
-                }, 1500);
+                }, 800);
             },
 
             // ================= 雲端同步 (GAS API) =================
@@ -626,8 +659,32 @@
                     const data = await response.json();
                     
                     if (Array.isArray(data) && data.length > 0) {
-                        this.state.projects = data.map(p => this.normalizeProject(p)).filter(Boolean);
+                        const cloudProjects = data.map(p => this.normalizeProject(p)).filter(Boolean);
+                        
+                        // 🛡️ 時間戳比對防護：若本地有較新的編輯，不要被舊雲端覆蓋，而是自動回推
+                        const getLatestTime = (arr) => {
+                            let max = 0;
+                            arr.forEach(p => {
+                                const t = new Date(p.updatedAt || 0).getTime();
+                                if (t > max) max = t;
+                            });
+                            return max;
+                        };
+
+                        const localTime = getLatestTime(this.state.projects);
+                        const cloudTime = getLatestTime(cloudProjects);
+
+                        if (localTime > cloudTime && this.state.projects.length > 0 && !isManual) {
+                            console.log("Local changes are newer than cloud. Auto pushing to cloud...");
+                            this.state.isCloudPulled = true;
+                            this.updateSyncStatus('saved');
+                            this.pushToCloud(false);
+                            return;
+                        }
+
+                        this.state.projects = cloudProjects;
                         this.state.isCloudPulled = true;
+                        this.state.lastSyncTime = new Date();
                         this.saveToLocal();
                         this.ensureDefaultProject();
                         this.renderAll();
@@ -635,14 +692,18 @@
                         if (isManual) this.showToast('✅ 雲端資料已成功同步！');
                     } else if (Array.isArray(data) && data.length === 0) {
                         this.state.isCloudPulled = true;
-                        this.updateSyncStatus('success');
-                        if (isManual) this.showToast('雲端目前為空，可直接上傳本機資料。');
+                        if (this.state.projects.length > 0) {
+                            this.pushToCloud(false);
+                        } else {
+                            this.updateSyncStatus('success');
+                        }
+                        if (isManual) this.showToast('雲端目前為空，已將本地專案自動上傳。');
                     } else {
                         throw new Error('雲端回傳資料格式不符合專案陣列');
                     }
                 } catch (error) {
                     console.error("Pull error:", error);
-                    this.updateSyncStatus('error');
+                    this.updateSyncStatus('error', error.message);
                     if (isManual) {
                         this.showToast(`📥 同步失敗: ${error.message}`, 'error');
                         this.openGasModal();
@@ -656,8 +717,14 @@
                     return;
                 }
 
-                if (this.state.isSyncing) return;
+                // 隊列鎖定：如果正好有同步在發送，標記 pending 待完成後自動連續發送
+                if (this.state.isSyncing) {
+                    this.state.hasPendingSync = true;
+                    return;
+                }
+
                 this.state.isSyncing = true;
+                this.state.hasPendingSync = false;
                 this.updateSyncStatus('syncing');
 
                 try {
@@ -666,7 +733,7 @@
                         method: 'POST',
                         body: payload,
                         headers: {
-                            'Content-Type': 'text/plain;charset=utf-8', // 規避預檢請求 CORS
+                            'Content-Type': 'text/plain;charset=utf-8',
                         }
                     });
 
@@ -674,6 +741,7 @@
                     
                     const result = await response.json();
                     if (result.status === 'success') {
+                        this.state.lastSyncTime = new Date();
                         this.updateSyncStatus('success');
                         if (isManual) this.showToast('✅ 資料已成功儲存至 Google 雲端試算表！');
                     } else {
@@ -681,10 +749,16 @@
                     }
                 } catch (error) {
                     console.error("Push error:", error);
-                    this.updateSyncStatus('error');
+                    this.updateSyncStatus('error', error.message);
+                    // 同步失敗時自動保留 pending 狀態以利下次重試
+                    this.state.hasPendingSync = true;
                     if (isManual) this.showToast(`📤 雲端寫入失敗: ${error.message}`, 'error');
                 } finally {
                     this.state.isSyncing = false;
+                    // 若在請求期間又有新文字被輸入，立即自動發起下一輪同步
+                    if (this.state.hasPendingSync) {
+                        setTimeout(() => this.pushToCloud(false), 300);
+                    }
                 }
             },
 
@@ -704,7 +778,7 @@
                 }
             },
 
-            updateSyncStatus(status) {
+            updateSyncStatus(status, detail = '') {
                 const dot = document.getElementById('syncDot');
                 const text = document.getElementById('syncText');
                 if (!dot || !text) return;
@@ -712,23 +786,24 @@
                 switch (status) {
                     case 'syncing':
                         dot.className = 'w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse border border-black';
-                        text.innerText = '同步中...';
+                        text.innerText = '雲端同步中...';
                         break;
                     case 'success':
                         dot.className = 'w-2.5 h-2.5 rounded-full bg-green-500 border border-black';
-                        text.innerText = '雲端已同步';
+                        const timeStr = this.state.lastSyncTime ? this.state.lastSyncTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }) : '';
+                        text.innerText = timeStr ? `已同步 (${timeStr})` : '雲端已同步';
                         break;
                     case 'saved':
                         dot.className = 'w-2.5 h-2.5 rounded-full bg-yellow-400 border border-black';
-                        text.innerText = '本機已儲存';
+                        text.innerText = '本機已存 (待同步)';
                         break;
                     case 'error':
-                        dot.className = 'w-2.5 h-2.5 rounded-full bg-red-500 border border-black';
-                        text.innerText = '同步失敗';
+                        dot.className = 'w-2.5 h-2.5 rounded-full bg-red-500 border border-black animate-bounce';
+                        text.innerText = detail ? `同步異常: ${detail.substring(0, 15)}` : '同步失敗 (點此檢查)';
                         break;
                     case 'offline':
                         dot.className = 'w-2.5 h-2.5 rounded-full bg-zinc-400 border border-black';
-                        text.innerText = '離線儲存';
+                        text.innerText = '未設定雲端網址';
                         break;
                 }
             },

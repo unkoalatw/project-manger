@@ -82,18 +82,30 @@ function doPost(e) {
 }
 
 /**
- * 輔助函式：透過硬編碼 ID 開啟指定的試算表
+ * 輔助函式：安全開啟或建立試算表
  */
 function getTargetSpreadsheet() {
-  try {
-    return SpreadsheetApp.openById(TARGET_SPREADSHEET_ID);
-  } catch (e) {
-    // 降級嘗試獲取當前試算表
+  // 1. 嘗試透過指定 ID 開啟試算表
+  if (TARGET_SPREADSHEET_ID && TARGET_SPREADSHEET_ID.trim() !== '') {
     try {
-      return SpreadsheetApp.getActiveSpreadsheet();
-    } catch (err) {
-      throw new Error('無法存取試算表，請確認 ID: ' + TARGET_SPREADSHEET_ID + ' 權限設定。');
+      return SpreadsheetApp.openById(TARGET_SPREADSHEET_ID.trim());
+    } catch (e) {
+      console.warn('無法開啟指定 ID 試算表: ' + e.message);
     }
+  }
+  
+  // 2. 嘗試獲取當前綁定的試算表
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    if (ss) return ss;
+  } catch (e) {}
+
+  // 3. 自動建立一份新試算表作為資料庫備份
+  try {
+    var newSs = SpreadsheetApp.create('FlatSpec Drive 專案資料庫');
+    return newSs;
+  } catch (err) {
+    throw new Error('無法存取或建立試算表: ' + err.toString());
   }
 }
 
