@@ -108,7 +108,12 @@
 
         <!-- 搜尋列 -->
         <div class="p-3 border-b-2 border-black bg-zinc-100">
-            <input type="text" id="searchInput" placeholder="🔍 搜尋文檔或任務..." oninput="app.renderSidebar()" class="flat-input w-full p-2 text-sm bg-white">
+            <div onclick="app.openSearchModal()" class="flat-input w-full p-2 text-sm bg-white cursor-pointer flex items-center justify-between hover:bg-yellow-50 text-zinc-600 font-bold border-2 border-black flat-box shadow-xs transition-colors" title="開啟全域搜尋 (Ctrl+K)">
+                <span class="flex items-center gap-1.5 truncate">
+                    <span>🔍</span> <span class="text-zinc-700">全域搜尋...</span>
+                </span>
+                <kbd class="hidden sm:inline-block bg-zinc-100 border border-zinc-400 px-1 text-[9px] font-mono text-zinc-600">Ctrl+K</kbd>
+            </div>
         </div>
 
         <!-- 目錄樹 -->
@@ -158,8 +163,13 @@
                 <button id="viewTabWizard" onclick="app.switchView('Wizard')" class="px-4 py-1 border-2 border-black bg-violet-200 hover:bg-violet-100 transition-colors uppercase">✨ 精靈</button>
             </div>
 
-            <!-- 同步狀態燈與手動刷新 -->
+            <!-- 搜尋與同步狀態燈 -->
             <div class="flex items-center gap-2 shrink-0">
+                <button onclick="app.openSearchModal()" class="p-1.5 px-2 bg-zinc-100 hover:bg-yellow-200 border-2 border-black font-bold text-xs flat-box flex items-center gap-1.5 transition-colors" title="快速全域搜尋 (快捷鍵: Ctrl+K / Cmd+K)">
+                    <span class="text-sm">🔍</span>
+                    <span class="hidden lg:inline text-zinc-800">搜尋</span>
+                    <kbd class="hidden md:inline-block bg-white border border-zinc-400 px-1 py-0.2 text-[9px] font-mono text-zinc-600 rounded-none">Ctrl+K</kbd>
+                </button>
                 <button onclick="app.pullFromCloud(true)" class="p-1.5 bg-zinc-100 hover:bg-zinc-200 border-2 border-black font-bold text-xs flat-box flex items-center gap-1" title="從 Google 試算表拉取最新資料">
                     <span class="text-sm">🔄</span>
                     <span class="hidden sm:inline">重新整理</span>
@@ -721,6 +731,49 @@
         </div>
     </div>
 
+    <!-- Modal: 全域搜尋與 Command Palette (Ctrl+K) -->
+    <div id="searchModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-start justify-center p-3 md:p-6 pt-8 md:pt-16" onclick="app.closeSearchModal()">
+        <div class="bg-white border-2 border-black w-full max-w-2xl flat-shadow-lg flex flex-col max-h-[82vh] overflow-hidden" onclick="event.stopPropagation()">
+            <!-- 搜尋輸入框 -->
+            <div class="p-3 md:p-4 border-b-2 border-black bg-zinc-100 flex items-center gap-2.5 shrink-0">
+                <span class="text-xl shrink-0">🔍</span>
+                <input type="text" id="globalSearchInput" placeholder="搜尋專案、文檔標題、內文或任務... (↑↓ 選擇, Enter 開啟)" class="flat-input w-full p-2 text-sm md:text-base font-bold bg-white focus:bg-yellow-50" oninput="app.handleGlobalSearch(this.value)" onkeydown="app.handleSearchKeyNavigation(event)" autocomplete="off">
+                <button onclick="app.closeSearchModal()" class="px-2.5 py-1.5 border-2 border-black font-bold text-xs bg-white hover:bg-zinc-200 flat-box shrink-0">ESC</button>
+            </div>
+
+            <!-- 分類過濾 Chips -->
+            <div class="px-3 md:px-4 py-2 bg-zinc-200 border-b-2 border-black flex items-center gap-1.5 overflow-x-auto no-scrollbar shrink-0 text-xs font-bold">
+                <span class="text-zinc-600 shrink-0 font-mono text-[11px]">篩選:</span>
+                <button type="button" id="searchFilterAll" onclick="app.setSearchFilter('all')" class="px-2.5 py-1 bg-black text-white border border-black font-bold transition-colors shrink-0">🌟 全部 (<span id="searchCountAll">0</span>)</button>
+                <button type="button" id="searchFilterDocs" onclick="app.setSearchFilter('docs')" class="px-2.5 py-1 bg-white text-black border border-black hover:bg-zinc-100 font-bold transition-colors shrink-0">📄 文檔 (<span id="searchCountDocs">0</span>)</button>
+                <button type="button" id="searchFilterTasks" onclick="app.setSearchFilter('tasks')" class="px-2.5 py-1 bg-white text-black border border-black hover:bg-zinc-100 font-bold transition-colors shrink-0">✅ 任務 (<span id="searchCountTasks">0</span>)</button>
+                <button type="button" id="searchFilterProjects" onclick="app.setSearchFilter('projects')" class="px-2.5 py-1 bg-white text-black border border-black hover:bg-zinc-100 font-bold transition-colors shrink-0">📁 專案 (<span id="searchCountProjects">0</span>)</button>
+                
+                <div class="ml-auto flex items-center gap-1 shrink-0 text-[11px] text-zinc-700 pl-2">
+                    <label class="flex items-center gap-1 cursor-pointer select-none">
+                        <input type="checkbox" id="searchAllProjectsToggle" class="accent-black" onchange="app.handleGlobalSearch(document.getElementById('globalSearchInput').value)" checked>
+                        <span>跨專案</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- 搜尋結果列表 -->
+            <div id="searchResultsList" class="flex-1 overflow-y-auto p-2 md:p-3 space-y-1.5 divide-y divide-zinc-200">
+                <!-- 動態注入搜尋結果項目 -->
+            </div>
+
+            <!-- 底部提示列 -->
+            <div class="p-2 md:p-2.5 border-t-2 border-black bg-zinc-100 text-[11px] text-zinc-600 flex items-center justify-between font-mono shrink-0">
+                <div class="hidden sm:flex items-center gap-3">
+                    <span><kbd class="bg-white border border-zinc-400 px-1 py-0.5 font-bold">↑</kbd> <kbd class="bg-white border border-zinc-400 px-1 py-0.5 font-bold">↓</kbd> 選擇</span>
+                    <span><kbd class="bg-white border border-zinc-400 px-1.5 py-0.5 font-bold">Enter</kbd> 開啟</span>
+                    <span><kbd class="bg-white border border-zinc-400 px-1.5 py-0.5 font-bold">ESC</kbd> 關閉</span>
+                </div>
+                <span id="searchResultSummary" class="text-zinc-600 font-bold">請輸入關鍵字進行即時搜尋</span>
+            </div>
+        </div>
+    </div>
+
     <!-- 系統訊息 Toast -->
     <div id="toast" class="fixed top-4 left-1/2 transform -translate-x-1/2 bg-black text-white px-4 py-2 font-bold text-sm border-2 border-black shadow-[4px_4px_0px_0px_#cbd5e1] z-[100] transition-all duration-300 opacity-0 pointer-events-none translate-y-[-20px]">
         訊息
@@ -966,15 +1019,20 @@
                     }
                 });
 
-                // 鍵盤事件 (Ctrl+S / Cmd+S 立即存檔推送, Esc 關閉彈窗)
+                // 鍵盤事件 (Ctrl+S 立即存檔, Ctrl+K 全域搜尋, Esc 關閉彈窗)
                 document.addEventListener('keydown', (e) => {
-                    if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+                    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
                         e.preventDefault();
                         this.pushToCloud(true);
+                    }
+                    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+                        e.preventDefault();
+                        this.openSearchModal();
                     }
                     if (e.key === 'Escape') {
                         this.closeModals();
                         this.closeDocLinkDropdown();
+                        this.closeSearchModal();
                     }
                 });
 
@@ -2727,10 +2785,313 @@
                 document.getElementById('newDocModal')?.classList.remove('hidden');
             },
             closeModals() {
-                ['gasModal', 'newProjectModal', 'newDocModal', 'backupModal', 'editProjectModal', 'editTaskModal', 'insertImageModal', 'imageViewerModal'].forEach(id => {
+                ['gasModal', 'newProjectModal', 'newDocModal', 'backupModal', 'editProjectModal', 'editTaskModal', 'insertImageModal', 'imageViewerModal', 'searchModal'].forEach(id => {
                     const el = document.getElementById(id);
                     if(el) el.classList.add('hidden');
                 });
+            },
+
+            // ================= 全域搜尋與 Command Palette (Ctrl+K) =================
+            searchFilter: 'all',
+            selectedSearchIndex: 0,
+            currentSearchResults: [],
+
+            openSearchModal() {
+                const modal = document.getElementById('searchModal');
+                const input = document.getElementById('globalSearchInput');
+                if (modal) modal.classList.remove('hidden');
+                if (input) {
+                    input.value = '';
+                    setTimeout(() => input.focus(), 60);
+                }
+                this.setSearchFilter('all');
+                this.handleGlobalSearch('');
+            },
+
+            closeSearchModal() {
+                document.getElementById('searchModal')?.classList.add('hidden');
+            },
+
+            setSearchFilter(filter) {
+                this.searchFilter = filter;
+                ['all', 'docs', 'tasks', 'projects'].forEach(f => {
+                    const btn = document.getElementById(`searchFilter${f.charAt(0).toUpperCase() + f.slice(1)}`);
+                    if (btn) {
+                        if (f === filter) {
+                            btn.className = 'px-2.5 py-1 bg-black text-white border border-black font-bold transition-colors shrink-0';
+                        } else {
+                            btn.className = 'px-2.5 py-1 bg-white text-black border border-black hover:bg-zinc-100 font-bold transition-colors shrink-0';
+                        }
+                    }
+                });
+                this.selectedSearchIndex = 0;
+                this.renderSearchResults(document.getElementById('globalSearchInput')?.value || '');
+            },
+
+            handleGlobalSearch(query) {
+                const cleanQuery = (query || '').trim().toLowerCase();
+                const searchAllProjects = document.getElementById('searchAllProjectsToggle')?.checked ?? true;
+                
+                const projectsToSearch = searchAllProjects 
+                    ? this.state.projects 
+                    : [this.getCurrentProject()].filter(Boolean);
+
+                const allResults = [];
+                let docsCount = 0;
+                let tasksCount = 0;
+                let projectsCount = 0;
+
+                projectsToSearch.forEach(p => {
+                    // 1. 搜尋專案本身
+                    const projMatch = !cleanQuery || 
+                        p.title.toLowerCase().includes(cleanQuery) || 
+                        (p.category && p.category.toLowerCase().includes(cleanQuery)) || 
+                        (p.wizard?.vision && p.wizard.vision.toLowerCase().includes(cleanQuery));
+
+                    if (projMatch) {
+                        projectsCount++;
+                        allResults.push({
+                            type: 'project',
+                            projectId: p.id,
+                            projectTitle: p.title,
+                            title: p.title,
+                            category: p.category || '未分類',
+                            snippet: p.wizard?.vision ? this.extractSnippet(p.wizard.vision, cleanQuery) : `${p.category || '專案'} · ${p.tasks?.length || 0} 個任務 · ${p.docs?.length || 0} 篇文檔`
+                        });
+                    }
+
+                    // 2. 搜尋文檔 (標題與內文)
+                    (p.docs || []).forEach(doc => {
+                        const titleMatch = doc.title && doc.title.toLowerCase().includes(cleanQuery);
+                        const contentMatch = doc.content && doc.content.toLowerCase().includes(cleanQuery);
+                        if (!cleanQuery || titleMatch || contentMatch) {
+                            docsCount++;
+                            allResults.push({
+                                type: 'doc',
+                                projectId: p.id,
+                                projectTitle: p.title,
+                                docId: doc.id,
+                                title: doc.title,
+                                snippet: this.extractSnippet(doc.content || '', cleanQuery)
+                            });
+                        }
+                    });
+
+                    // 3. 搜尋任務 (標題、描述、狀態、優先級)
+                    (p.tasks || []).forEach(task => {
+                        const taskMatch = task.title && task.title.toLowerCase().includes(cleanQuery);
+                        const descMatch = task.desc && task.desc.toLowerCase().includes(cleanQuery);
+                        const priorityMatch = task.priority && task.priority.toLowerCase().includes(cleanQuery);
+                        const statusMatch = task.status && task.status.toLowerCase().includes(cleanQuery);
+
+                        if (!cleanQuery || taskMatch || descMatch || priorityMatch || statusMatch) {
+                            tasksCount++;
+                            allResults.push({
+                                type: 'task',
+                                projectId: p.id,
+                                projectTitle: p.title,
+                                taskId: task.id,
+                                title: task.title,
+                                priority: task.priority || 'MEDIUM',
+                                status: task.status || 'TODO',
+                                snippet: task.desc ? this.extractSnippet(task.desc, cleanQuery) : `狀態: ${task.status} · 優先度: ${task.priority}`
+                            });
+                        }
+                    });
+                });
+
+                const elAll = document.getElementById('searchCountAll');
+                if (elAll) elAll.innerText = allResults.length;
+                const elDocs = document.getElementById('searchCountDocs');
+                if (elDocs) elDocs.innerText = docsCount;
+                const elTasks = document.getElementById('searchCountTasks');
+                if (elTasks) elTasks.innerText = tasksCount;
+                const elProjects = document.getElementById('searchCountProjects');
+                if (elProjects) elProjects.innerText = projectsCount;
+
+                this.currentSearchResults = allResults;
+                this.selectedSearchIndex = 0;
+                this.renderSearchResults(cleanQuery);
+            },
+
+            getFilteredSearchResults() {
+                if (this.searchFilter === 'all') return this.currentSearchResults;
+                if (this.searchFilter === 'docs') return this.currentSearchResults.filter(r => r.type === 'doc');
+                if (this.searchFilter === 'tasks') return this.currentSearchResults.filter(r => r.type === 'task');
+                if (this.searchFilter === 'projects') return this.currentSearchResults.filter(r => r.type === 'project');
+                return this.currentSearchResults;
+            },
+
+            renderSearchResults(query = '') {
+                const listEl = document.getElementById('searchResultsList');
+                const summaryEl = document.getElementById('searchResultSummary');
+                if (!listEl) return;
+
+                const filtered = this.getFilteredSearchResults();
+
+                if (summaryEl) {
+                    if (!query) {
+                        summaryEl.innerText = `顯示全部 ${filtered.length} 個項目`;
+                    } else {
+                        summaryEl.innerText = `找到 ${filtered.length} 個符合「${query}」的項目`;
+                    }
+                }
+
+                if (filtered.length === 0) {
+                    listEl.innerHTML = `
+                        <div class="py-12 text-center text-zinc-400">
+                            <span class="text-4xl block mb-2">🔍</span>
+                            <p class="font-bold text-sm text-zinc-600">查無任何符合的項目</p>
+                            <p class="text-xs text-zinc-400 mt-1">請嘗試縮短關鍵字或切換搜尋分類</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                let html = '';
+                filtered.forEach((item, index) => {
+                    const isSelected = index === this.selectedSearchIndex;
+                    const selectedClasses = isSelected ? 'bg-yellow-100 border-black shadow-[2px_2px_0px_0px_#000]' : 'bg-white hover:bg-zinc-50 border-zinc-300';
+
+                    let typeBadge = '';
+                    let itemIcon = '';
+                    if (item.type === 'project') {
+                        itemIcon = '📁';
+                        typeBadge = `<span class="bg-blue-100 text-blue-900 border border-blue-400 px-1.5 py-0.2 text-[10px] font-bold">專案</span>`;
+                    } else if (item.type === 'doc') {
+                        itemIcon = '📄';
+                        typeBadge = `<span class="bg-emerald-100 text-emerald-900 border border-emerald-400 px-1.5 py-0.2 text-[10px] font-bold">文檔</span>`;
+                    } else if (item.type === 'task') {
+                        itemIcon = item.status === 'DONE' ? '✅' : '☑️';
+                        typeBadge = `<span class="bg-violet-100 text-violet-900 border border-violet-400 px-1.5 py-0.2 text-[10px] font-bold">${item.status}</span>`;
+                    }
+
+                    const highlightedTitle = this.highlightKeyword(item.title, query);
+                    const highlightedSnippet = this.highlightKeyword(item.snippet, query);
+                    const projectBadge = item.projectTitle ? `<span class="text-zinc-500 font-mono text-[10px] truncate max-w-[140px]">📁 ${this.escapeHtml(item.projectTitle)}</span>` : '';
+
+                    html += `
+                        <div id="searchItem_${index}" onclick="app.selectSearchResultByIndex(${index})" class="p-2.5 border-2 ${selectedClasses} transition-all cursor-pointer flex flex-col gap-1 flat-box">
+                            <div class="flex items-center justify-between gap-2">
+                                <div class="flex items-center gap-1.5 min-w-0">
+                                    <span class="text-base shrink-0">${itemIcon}</span>
+                                    <span class="font-black text-sm text-zinc-900 truncate">${highlightedTitle}</span>
+                                    ${typeBadge}
+                                </div>
+                                <div class="flex items-center gap-2 shrink-0">
+                                    ${projectBadge}
+                                    <span class="text-xs text-zinc-400 font-mono hidden sm:inline">➔</span>
+                                </div>
+                            </div>
+                            <div class="text-xs text-zinc-600 font-mono line-clamp-2 pl-6 leading-relaxed">
+                                ${highlightedSnippet}
+                            </div>
+                        </div>
+                    `;
+                });
+
+                listEl.innerHTML = html;
+                this.scrollSelectedSearchItemIntoView();
+            },
+
+            selectSearchResultByIndex(index) {
+                const filtered = this.getFilteredSearchResults();
+                if (filtered[index]) {
+                    this.selectSearchResult(filtered[index]);
+                }
+            },
+
+            selectSearchResult(item) {
+                if (!item) return;
+                this.closeSearchModal();
+
+                if (item.type === 'project') {
+                    this.switchProject(item.projectId);
+                    this.switchView('Dashboard');
+                    this.showToast(`📁 已切換至專案：${item.title}`);
+                } else if (item.type === 'doc') {
+                    this.switchProject(item.projectId);
+                    this.switchView('Docs');
+                    this.openDoc(item.docId);
+                    this.showToast(`📄 已開啟文檔：${item.title}`);
+                } else if (item.type === 'task') {
+                    this.switchProject(item.projectId);
+                    this.switchView('Execution');
+                    this.showToast(`✅ 已跳轉至任務：${item.title}`);
+                    setTimeout(() => {
+                        const el = document.getElementById(`task_${item.taskId}`);
+                        if (el) {
+                            el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            el.classList.add('ring-4', 'ring-yellow-400');
+                            setTimeout(() => el.classList.remove('ring-4', 'ring-yellow-400'), 2500);
+                        }
+                    }, 120);
+                }
+            },
+
+            handleSearchKeyNavigation(e) {
+                const filtered = this.getFilteredSearchResults();
+                if (filtered.length === 0) return;
+
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    this.selectedSearchIndex = (this.selectedSearchIndex + 1) % filtered.length;
+                    this.updateSearchHighlight();
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    this.selectedSearchIndex = (this.selectedSearchIndex - 1 + filtered.length) % filtered.length;
+                    this.updateSearchHighlight();
+                } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    const item = filtered[this.selectedSearchIndex];
+                    if (item) this.selectSearchResult(item);
+                }
+            },
+
+            updateSearchHighlight() {
+                const filtered = this.getFilteredSearchResults();
+                filtered.forEach((_, idx) => {
+                    const el = document.getElementById(`searchItem_${idx}`);
+                    if (el) {
+                        if (idx === this.selectedSearchIndex) {
+                            el.className = 'p-2.5 border-2 bg-yellow-100 border-black shadow-[2px_2px_0px_0px_#000] transition-all cursor-pointer flex flex-col gap-1 flat-box';
+                        } else {
+                            el.className = 'p-2.5 border-2 bg-white hover:bg-zinc-50 border-zinc-300 transition-all cursor-pointer flex flex-col gap-1 flat-box';
+                        }
+                    }
+                });
+                this.scrollSelectedSearchItemIntoView();
+            },
+
+            scrollSelectedSearchItemIntoView() {
+                const activeEl = document.getElementById(`searchItem_${this.selectedSearchIndex}`);
+                if (activeEl && typeof activeEl.scrollIntoView === 'function') {
+                    activeEl.scrollIntoView({ block: 'nearest' });
+                }
+            },
+
+            extractSnippet(text, query, maxLength = 100) {
+                if (!text) return '無內文';
+                if (!query) return text.substring(0, maxLength) + (text.length > maxLength ? '...' : '');
+
+                const clean = text.replace(/#+ /g, '').replace(/\[\[|\]\]/g, '');
+                const lower = clean.toLowerCase();
+                const index = lower.indexOf(query.toLowerCase());
+                if (index === -1) {
+                    return clean.substring(0, maxLength) + (clean.length > maxLength ? '...' : '');
+                }
+
+                const start = Math.max(0, index - 25);
+                const end = Math.min(clean.length, index + query.length + 55);
+                return (start > 0 ? '...' : '') + clean.substring(start, end) + (end < clean.length ? '...' : '');
+            },
+
+            highlightKeyword(text, query) {
+                if (!text) return '';
+                const safe = this.escapeHtml(text);
+                if (!query) return safe;
+                const regex = new RegExp(`(${this.escapeRegex(query)})`, 'gi');
+                return safe.replace(regex, '<mark class="bg-yellow-300 text-black px-0.5 font-black">$1</mark>');
             },
 
             // ================= 圖片功能管理 =================
