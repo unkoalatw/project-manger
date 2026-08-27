@@ -209,9 +209,12 @@
 
             <!-- 視圖 2: 文檔編輯器 (Docs) -->
             <div id="viewDocs" class="hidden h-full flex flex-col p-4 md:p-6 max-w-5xl mx-auto overflow-y-auto no-scrollbar">
-                <div class="flex justify-between items-end mb-3 gap-4">
-                    <input type="text" id="docTitleInput" class="text-2xl md:text-3xl font-black bg-transparent border-b-4 border-transparent hover:border-zinc-300 focus:border-black focus:outline-none w-full pb-1 transition-colors" placeholder="輸入文檔標題..." oninput="app.updateDocTitle(this.value)">
-                    <button onclick="app.deleteCurrentDoc()" class="shrink-0 p-2 text-red-600 hover:bg-red-100 border-2 border-transparent hover:border-red-600 font-bold text-sm transition-colors" title="刪除文檔">🗑️</button>
+                <div class="flex justify-between items-center mb-3 gap-4 border-b-2 border-zinc-200 pb-2">
+                    <div class="flex items-center gap-2 flex-1 min-w-0">
+                        <span class="text-2xl shrink-0">📄</span>
+                        <input type="text" id="docTitleInput" class="text-2xl md:text-3xl font-black bg-transparent border-b-2 border-transparent hover:border-zinc-300 focus:border-black focus:bg-zinc-50 focus:outline-none w-full px-1 py-0.5 transition-colors" placeholder="輸入文檔名稱..." oninput="app.updateDocTitle(this.value)" title="點擊即可直接修改文檔名稱">
+                    </div>
+                    <button onclick="app.deleteCurrentDoc()" class="shrink-0 p-2 text-red-600 hover:bg-red-100 border-2 border-transparent hover:border-red-600 font-bold text-sm transition-colors" title="刪除文檔">🗑️ 刪除</button>
                 </div>
 
                 <!-- 編輯工具列 (支援模式切換、插入文檔引用與快捷語法) -->
@@ -1536,6 +1539,9 @@
                             </div>
 
                             <div class="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 shrink-0 transition-opacity ml-1 bg-zinc-100 border border-zinc-300 px-1 py-0.5">
+                                <button onclick="app.renameDocPrompt('${this.escapeHtml(doc.id)}', event)" 
+                                    class="text-[10px] px-1 hover:bg-zinc-300 cursor-pointer font-bold text-zinc-700 hover:text-black" 
+                                    title="重新命名文檔">✏️</button>
                                 <button onclick="app.moveDoc('${this.escapeHtml(doc.id)}', -1, event)" 
                                     class="text-[10px] px-1 hover:bg-zinc-300 ${!canMoveUp ? 'opacity-20 cursor-not-allowed' : 'cursor-pointer'}" 
                                     title="向上移動" ${!canMoveUp ? 'disabled' : ''}>▲</button>
@@ -1923,6 +1929,32 @@
                 this.debouncedSaveAndSync();
                 this.renderSidebar();
                 this.showToast('↕️ 文檔順序已更新並同步至雲端！');
+            },
+
+            renameDocPrompt(docId, event) {
+                if (event) event.stopPropagation();
+                const p = this.getCurrentProject();
+                const doc = p?.docs?.find(d => d.id === docId);
+                if (!doc) return;
+
+                const newTitle = prompt('請輸入新的文檔名稱：', doc.title || '');
+                if (newTitle !== null) {
+                    const trimmed = newTitle.trim();
+                    if (!trimmed) {
+                        this.showToast('文檔名稱不能為空', 'error');
+                        return;
+                    }
+                    doc.title = trimmed;
+                    p.updatedAt = new Date().toISOString();
+                    this.renderSidebar();
+                    if (this.state.activeDocId === docId) {
+                        const titleEl = document.getElementById('docTitleInput');
+                        if (titleEl) titleEl.value = trimmed;
+                    }
+                    this.renderDocLinksPanel(doc);
+                    this.debouncedSaveAndSync();
+                    this.showToast('✏️ 文檔名稱已更新並同步至雲端！');
+                }
             },
 
             renderDocs() {
