@@ -608,6 +608,7 @@
                 hasPendingSync: false,     // 是否有排隊待同步的修改
                 isUserTyping: false,       // 使用者是否正在編輯輸入中 (防止輪詢干擾游標)
                 typingTimer: null,
+                draggedDocId: null,        // 當前正在拖曳的文檔 ID
                 lastSyncTime: null,
                 lastLocalSaveTime: null,
                 isMobileSidebarOpen: false
@@ -1496,6 +1497,7 @@
                 
                 // 文件庫分類
                 const docs = p.docs || [];
+                const isSearching = searchStr.length > 0;
                 const filteredDocs = docs.filter(d => (d.title || '').toLowerCase().includes(searchStr));
                 
                 html += `
@@ -1504,19 +1506,42 @@
                             <span>📂 專案文檔 (${docs.length})</span>
                             <button onclick="app.openNewDocModal()" class="hover:text-black font-bold text-sm" title="新增文檔">＋</button>
                         </div>
-                        <div class="space-y-1">
+                        <div class="space-y-1" id="sidebarDocList">
                 `;
                 
                 if (filteredDocs.length === 0) {
                     html += `<div class="text-xs text-zinc-400 italic px-2">無符合文檔</div>`;
                 }
 
-                filteredDocs.forEach(doc => {
+                filteredDocs.forEach((doc, idx) => {
                     const isActive = doc.id === this.state.activeDocId;
+                    const canMoveUp = idx > 0 && !isSearching;
+                    const canMoveDown = idx < filteredDocs.length - 1 && !isSearching;
+                    
                     html += `
-                        <div class="group flex items-center justify-between p-2 cursor-pointer text-sm font-bold border-2 ${isActive ? 'bg-white border-black shadow-[2px_2px_0px_0px_#000] translate-x-1' : 'border-transparent hover:border-zinc-300 hover:bg-zinc-200'} transition-all" onclick="app.openDoc('${doc.id}')">
-                            <div class="truncate flex items-center gap-2">
-                                <span>📄</span> ${this.escapeHtml(doc.title || '未命名')}
+                        <div class="group relative flex items-center justify-between p-2 cursor-pointer text-sm font-bold border-2 ${isActive ? 'bg-white border-black shadow-[2px_2px_0px_0px_#000] translate-x-1' : 'border-transparent hover:border-zinc-300 hover:bg-zinc-200'} transition-all select-none"
+                            draggable="${!isSearching}"
+                            data-doc-id="${this.escapeHtml(doc.id)}"
+                            ondragstart="app.handleDocDragStart(event, '${this.escapeHtml(doc.id)}')"
+                            ondragover="app.handleDocDragOver(event, '${this.escapeHtml(doc.id)}')"
+                            ondragleave="app.handleDocDragLeave(event)"
+                            ondragend="app.handleDocDragEnd(event)"
+                            ondrop="app.handleDocDrop(event, '${this.escapeHtml(doc.id)}')"
+                            onclick="app.openDoc('${this.escapeHtml(doc.id)}')">
+                            
+                            <div class="truncate flex items-center gap-1.5 flex-1 min-w-0">
+                                <span class="text-zinc-400 group-hover:text-black cursor-grab active:cursor-grabbing text-xs px-0.5 tracking-tighter" title="${isSearching ? '搜尋時無法拖曳' : '拖曳以自訂排列順序'}">⋮⋮</span>
+                                <span>📄</span>
+                                <span class="truncate">${this.escapeHtml(doc.title || '未命名')}</span>
+                            </div>
+
+                            <div class="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 shrink-0 transition-opacity ml-1 bg-zinc-100 border border-zinc-300 px-1 py-0.5">
+                                <button onclick="app.moveDoc('${this.escapeHtml(doc.id)}', -1, event)" 
+                                    class="text-[10px] px-1 hover:bg-zinc-300 ${!canMoveUp ? 'opacity-20 cursor-not-allowed' : 'cursor-pointer'}" 
+                                    title="向上移動" ${!canMoveUp ? 'disabled' : ''}>▲</button>
+                                <button onclick="app.moveDoc('${this.escapeHtml(doc.id)}', 1, event)" 
+                                    class="text-[10px] px-1 hover:bg-zinc-300 ${!canMoveDown ? 'opacity-20 cursor-not-allowed' : 'cursor-pointer'}" 
+                                    title="向下移動" ${!canMoveDown ? 'disabled' : ''}>▼</button>
                             </div>
                         </div>
                     `;
@@ -1792,6 +1817,111 @@
                     this.renderAll();
                     this.showToast('🗑️ 文檔已刪除');
                 }
+            },
+
+            // ================= 文檔拖曳排序與排列邏輯 (Drag & Drop Reordering) =================
+            handleDocDragStart(e, docId) {
+                this.state.draggedDocId = docId;
+                if (e.dataTransfer) {
+                    e.dataTransfer.setData('text/plain', docId);
+                    e.dataTransfer.effectAllowed = 'move';
+                }
+                if (e.currentTarget) {
+                    e.currentTarget.classList.add('opacity-40', 'border-dashed');
+                }
+            },
+
+            handleDocDragOver(e, targetDocId) {
+                e.preventDefault();
+                if (e.dataTransfer) {
+                    e.dataTransfer.dropEffect = 'move';
+                }
+                
+                const el = e.currentTarget;
+                if (!el || this.state.draggedDocId === targetDocId) return;
+
+                const rect = el.getBoundingClientRect();
+                const isUpper = (e.clientY - rect.top) < (rect.height / 2);
+
+                if (isUpper) {
+                    el.classList.add('border-t-4', 'border-t-black');
+                    el.classList.remove('border-b-4', 'border-b-black');
+                } else {
+                    el.classList.add('border-b-4', 'border-b-black');
+                    el.classList.remove('border-t-4', 'border-t-black');
+                }
+            },
+
+            handleDocDragLeave(e) {
+                const el = e.currentTarget;
+                if (el) {
+                    el.classList.remove('border-t-4', 'border-t-black', 'border-b-4', 'border-b-black');
+                }
+            },
+
+            handleDocDragEnd(e) {
+                this.state.draggedDocId = null;
+                const items = document.querySelectorAll('#sidebarTree [draggable="true"]');
+                items.forEach(item => {
+                    item.classList.remove('opacity-40', 'border-dashed', 'border-t-4', 'border-t-black', 'border-b-4', 'border-b-black');
+                });
+            },
+
+            handleDocDrop(e, targetDocId) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const draggedId = this.state.draggedDocId || (e.dataTransfer ? e.dataTransfer.getData('text/plain') : null);
+                this.handleDocDragEnd(e);
+
+                if (!draggedId || draggedId === targetDocId) return;
+
+                const p = this.getCurrentProject();
+                if (!p || !Array.isArray(p.docs)) return;
+
+                const fromIdx = p.docs.findIndex(d => d.id === draggedId);
+                const toIdx = p.docs.findIndex(d => d.id === targetDocId);
+
+                if (fromIdx === -1 || toIdx === -1) return;
+
+                const rect = e.currentTarget ? e.currentTarget.getBoundingClientRect() : { top: 0, height: 40 };
+                const isUpper = (e.clientY - rect.top) < (rect.height / 2);
+
+                // 移除被拖曳的項目
+                const [draggedDoc] = p.docs.splice(fromIdx, 1);
+
+                // 計算新插入的位置
+                let insertIdx = p.docs.findIndex(d => d.id === targetDocId);
+                if (!isUpper) insertIdx += 1;
+
+                p.docs.splice(insertIdx, 0, draggedDoc);
+                p.updatedAt = new Date().toISOString();
+
+                // 立即存檔並同步至雲端
+                this.debouncedSaveAndSync();
+                this.renderSidebar();
+                this.showToast('↕️ 文檔順序已更新並同步至雲端！');
+            },
+
+            moveDoc(docId, delta, event) {
+                if (event) event.stopPropagation();
+
+                const p = this.getCurrentProject();
+                if (!p || !Array.isArray(p.docs)) return;
+
+                const idx = p.docs.findIndex(d => d.id === docId);
+                if (idx === -1) return;
+
+                const newIdx = idx + delta;
+                if (newIdx < 0 || newIdx >= p.docs.length) return;
+
+                const [movedDoc] = p.docs.splice(idx, 1);
+                p.docs.splice(newIdx, 0, movedDoc);
+                p.updatedAt = new Date().toISOString();
+
+                this.debouncedSaveAndSync();
+                this.renderSidebar();
+                this.showToast('↕️ 文檔順序已更新並同步至雲端！');
             },
 
             renderDocs() {
