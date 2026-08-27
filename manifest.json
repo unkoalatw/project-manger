@@ -1,5 +1,5 @@
 {
-  "id": "/project-manger/",
+  "id": "io.github.unkoalatw.twa",
   "name": "FlatSpec Drive - 專案設計與執行系統",
   "short_name": "FlatSpec",
   "description": "極簡硬派全直角專案設計、規格文檔與任務執行系統，支援離線本地使用與雲端同步",

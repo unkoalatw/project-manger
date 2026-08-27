@@ -1,4 +1,4 @@
-﻿name: Build Android APK
+name: Build Android APK
 
 on:
   push:
@@ -30,7 +30,7 @@ jobs:
         run: |
           npm init -y
           npm install @capacitor/core @capacitor/cli @capacitor/android
-          npx cap init FlatSpec com.flatspec.drive --web-dir .
+          npx cap init FlatSpec io.github.unkoalatw.twa --web-dir .
           npx cap add android
           npx cap sync android
 
