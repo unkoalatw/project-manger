@@ -1191,12 +1191,12 @@
                     } else if (remoteSlice.join('\n') === baseSlice.join('\n')) {
                         result.push(...localSlice);
                     } else {
-                        // 雙方在同一區間皆有修改，採無損串接合併
-                        const combined = [...localSlice];
-                        remoteSlice.forEach(rl => {
-                            if (!combined.includes(rl)) combined.push(rl);
-                        });
-                        result.push(...combined);
+                        // 雙方在同一區間皆有修改，保留本地修改，並將隊友並存內容用藍色協作標註！
+                        result.push(...localSlice);
+                        const uniqueRemote = remoteSlice.filter(rl => !localSlice.includes(rl) && rl.trim() !== '');
+                        if (uniqueRemote.length > 0) {
+                            result.push(`> 🔹 **[隊友協作並存內容]**\n` + uniqueRemote.map(rl => `> ${rl}`).join('\n'));
+                        }
                     }
 
                     result.push(anchor.line);
@@ -1216,11 +1216,11 @@
                 } else if (remoteTail.join('\n') === baseTail.join('\n')) {
                     result.push(...localTail);
                 } else {
-                    const combined = [...localTail];
-                    remoteTail.forEach(rl => {
-                        if (!combined.includes(rl)) combined.push(rl);
-                    });
-                    result.push(...combined);
+                    result.push(...localTail);
+                    const uniqueRemote = remoteTail.filter(rl => !localTail.includes(rl) && rl.trim() !== '');
+                    if (uniqueRemote.length > 0) {
+                        result.push(`> 🔹 **[隊友協作並存內容]**\n` + uniqueRemote.map(rl => `> ${rl}`).join('\n'));
+                    }
                 }
 
                 return result.join('\n');
@@ -4527,14 +4527,28 @@
                 html = html.replace(/^- \[x\] (.*$)/gim, '<div class="flex items-center gap-2 my-1"><input type="checkbox" checked disabled class="accent-black"> <span class="line-through text-zinc-400">$1</span></div>')
                            .replace(/^- \[ \] (.*$)/gim, '<div class="flex items-center gap-2 my-1"><input type="checkbox" disabled class="accent-black"> <span>$1</span></div>');
 
-                // 10. 一般清單與引言
+                // 10. 協作並存藍色標註區塊
+                html = html.replace(/(?:^|\n)&gt;\s*🔹\s*(?:&lt;strong&gt;)?\[隊友協作並存內容\](?:&lt;\/strong&gt;)?([\s\S]*?)(?=(?:\n(?!&gt;)|\n\n|$))/g, (match, body) => {
+                    const lines = body.split('\n').map(l => l.replace(/^&gt;\s?/, '').trim()).filter(Boolean);
+                    return `
+                        <div class="my-3 p-3 bg-blue-50 border-2 border-blue-600 text-blue-950 flat-box shadow-[3px_3px_0px_0px_#2563eb]">
+                            <div class="flex items-center gap-1.5 text-xs font-black text-blue-700 uppercase tracking-wider mb-1.5">
+                                <span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
+                                <span>👥 隊友協作並存內容 (請檢視整理)</span>
+                            </div>
+                            <div class="text-xs font-mono leading-relaxed pl-1 space-y-0.5">${lines.map(l => `<div>${l}</div>`).join('')}</div>
+                        </div>
+                    `;
+                });
+
+                // 11. 一般清單與引言
                 html = html.replace(/^[\*\-] (.*$)/gim, '<li class="ml-4 list-disc">$1</li>')
                             .replace(/^\> (.*$)/gim, '<blockquote class="border-l-4 border-black pl-3 py-1 my-2 bg-zinc-100 italic text-zinc-700 font-medium">$1</blockquote>');
 
-                // 11. 換行
+                // 12. 換行
                 html = html.replace(/\n/gim, '<br>');
 
-                // 12. 還原代碼區塊
+                // 13. 還原代碼區塊
                 codeBlocks.forEach((cb, idx) => {
                     html = html.replace(`__CODE_BLOCK_${idx}__`, cb);
                 });
