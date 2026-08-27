@@ -218,10 +218,10 @@
             </div>
 
             <!-- 視圖 2: 文檔編輯器 / 純檢視閱讀器 (Docs) -->
-            <div id="viewDocs" class="hidden h-full flex flex-col p-4 md:p-6 max-w-5xl mx-auto overflow-y-auto no-scrollbar">
+            <div id="viewDocs" class="hidden min-h-full flex flex-col p-4 md:p-6 max-w-5xl mx-auto space-y-4 pb-28 md:pb-12">
                 
                 <!-- 模式切換頂欄 (常駐於上方) -->
-                <div class="flex items-center justify-between mb-3 border-b-2 border-black pb-2">
+                <div class="flex items-center justify-between mb-2 border-b-2 border-black pb-2">
                     <div class="flex items-center gap-2">
                         <!-- 模式切換按鈕組 -->
                         <div class="flex items-center border-2 border-black bg-white shadow-[2px_2px_0px_0px_#000]">
@@ -247,7 +247,7 @@
                 </div>
 
                 <!-- 編輯模式專屬 Header (可改名、刪除) -->
-                <div id="docEditHeader" class="flex justify-between items-center mb-3 gap-4 border-b-2 border-zinc-200 pb-2">
+                <div id="docEditHeader" class="flex justify-between items-center mb-1 gap-4 border-b-2 border-zinc-200 pb-2">
                     <div class="flex items-center gap-2 flex-1 min-w-0">
                         <span class="text-2xl shrink-0">📄</span>
                         <input type="text" id="docTitleInput" class="text-2xl md:text-3xl font-black bg-transparent border-b-2 border-transparent hover:border-zinc-300 focus:border-black focus:bg-zinc-50 focus:outline-none w-full px-1 py-0.5 transition-colors" placeholder="輸入文檔名稱..." oninput="app.updateDocTitle(this.value)" title="點擊即可直接修改文檔名稱">
@@ -256,7 +256,7 @@
                 </div>
 
                 <!-- 純檢視模式專屬 Header (無輸入框、純淨文章大標題排版) -->
-                <div id="docPreviewHeader" class="hidden mb-4 pb-2 border-b-2 border-zinc-200">
+                <div id="docPreviewHeader" class="hidden mb-2 pb-2 border-b-2 border-zinc-200">
                     <div class="flex items-center gap-2 mb-1">
                         <span class="text-2xl">📄</span>
                         <h1 id="docPreviewTitle" class="text-2xl md:text-3xl font-black text-black leading-tight"></h1>
@@ -269,11 +269,11 @@
                 </div>
 
                 <!-- 編輯工具列 (僅在編輯模式顯示) -->
-                <div id="docEditToolbar" class="flex flex-wrap items-center justify-between gap-2 mb-3 p-2 bg-zinc-100 border-2 border-black">
+                <div id="docEditToolbar" class="flex flex-wrap items-center justify-between gap-2 p-2 bg-zinc-100 border-2 border-black">
                     <div class="flex flex-wrap items-center gap-1.5">
                         <!-- 引用文檔下拉選單 -->
                         <div class="relative inline-block" id="docLinkPickerContainer">
-                            <button type="button" onclick="app.toggleDocLinkDropdown()" class="px-2.5 py-1 bg-white hover:bg-zinc-200 border-2 border-black font-bold text-xs flex items-center gap-1.5 flat-box" title="在游標處引用專案內其他文檔">
+                            <button type="button" onclick="app.toggleDocLinkDropdown()" class="px-2.5 py-1 bg-white hover:bg-zinc-200 border-2 border-black font-bold text-xs flex items-center gap-1.5 flat-box" title="在游踢處引用專案內其他文檔">
                                 <span>🔗 引用文檔</span>
                                 <span class="text-[10px]">▼</span>
                             </button>
@@ -303,16 +303,16 @@
                 </div>
 
                 <!-- 內容區域：編輯文字框 vs 純檢視文章卡片 -->
-                <div class="flex-1 flex flex-col min-h-[350px]">
-                    <textarea id="docEditor" oninput="app.updateDocContent(this.value)" class="w-full flex-1 flat-input bg-white p-4 font-mono text-sm leading-relaxed resize-none shadow-inner min-h-[350px]" placeholder="支援 Markdown 語法與 [[文檔名稱]] 引用連結..."></textarea>
+                <div class="w-full flex flex-col">
+                    <textarea id="docEditor" oninput="app.updateDocContent(this.value)" class="w-full flat-input bg-white p-4 font-mono text-sm leading-relaxed shadow-inner min-h-[300px] md:min-h-[420px] resize-y" placeholder="支援 Markdown 語法與 [[文檔名稱]] 引用連結..."></textarea>
                     
-                    <div id="docPreview" class="hidden w-full flex-1 border-2 border-black bg-white p-6 md:p-8 overflow-y-auto prose prose-zinc max-w-none shadow-[4px_4px_0px_0px_#000] min-h-[350px]">
+                    <div id="docPreview" class="hidden w-full border-2 border-black bg-white p-6 md:p-8 prose prose-zinc max-w-none shadow-[4px_4px_0px_0px_#000] min-h-[300px] md:min-h-[420px]">
                         <!-- 純檢視 Markdown Preview -->
                     </div>
                 </div>
 
                 <!-- 雙向連結網絡面板 (Outgoing Links & Backlinks) -->
-                <div id="docLinksPanel" class="mt-4 p-3 bg-zinc-100 border-2 border-black text-xs">
+                <div id="docLinksPanel" class="p-4 bg-zinc-100 border-2 border-black text-xs shadow-[3px_3px_0px_0px_#000] mb-8">
                     <!-- 動態載入 -->
                 </div>
             </div>
@@ -1948,38 +1948,36 @@
                     }
                 });
 
-                if (outgoingDocs.length === 0 && backlinks.length === 0) {
-                    panelEl.classList.add('hidden');
-                    return;
-                }
-
                 panelEl.classList.remove('hidden');
                 let html = `
-                    <div class="border-b-2 border-zinc-200 pb-2 mb-2 flex items-center justify-between">
-                        <span class="font-black uppercase tracking-wider text-xs text-zinc-700">🔗 文檔關聯網絡 (Links & Backlinks)</span>
+                    <div class="border-b-2 border-black pb-2 mb-3 flex items-center justify-between">
+                        <span class="font-black uppercase tracking-wider text-xs flex items-center gap-1.5">
+                            <span>🔗</span> <span>文檔關聯網絡 (Links & Backlinks)</span>
+                        </span>
+                        <span class="text-[10px] font-bold text-zinc-500 font-mono">引用: ${outgoingDocs.length} | 被引: ${backlinks.length}</span>
                     </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 `;
 
                 // 引用其他文檔
-                html += `<div><span class="font-bold text-zinc-500 text-[10px] uppercase block mb-1">↗️ 本篇引用的文檔 (${outgoingDocs.length})：</span>`;
+                html += `<div><span class="font-black text-zinc-700 text-[11px] uppercase block mb-1.5 flex items-center gap-1"><span>↗️</span> <span>本文檔引用的文檔 (${outgoingDocs.length})</span></span>`;
                 if (outgoingDocs.length > 0) {
-                    html += `<div class="flex flex-wrap gap-1.5">` + outgoingDocs.map(d => 
-                        `<button onclick="app.openDoc('${d.id}')" class="px-2 py-1 bg-white hover:bg-blue-100 text-blue-900 border-2 border-black font-bold text-xs flex items-center gap-1 flat-box shadow-[2px_2px_0px_0px_#000]">📄 ${this.escapeHtml(d.title)} ➔</button>`
+                    html += `<div class="flex flex-wrap gap-2">` + outgoingDocs.map(d => 
+                        `<button onclick="app.openDoc('${d.id}')" class="px-2.5 py-1 bg-white hover:bg-blue-100 text-blue-900 border-2 border-black font-bold text-xs flex items-center gap-1 flat-box shadow-[2px_2px_0px_0px_#000]">📄 ${this.escapeHtml(d.title)} ➔</button>`
                     ).join('') + `</div>`;
                 } else {
-                    html += `<span class="text-zinc-400 italic text-[11px]">無引用其他文檔</span>`;
+                    html += `<div class="p-2 bg-white/70 border border-dashed border-zinc-300 text-zinc-400 italic text-[11px]">尚未引用其他文檔 (可輸入 <code>[[文檔名稱]]</code> 快速引用)</div>`;
                 }
                 html += `</div>`;
 
                 // 被其他文檔引用
-                html += `<div><span class="font-bold text-zinc-500 text-[10px] uppercase block mb-1">↙️ 引用本篇的文檔 (${backlinks.length})：</span>`;
+                html += `<div><span class="font-black text-zinc-700 text-[11px] uppercase block mb-1.5 flex items-center gap-1"><span>↙️</span> <span>引用本篇的其他文檔 (${backlinks.length})</span></span>`;
                 if (backlinks.length > 0) {
-                    html += `<div class="flex flex-wrap gap-1.5">` + backlinks.map(d => 
-                        `<button onclick="app.openDoc('${d.id}')" class="px-2 py-1 bg-white hover:bg-violet-100 text-violet-900 border-2 border-black font-bold text-xs flex items-center gap-1 flat-box shadow-[2px_2px_0px_0px_#000]">📄 ${this.escapeHtml(d.title)} ➔</button>`
+                    html += `<div class="flex flex-wrap gap-2">` + backlinks.map(d => 
+                        `<button onclick="app.openDoc('${d.id}')" class="px-2.5 py-1 bg-white hover:bg-violet-100 text-violet-900 border-2 border-black font-bold text-xs flex items-center gap-1 flat-box shadow-[2px_2px_0px_0px_#000]">📄 ${this.escapeHtml(d.title)} ➔</button>`
                     ).join('') + `</div>`;
                 } else {
-                    html += `<span class="text-zinc-400 italic text-[11px]">無反向引用</span>`;
+                    html += `<div class="p-2 bg-white/70 border border-dashed border-zinc-300 text-zinc-400 italic text-[11px]">尚無其他文檔引用本篇</div>`;
                 }
                 html += `</div></div>`;
 
