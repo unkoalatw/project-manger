@@ -278,14 +278,38 @@
                         </span>
                     </div>
 
-                    <!-- 純檢視模式專屬頂部操作 -->
-                    <div id="docPreviewActions" class="hidden flex items-center gap-2">
-                        <button type="button" onclick="app.copyDocContent()" class="px-2.5 py-1 bg-white hover:bg-zinc-100 border-2 border-black font-bold text-xs flex items-center gap-1 flat-box shadow-[2px_2px_0px_0px_#000]" title="複製文檔 Markdown 內容">
-                            <span>📋</span> <span class="hidden sm:inline">複製內容</span>
+                    <!-- 右側操作按鈕區 (大綱目錄、搜尋取代、純檢視專屬按鈕) -->
+                    <div class="flex items-center gap-1.5 flex-wrap">
+                        <button type="button" id="btnToggleFindReplace" onclick="app.toggleDocFindReplace()" class="px-2.5 py-1 bg-white hover:bg-yellow-200 border-2 border-black font-bold text-xs flex items-center gap-1 flat-box shadow-[2px_2px_0px_0px_#000]" title="在文檔中尋找與取代 (快捷鍵: Ctrl+F / Ctrl+H)">
+                            <span>🔍</span> <span class="hidden sm:inline">尋找/取代</span>
                         </button>
-                        <button type="button" onclick="app.toggleDocMode('edit')" class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white border-2 border-black font-bold text-xs flex items-center gap-1 flat-box shadow-[2px_2px_0px_0px_#000]" title="進入編輯此文檔">
-                            <span>✏️</span> <span>進入編輯</span>
+                        <button type="button" id="btnToggleToc" onclick="app.toggleDocToc()" class="px-2.5 py-1 bg-white hover:bg-zinc-100 border-2 border-black font-bold text-xs flex items-center gap-1.5 flat-box shadow-[2px_2px_0px_0px_#000]" title="展開文檔大綱目錄 (TOC)">
+                            <span>🗂️</span> <span class="hidden sm:inline">目錄大綱</span> <span id="docTocCountBadge" class="bg-black text-white px-1 py-0.2 text-[9px] font-mono font-black">0</span>
                         </button>
+
+                        <!-- 純檢視模式專屬頂部操作 -->
+                        <div id="docPreviewActions" class="hidden flex items-center gap-1.5">
+                            <button type="button" onclick="app.copyDocContent()" class="px-2.5 py-1 bg-white hover:bg-zinc-100 border-2 border-black font-bold text-xs flex items-center gap-1 flat-box shadow-[2px_2px_0px_0px_#000]" title="複製文檔 Markdown 內容">
+                                <span>📋</span> <span class="hidden sm:inline">複製內容</span>
+                            </button>
+                            <button type="button" onclick="app.toggleDocMode('edit')" class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white border-2 border-black font-bold text-xs flex items-center gap-1 flat-box shadow-[2px_2px_0px_0px_#000]" title="進入編輯此文檔">
+                                <span>✏️</span> <span>進入編輯</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 浮動文檔大綱目錄 (TOC Floating Drawer) -->
+                <div id="docTocDrawer" class="hidden fixed top-16 right-4 w-72 max-w-[calc(100vw-2rem)] bg-white border-2 border-black shadow-[6px_6px_0px_0px_#000] z-40 p-4 space-y-3 max-h-[75vh] flex flex-col">
+                    <div class="flex items-center justify-between border-b-2 border-black pb-2">
+                        <div class="flex items-center gap-1.5 font-black text-sm uppercase">
+                            <span>🗂️ 文檔大綱目錄</span>
+                            <span id="docTocDrawerCount" class="text-xs text-zinc-500 font-mono">(0)</span>
+                        </div>
+                        <button type="button" onclick="app.toggleDocToc(false)" class="text-lg font-bold hover:text-red-600 px-1">&times;</button>
+                    </div>
+                    <div id="docTocList" class="flex-1 overflow-y-auto no-scrollbar space-y-1 text-xs">
+                        <!-- 動態注入大綱項目 -->
                     </div>
                 </div>
 
@@ -308,6 +332,33 @@
                         <span id="docPreviewProjectLabel" class="bg-zinc-200 text-zinc-800 px-1.5 py-0.5"></span>
                         <span id="docPreviewDateLabel"></span>
                         <span class="bg-green-100 text-green-800 border border-green-300 px-1.5 py-0.2 text-[10px]">👁️ 純檢視中</span>
+                    </div>
+                </div>
+
+                <!-- 尋找與取代工具列 (In-Doc Find & Replace Bar) -->
+                <div id="docFindReplaceBar" class="hidden p-2.5 bg-yellow-50 border-2 border-black shadow-[3px_3px_0px_0px_#000] space-y-2 text-xs">
+                    <!-- 第一行：搜尋關鍵字、導航、選項 -->
+                    <div class="flex flex-wrap items-center justify-between gap-2">
+                        <div class="flex flex-wrap items-center gap-2 flex-1 min-w-0">
+                            <div class="relative flex-1 min-w-[160px] max-w-sm">
+                                <input type="text" id="docFindInput" placeholder="在文檔中尋找... (按 Enter 跳至下一個)" class="flat-input w-full p-1.5 pr-14 text-xs font-mono bg-white" oninput="app.handleDocFindInput(this.value)" onkeydown="app.handleDocFindKeydown(event)">
+                                <span id="docFindCountBadge" class="absolute right-1.5 top-1.5 text-[10px] font-mono font-bold text-zinc-500 bg-zinc-100 px-1 border border-zinc-300">0 / 0</span>
+                            </div>
+                            <div class="flex items-center border border-black bg-white">
+                                <button type="button" onclick="app.jumpDocFindMatch(-1)" class="p-1 px-2 hover:bg-zinc-200 font-bold border-r border-black" title="上一個匹配 (Shift+Enter)">▲</button>
+                                <button type="button" onclick="app.jumpDocFindMatch(1)" class="p-1 px-2 hover:bg-zinc-200 font-bold" title="下一個匹配 (Enter)">▼</button>
+                            </div>
+                            <button type="button" id="btnFindMatchCase" onclick="app.toggleFindOption('matchCase')" class="px-2 py-1 border border-black bg-white hover:bg-zinc-100 font-mono font-bold text-[11px]" title="大小寫須相符 (Match Case)">Aa</button>
+                            <button type="button" id="btnFindWholeWord" onclick="app.toggleFindOption('wholeWord')" class="px-2 py-1 border border-black bg-white hover:bg-zinc-100 font-mono font-bold text-[11px]" title="全字匹配 (Whole Word)">\b</button>
+                        </div>
+                        <button type="button" onclick="app.closeDocFindReplace()" class="text-zinc-500 hover:text-black font-bold text-sm px-1.5">✕</button>
+                    </div>
+
+                    <!-- 第二行：取代文字與按鈕 -->
+                    <div id="docReplaceRow" class="flex flex-wrap items-center gap-2 pt-1 border-t border-yellow-200">
+                        <input type="text" id="docReplaceInput" placeholder="取代為..." class="flat-input flex-1 min-w-[160px] max-w-sm p-1.5 text-xs font-mono bg-white" onkeydown="if(event.key==='Enter') app.replaceCurrentDocFindMatch()">
+                        <button type="button" onclick="app.replaceCurrentDocFindMatch()" class="px-3 py-1 bg-white hover:bg-zinc-100 border-2 border-black font-bold text-xs flat-box">替換</button>
+                        <button type="button" onclick="app.replaceAllDocFindMatches()" class="px-3 py-1 bg-black text-white hover:bg-zinc-800 font-bold text-xs flat-box">全部替換</button>
                     </div>
                 </div>
 
@@ -1044,7 +1095,12 @@
                 draggedDocId: null,        // 當前正在拖曳的文檔 ID
                 lastSyncTime: null,
                 lastLocalSaveTime: null,
-                isMobileSidebarOpen: false
+                isMobileSidebarOpen: false,
+                // 文書處理擴充狀態
+                docFindMatches: [],
+                docFindCurrentIndex: -1,
+                docFindOptions: { matchCase: false, wholeWord: false },
+                isDocTocOpen: false
             },
 
             // ================= 專案資料結構正規化 =================
@@ -1486,7 +1542,7 @@
                     }
                 });
 
-                // 鍵盤事件 (Ctrl+S 立即存檔, Ctrl+K 全域搜尋, Esc 關閉彈窗)
+                // 鍵盤事件 (Ctrl+S 立即存檔, Ctrl+K 全域搜尋, Ctrl+F/H 文檔尋找取代, Esc 關閉彈窗)
                 document.addEventListener('keydown', (e) => {
                     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
                         e.preventDefault();
@@ -1496,10 +1552,21 @@
                         e.preventDefault();
                         this.openSearchModal();
                     }
+                    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f' && this.state.currentView === 'Docs') {
+                        e.preventDefault();
+                        this.toggleDocFindReplace(true);
+                    }
+                    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'h' && this.state.currentView === 'Docs') {
+                        e.preventDefault();
+                        this.toggleDocFindReplace(true);
+                        setTimeout(() => document.getElementById('docReplaceInput')?.focus(), 60);
+                    }
                     if (e.key === 'Escape') {
                         this.closeModals();
                         this.closeDocLinkDropdown();
                         this.closeSearchModal();
+                        this.closeDocFindReplace();
+                        this.toggleDocToc(false);
                     }
                 });
 
@@ -2726,6 +2793,7 @@
                 }
                 
                 this.renderDocLinksPanel(doc);
+                this.renderDocToc();
                 this.toggleDocMode(this.state.docMode || 'edit');
             },
 
@@ -2789,6 +2857,7 @@
                         previewEl.innerHTML = this.parseMarkdown(val);
                     }
                     this.renderDocLinksPanel(doc);
+                    this.renderDocToc();
                     this.debouncedSaveAndSync();
                 }
             },
@@ -2850,6 +2919,305 @@
                     btnEdit.className = 'px-3 py-1 bg-black text-white font-bold text-xs transition-colors flex items-center gap-1';
                     btnPrev.className = 'px-3 py-1 bg-zinc-100 text-black font-bold text-xs transition-colors hover:bg-zinc-200 flex items-center gap-1';
                 }
+            },
+
+            // ================= 🗂️ 文檔大綱目錄 (Table of Contents / TOC) =================
+            toggleDocToc(forceState) {
+                this.state.isDocTocOpen = typeof forceState === 'boolean' ? forceState : !this.state.isDocTocOpen;
+                const drawer = document.getElementById('docTocDrawer');
+                if (drawer) {
+                    if (this.state.isDocTocOpen) {
+                        drawer.classList.remove('hidden');
+                        this.renderDocToc();
+                    } else {
+                        drawer.classList.add('hidden');
+                    }
+                }
+            },
+
+            extractDocToc(content) {
+                const lines = (content || '').split('\n');
+                const toc = [];
+                lines.forEach((line, lineIndex) => {
+                    const match = line.match(/^(#{1,4})\s+(.+)$/);
+                    if (match) {
+                        const level = match[1].length;
+                        const title = match[2].trim();
+                        toc.push({ level, title, lineIndex, lineText: line });
+                    }
+                });
+                return toc;
+            },
+
+            renderDocToc() {
+                const p = this.getCurrentProject();
+                const doc = p?.docs?.find(d => d.id === this.state.activeDocId);
+                const content = doc?.content || '';
+                const toc = this.extractDocToc(content);
+
+                const badge1 = document.getElementById('docTocCountBadge');
+                const badge2 = document.getElementById('docTocDrawerCount');
+                if (badge1) badge1.innerText = `${toc.length}`;
+                if (badge2) badge2.innerText = `(${toc.length})`;
+
+                const listEl = document.getElementById('docTocList');
+                if (!listEl) return;
+
+                if (toc.length === 0) {
+                    listEl.innerHTML = `<div class="p-4 text-center text-zinc-400 font-bold border-2 border-dashed border-zinc-200">文檔中尚無標題<br><span class="text-[10px] font-normal text-zinc-400">使用 # 標題即可在此產生大綱目錄</span></div>`;
+                    return;
+                }
+
+                listEl.innerHTML = toc.map((item, idx) => {
+                    const indentClass = item.level === 1 ? 'font-black pl-1' : (item.level === 2 ? 'pl-4 font-bold' : (item.level === 3 ? 'pl-7' : 'pl-9 text-zinc-500'));
+                    const levelBadge = item.level === 1 ? '<span class="bg-black text-white px-1 py-0.2 text-[9px] font-mono">H1</span>' :
+                                      (item.level === 2 ? '<span class="bg-zinc-200 text-zinc-800 px-1 py-0.2 text-[9px] font-mono">H2</span>' :
+                                      `<span class="bg-zinc-100 text-zinc-600 px-1 py-0.2 text-[9px] font-mono">H${item.level}</span>`);
+                    
+                    return `
+                        <div onclick="app.jumpToTocHeading(${idx})" class="p-1.5 hover:bg-yellow-100 cursor-pointer border-b border-zinc-100 last:border-b-0 flex items-center justify-between gap-1.5 ${indentClass} transition-colors group">
+                            <div class="flex items-center gap-1.5 truncate">
+                                ${levelBadge}
+                                <span class="truncate group-hover:underline">${this.escapeHtml(item.title)}</span>
+                            </div>
+                            <span class="text-[10px] text-zinc-400 font-mono group-hover:text-black shrink-0">➔</span>
+                        </div>
+                    `;
+                }).join('');
+            },
+
+            jumpToTocHeading(headingIndex) {
+                const p = this.getCurrentProject();
+                const doc = p?.docs?.find(d => d.id === this.state.activeDocId);
+                const content = doc?.content || '';
+                const toc = this.extractDocToc(content);
+                const target = toc[headingIndex];
+                if (!target) return;
+
+                if (this.state.docMode === 'preview') {
+                    const targetEl = document.getElementById(`heading_${headingIndex}`);
+                    if (targetEl) {
+                        targetEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        targetEl.classList.add('live-remote-glow');
+                        setTimeout(() => targetEl.classList.remove('live-remote-glow'), 2000);
+                    }
+                } else {
+                    const editor = document.getElementById('docEditor');
+                    if (editor) {
+                        const lines = content.split('\n');
+                        let charPos = 0;
+                        for (let i = 0; i < target.lineIndex; i++) {
+                            charPos += lines[i].length + 1;
+                        }
+                        editor.focus();
+                        editor.setSelectionRange(charPos, charPos + lines[target.lineIndex].length);
+                        
+                        const lineHeight = 22;
+                        editor.scrollTop = Math.max(0, (target.lineIndex - 2) * lineHeight);
+                    }
+                }
+                if (window.innerWidth < 768) {
+                    this.toggleDocToc(false);
+                }
+            },
+
+            // ================= 🔍 文檔內尋找與取代 (In-Doc Find & Replace) =================
+            toggleDocFindReplace(forceState) {
+                const bar = document.getElementById('docFindReplaceBar');
+                if (!bar) return;
+                const isHidden = bar.classList.contains('hidden');
+                const shouldOpen = typeof forceState === 'boolean' ? forceState : isHidden;
+
+                if (shouldOpen) {
+                    bar.classList.remove('hidden');
+                    const input = document.getElementById('docFindInput');
+                    if (input) {
+                        setTimeout(() => {
+                            input.focus();
+                            input.select();
+                        }, 50);
+                        this.handleDocFindInput(input.value);
+                    }
+                } else {
+                    bar.classList.add('hidden');
+                    this.state.docFindMatches = [];
+                    this.state.docFindCurrentIndex = -1;
+                }
+            },
+
+            closeDocFindReplace() {
+                this.toggleDocFindReplace(false);
+            },
+
+            toggleFindOption(optionKey) {
+                if (!this.state.docFindOptions) this.state.docFindOptions = { matchCase: false, wholeWord: false };
+                this.state.docFindOptions[optionKey] = !this.state.docFindOptions[optionKey];
+                const btnCase = document.getElementById('btnFindMatchCase');
+                const btnWord = document.getElementById('btnFindWholeWord');
+                if (btnCase) {
+                    btnCase.className = `px-2 py-1 border border-black font-mono font-bold text-[11px] ${this.state.docFindOptions.matchCase ? 'bg-black text-white' : 'bg-white hover:bg-zinc-100'}`;
+                }
+                if (btnWord) {
+                    btnWord.className = `px-2 py-1 border border-black font-mono font-bold text-[11px] ${this.state.docFindOptions.wholeWord ? 'bg-black text-white' : 'bg-white hover:bg-zinc-100'}`;
+                }
+                const input = document.getElementById('docFindInput');
+                this.handleDocFindInput(input?.value || '');
+            },
+
+            handleDocFindInput(query) {
+                const p = this.getCurrentProject();
+                const doc = p?.docs?.find(d => d.id === this.state.activeDocId);
+                const content = doc?.content || '';
+
+                this.state.docFindMatches = [];
+                this.state.docFindCurrentIndex = -1;
+
+                if (!query) {
+                    this.updateFindCountBadge(0, 0);
+                    return;
+                }
+
+                let pattern = this.escapeRegex(query);
+                if (this.state.docFindOptions?.wholeWord) {
+                    pattern = `\\b${pattern}\\b`;
+                }
+                const flags = this.state.docFindOptions?.matchCase ? 'g' : 'gi';
+
+                try {
+                    const regex = new RegExp(pattern, flags);
+                    let m;
+                    while ((m = regex.exec(content)) !== null) {
+                        this.state.docFindMatches.push({
+                            index: m.index,
+                            length: m[0].length,
+                            text: m[0]
+                        });
+                    }
+                } catch (e) {}
+
+                if (this.state.docFindMatches.length > 0) {
+                    this.state.docFindCurrentIndex = 0;
+                    this.jumpDocFindMatch(0, true);
+                } else {
+                    this.updateFindCountBadge(0, 0);
+                }
+            },
+
+            handleDocFindKeydown(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (e.shiftKey) {
+                        this.jumpDocFindMatch(-1);
+                    } else {
+                        this.jumpDocFindMatch(1);
+                    }
+                } else if (e.key === 'Escape') {
+                    this.closeDocFindReplace();
+                }
+            },
+
+            jumpDocFindMatch(offset, isInitial = false) {
+                const matches = this.state.docFindMatches || [];
+                if (matches.length === 0) {
+                    this.updateFindCountBadge(0, 0);
+                    return;
+                }
+
+                if (!isInitial) {
+                    this.state.docFindCurrentIndex = (this.state.docFindCurrentIndex + offset + matches.length) % matches.length;
+                }
+
+                const match = matches[this.state.docFindCurrentIndex];
+                this.updateFindCountBadge(this.state.docFindCurrentIndex + 1, matches.length);
+
+                if (match) {
+                    const editor = document.getElementById('docEditor');
+                    if (editor) {
+                        if (this.state.docMode === 'preview') {
+                            this.toggleDocMode('edit');
+                        }
+                        editor.focus();
+                        editor.setSelectionRange(match.index, match.index + match.length);
+
+                        const textBefore = editor.value.substring(0, match.index);
+                        const lineCount = textBefore.split('\n').length;
+                        editor.scrollTop = Math.max(0, (lineCount - 3) * 22);
+                    }
+                }
+            },
+
+            updateFindCountBadge(current, total) {
+                const badge = document.getElementById('docFindCountBadge');
+                if (badge) {
+                    badge.innerText = `${current} / ${total}`;
+                    if (total > 0) {
+                        badge.className = 'absolute right-1.5 top-1.5 text-[10px] font-mono font-black text-black bg-yellow-300 px-1 border border-black';
+                    } else {
+                        badge.className = 'absolute right-1.5 top-1.5 text-[10px] font-mono font-bold text-zinc-400 bg-zinc-100 px-1 border border-zinc-300';
+                    }
+                }
+            },
+
+            replaceCurrentDocFindMatch() {
+                const replaceInput = document.getElementById('docReplaceInput');
+                const replaceVal = replaceInput?.value || '';
+                const matches = this.state.docFindMatches || [];
+
+                if (matches.length === 0 || this.state.docFindCurrentIndex < 0) {
+                    this.showToast('⚠️ 沒有找到可替換的內容', 'error');
+                    return;
+                }
+
+                const match = matches[this.state.docFindCurrentIndex];
+                const p = this.getCurrentProject();
+                const doc = p?.docs?.find(d => d.id === this.state.activeDocId);
+                if (!doc || !match) return;
+
+                const content = doc.content || '';
+                const newContent = content.substring(0, match.index) + replaceVal + content.substring(match.index + match.length);
+                
+                this.updateDocContent(newContent);
+                const editor = document.getElementById('docEditor');
+                if (editor) editor.value = newContent;
+
+                const findInput = document.getElementById('docFindInput');
+                this.handleDocFindInput(findInput?.value || '');
+                this.showToast('✏️ 已完成替換！');
+            },
+
+            replaceAllDocFindMatches() {
+                const findInput = document.getElementById('docFindInput');
+                const replaceInput = document.getElementById('docReplaceInput');
+                const query = findInput?.value || '';
+                const replaceVal = replaceInput?.value || '';
+                const matches = this.state.docFindMatches || [];
+
+                if (!query || matches.length === 0) {
+                    this.showToast('⚠️ 沒有找到可替換的內容', 'error');
+                    return;
+                }
+
+                const p = this.getCurrentProject();
+                const doc = p?.docs?.find(d => d.id === this.state.activeDocId);
+                if (!doc) return;
+
+                let pattern = this.escapeRegex(query);
+                if (this.state.docFindOptions?.wholeWord) {
+                    pattern = `\\b${pattern}\\b`;
+                }
+                const flags = this.state.docFindOptions?.matchCase ? 'g' : 'gi';
+                const regex = new RegExp(pattern, flags);
+
+                const oldContent = doc.content || '';
+                const count = matches.length;
+                const newContent = oldContent.replace(regex, replaceVal);
+
+                this.updateDocContent(newContent);
+                const editor = document.getElementById('docEditor');
+                if (editor) editor.value = newContent;
+
+                this.handleDocFindInput(query);
+                this.showToast(`✨ 已替換全部 ${count} 處「${query}」為「${replaceVal}」！`);
             },
 
             // ================= 專案精靈與執行邏輯 =================
@@ -4512,11 +4880,17 @@
                 // 6. 一般外部超連結 [文字](https://...)
                 html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-600 underline font-bold hover:text-blue-800">$1 ↗</a>');
 
-                // 7. 標題 Headings
-                html = html.replace(/^#### (.*$)/gim, '<h4 class="text-sm font-black uppercase mt-3 mb-1 text-zinc-700">$1</h4>')
-                           .replace(/^### (.*$)/gim, '<h3 class="text-base font-black mt-4 mb-1.5">$1</h3>')
-                           .replace(/^## (.*$)/gim, '<h2 class="text-lg font-black mt-5 mb-2 border-b-2 border-zinc-200 pb-1">$1</h2>')
-                           .replace(/^# (.*$)/gim, '<h1 class="text-xl font-black mt-6 mb-3 border-b-2 border-black pb-1">$1</h1>');
+                // 7. 標題 Headings (自動賦予唯一 ID 供 TOC 大綱目錄跳轉)
+                let headingIdx = 0;
+                html = html.replace(/^(#{1,4})\s+(.*$)/gim, (match, hashes, title) => {
+                    const lvl = hashes.length;
+                    const id = `heading_${headingIdx++}`;
+                    const cleanTitle = title.trim();
+                    if (lvl === 1) return `<h1 id="${id}" class="text-xl md:text-2xl font-black mt-6 mb-3 border-b-2 border-black pb-1 scroll-mt-6">${cleanTitle}</h1>`;
+                    if (lvl === 2) return `<h2 id="${id}" class="text-lg md:text-xl font-black mt-5 mb-2 border-b-2 border-zinc-200 pb-1 scroll-mt-6">${cleanTitle}</h2>`;
+                    if (lvl === 3) return `<h3 id="${id}" class="text-base font-black mt-4 mb-1.5 scroll-mt-6">${cleanTitle}</h3>`;
+                    return `<h4 id="${id}" class="text-sm font-black uppercase mt-3 mb-1 text-zinc-700 scroll-mt-6">${cleanTitle}</h4>`;
+                });
 
                 // 8. 樣式：粗體、斜體、刪除線
                 html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
