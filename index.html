@@ -14,8 +14,10 @@
     <meta name="apple-mobile-web-app-title" content="FlatSpec">
     <link rel="apple-touch-icon" href="icon-192.png">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
-    <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- KaTeX 數學公式即時視覺化渲染支援 (支援 $$...$$ 塊級公式與 $...$ 行內公式) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&family=JetBrains+Mono:wght@400;700&display=swap');
         
@@ -2789,7 +2791,13 @@
                 if (editorEl && document.activeElement !== editorEl) editorEl.value = doc.content || '';
                 
                 if (previewEl && this.state.docMode === 'preview') {
-                    previewEl.innerHTML = this.parseMarkdown(doc.content || '');
+                    if (this.isHtmlContent(doc.content || '')) {
+                        previewEl.innerHTML = this.renderHtmlSandbox(doc.content || '');
+                        previewEl.className = 'w-full p-0 max-w-none';
+                    } else {
+                        previewEl.innerHTML = this.parseMarkdown(doc.content || '');
+                        previewEl.className = 'w-full border-2 border-black bg-white p-6 md:p-8 prose prose-zinc max-w-none shadow-[4px_4px_0px_0px_#000] min-h-[300px] md:min-h-[420px]';
+                    }
                 }
                 
                 this.renderDocLinksPanel(doc);
@@ -2854,7 +2862,13 @@
                     
                     const previewEl = document.getElementById('docPreview');
                     if (previewEl && this.state.docMode === 'preview') {
-                        previewEl.innerHTML = this.parseMarkdown(val);
+                        if (this.isHtmlContent(val)) {
+                            previewEl.innerHTML = this.renderHtmlSandbox(val);
+                            previewEl.className = 'w-full p-0 max-w-none';
+                        } else {
+                            previewEl.innerHTML = this.parseMarkdown(val);
+                            previewEl.className = 'w-full border-2 border-black bg-white p-6 md:p-8 prose prose-zinc max-w-none shadow-[4px_4px_0px_0px_#000] min-h-[300px] md:min-h-[420px]';
+                        }
                     }
                     this.renderDocLinksPanel(doc);
                     this.renderDocToc();
@@ -2904,7 +2918,14 @@
                         previewDate.innerText = d ? `更新於 ${d}` : '';
                     }
 
-                    previewEl.innerHTML = this.parseMarkdown(content);
+                    if (this.isHtmlContent(content)) {
+                        previewEl.innerHTML = this.renderHtmlSandbox(content);
+                        previewEl.className = 'w-full p-0 max-w-none';
+                    } else {
+                        previewEl.innerHTML = this.parseMarkdown(content);
+                        previewEl.className = 'w-full border-2 border-black bg-white p-6 md:p-8 prose prose-zinc max-w-none shadow-[4px_4px_0px_0px_#000] min-h-[300px] md:min-h-[420px]';
+                    }
+
                     btnPrev.className = 'px-3 py-1 bg-black text-white font-bold text-xs transition-colors flex items-center gap-1';
                     btnEdit.className = 'px-3 py-1 bg-zinc-100 text-black font-bold text-xs transition-colors hover:bg-zinc-200 flex items-center gap-1';
                 } else {
@@ -4833,28 +4854,159 @@
                 return (string || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             },
 
+            // ================= 🧮 數學公式渲染 (KaTeX LaTeX Math Renderer) =================
+            renderMath(latex, isBlock = false) {
+                const cleanLatex = (latex || '').trim();
+                if (typeof window !== 'undefined' && typeof window.katex !== 'undefined' && window.katex.renderToString) {
+                    try {
+                        return window.katex.renderToString(cleanLatex, {
+                            displayMode: isBlock,
+                            throwOnError: false
+                        });
+                    } catch (e) {
+                        console.warn("KaTeX render error:", e);
+                    }
+                }
+                // KaTeX 未載入時的降級視覺樣式
+                if (isBlock) {
+                    return `<div class="my-3 p-3 bg-zinc-100 border-2 border-black font-mono text-sm text-center overflow-x-auto shadow-[2px_2px_0px_0px_#000]">$$ ${this.escapeHtml(cleanLatex)} $$</div>`;
+                }
+                return `<span class="bg-zinc-200 px-1.5 py-0.5 font-mono text-xs border border-zinc-400 font-bold">$${this.escapeHtml(cleanLatex)}$</span>`;
+            },
+
+            // ================= 🌐 HTML 網頁沙盒預覽 (HTML Web Preview Sandbox) =================
+            isHtmlContent(text) {
+                if (!text || typeof text !== 'string') return false;
+                const trimmed = text.trim();
+                if (/^<!DOCTYPE\s+html/i.test(trimmed)) return true;
+                if (/^<html[\s>]/i.test(trimmed)) return true;
+                if (/<html[\s\S]*<\/html>/i.test(trimmed)) return true;
+                if (/<body[\s\S]*<\/body>/i.test(trimmed)) return true;
+                if (/<script[\s\S]*<\/script>/i.test(trimmed) && /<(div|p|button|canvas|section|h[1-6]|main|header|nav)[\s>]/i.test(trimmed)) return true;
+                return false;
+            },
+
+            renderHtmlSandbox(rawHtml) {
+                let fullHtml = rawHtml;
+                if (!/^<!DOCTYPE/i.test(rawHtml.trim()) && !/<html/i.test(rawHtml)) {
+                    fullHtml = `<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.tailwindcss.com"><\/script>
+    <style>
+        body { font-family: system-ui, -apple-system, sans-serif; padding: 1rem; }
+    </style>
+</head>
+<body>
+${rawHtml}
+</body>
+</html>`;
+                }
+
+                return `
+                    <div class="space-y-3 w-full">
+                        <!-- 網頁預覽工具列 -->
+                        <div class="flex flex-wrap items-center justify-between gap-2 p-2.5 bg-blue-50 border-2 border-black text-xs font-bold shadow-[3px_3px_0px_0px_#000]">
+                            <div class="flex items-center gap-2">
+                                <span class="px-2 py-0.5 bg-blue-600 text-white font-black text-[10px] tracking-wider uppercase">🌐 HTML 網頁沙盒即時預覽</span>
+                                <span class="text-zinc-600 hidden sm:inline">支援即時執行 CSS、Tailwind、JavaScript 與 Canvas 動態網頁</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <button type="button" onclick="app.refreshHtmlSandbox()" class="px-2.5 py-1 bg-white hover:bg-zinc-100 border-2 border-black text-xs font-bold flex items-center gap-1 flat-box shadow-[1px_1px_0px_0px_#000]" title="重新整理網頁">
+                                    <span>🔄</span> <span>重載</span>
+                                </button>
+                                <button type="button" onclick="app.openHtmlInNewTab()" class="px-2.5 py-1 bg-black text-white hover:bg-zinc-800 border-2 border-black text-xs font-bold flex items-center gap-1 flat-box shadow-[1px_1px_0px_0px_#000]" title="在獨立全螢幕新分頁開啟此 HTML 網頁">
+                                    <span>↗</span> <span>新分頁開啟</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 嵌入式沙盒 iframe -->
+                        <div class="w-full border-2 border-black bg-white shadow-[4px_4px_0px_0px_#000] overflow-hidden">
+                            <iframe id="htmlSandboxIframe" class="w-full min-h-[520px] md:min-h-[640px] border-0 bg-white" sandbox="allow-scripts allow-modals allow-forms allow-popups allow-same-origin" srcdoc="${this.escapeHtml(fullHtml)}"></iframe>
+                        </div>
+                    </div>
+                `;
+            },
+
+            refreshHtmlSandbox() {
+                const iframe = document.getElementById('htmlSandboxIframe');
+                if (iframe) {
+                    const srcdoc = iframe.getAttribute('srcdoc');
+                    iframe.srcdoc = '';
+                    setTimeout(() => { iframe.srcdoc = srcdoc; }, 50);
+                    this.showToast('🔄 網頁沙盒已重新載入！');
+                }
+            },
+
+            openHtmlInNewTab() {
+                const p = this.getCurrentProject();
+                const doc = p?.docs?.find(d => d.id === this.state.activeDocId);
+                if (!doc || !doc.content) return;
+                
+                let fullHtml = doc.content;
+                if (!/^<!DOCTYPE/i.test(fullHtml.trim()) && !/<html/i.test(fullHtml)) {
+                    fullHtml = `<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><script src="https://cdn.tailwindcss.com"><\/script></head><body>${fullHtml}</body></html>`;
+                }
+
+                const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                window.open(url, '_blank');
+            },
+
+            // ================= 📝 Markdown 解析引擎 (含 KaTeX 數學公式) =================
             parseMarkdown(md) {
                 if (!md) return '';
-                let html = this.escapeHtml(md);
 
                 // 1. 保留代碼區塊 Code blocks ``` ... ```
                 const codeBlocks = [];
-                html = html.replace(/```([\s\S]*?)```/g, (match, code) => {
+                let text = md.replace(/```([\s\S]*?)```/g, (match, code) => {
                     const placeholder = `__CODE_BLOCK_${codeBlocks.length}__`;
-                    codeBlocks.push(`<pre class="bg-zinc-900 text-zinc-100 p-3 my-3 font-mono text-xs overflow-x-auto border-2 border-black"><code>${code.trim()}</code></pre>`);
+                    codeBlocks.push(`<pre class="bg-zinc-900 text-zinc-100 p-3 my-3 font-mono text-xs overflow-x-auto border-2 border-black"><code>${this.escapeHtml(code.trim())}</code></pre>`);
                     return placeholder;
                 });
 
-                // 2. Markdown 圖片解析：![alt](url 或 data:image/...)
+                // 2. 提取並渲染數學公式 LaTeX / KaTeX ($$...$$, \[...\], $...$, \(...\))
+                const mathBlocks = [];
+                // 塊級公式 $$...$$
+                text = text.replace(/\$\$([\s\S]*?)\$\$/g, (match, formula) => {
+                    const placeholder = `__MATH_BLOCK_${mathBlocks.length}__`;
+                    mathBlocks.push(this.renderMath(formula.trim(), true));
+                    return placeholder;
+                });
+                // 塊級公式 \[...\]
+                text = text.replace(/\\\[([\s\S]*?)\\\]/g, (match, formula) => {
+                    const placeholder = `__MATH_BLOCK_${mathBlocks.length}__`;
+                    mathBlocks.push(this.renderMath(formula.trim(), true));
+                    return placeholder;
+                });
+                // 行內公式 $...$ (排除純金額如 $100 或 \$)
+                text = text.replace(/(^|[^\\])\$([^\$\n]+?)\$/g, (match, prefix, formula) => {
+                    const placeholder = `__MATH_BLOCK_${mathBlocks.length}__`;
+                    mathBlocks.push(this.renderMath(formula.trim(), false));
+                    return prefix + placeholder;
+                });
+                // 行內公式 \(...\)
+                text = text.replace(/\\\(([\s\S]*?)\\\)/g, (match, formula) => {
+                    const placeholder = `__MATH_BLOCK_${mathBlocks.length}__`;
+                    mathBlocks.push(this.renderMath(formula.trim(), false));
+                    return placeholder;
+                });
+
+                let html = this.escapeHtml(text);
+
+                // 3. Markdown 圖片解析：![alt](url 或 data:image/...)
                 html = html.replace(/!\[([^\]]*)\]\((https?:\/\/[^\s)]+|data:image\/[^\s)]+)\)/gi, (match, alt, src) => {
                     const cleanAlt = (alt || '圖片').trim();
                     return `<div class="my-3 flex flex-col items-start"><img src="${src}" alt="${this.escapeHtml(cleanAlt)}" class="border-2 border-black max-w-full h-auto shadow-[3px_3px_0px_0px_#000] bg-white rounded-none inline-block max-h-[550px] object-contain cursor-zoom-in hover:opacity-95 transition-opacity" onclick="app.openImageViewer(this.src, '${this.escapeHtml(cleanAlt)}')" loading="lazy" />${alt ? '<div class="text-[11px] text-zinc-500 mt-1.5 font-mono flex items-center gap-1 font-bold"><span>📷</span> <span>' + this.escapeHtml(cleanAlt) + '</span></div>' : ''}</div>`;
                 });
 
-                // 3. 行內代碼 Inline code `...`
+                // 4. 行內代碼 Inline code `...`
                 html = html.replace(/`([^`]+)`/g, '<code class="bg-zinc-200 text-zinc-900 px-1 py-0.5 font-mono text-xs border border-zinc-400">$1</code>');
 
-                // 4. 文檔引用連結 Wiki-style [[文檔標題]] 或 [[文檔標題|顯示文字]]
+                // 5. 文檔引用連結 Wiki-style [[文檔標題]] 或 [[文檔標題|顯示文字]]
                 html = html.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (match, target, customLabel) => {
                     const cleanTarget = target.trim();
                     const doc = this.findDocByNameOrId(cleanTarget);
@@ -4866,7 +5018,7 @@
                     }
                 });
 
-                // 5. Markdown 格式的文檔連結 [自訂文字](doc:文檔名稱或ID)
+                // 6. Markdown 格式的文檔連結 [自訂文字](doc:文檔名稱或ID)
                 html = html.replace(/\[([^\]]+)\]\(doc:([^)]+)\)/g, (match, label, target) => {
                     const cleanTarget = target.trim();
                     const doc = this.findDocByNameOrId(cleanTarget);
@@ -4877,10 +5029,10 @@
                     }
                 });
 
-                // 6. 一般外部超連結 [文字](https://...)
+                // 7. 一般外部超連結 [文字](https://...)
                 html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-600 underline font-bold hover:text-blue-800">$1 ↗</a>');
 
-                // 7. 標題 Headings (自動賦予唯一 ID 供 TOC 大綱目錄跳轉)
+                // 8. 標題 Headings (自動賦予唯一 ID 供 TOC 大綱目錄跳轉)
                 let headingIdx = 0;
                 html = html.replace(/^(#{1,4})\s+(.*$)/gim, (match, hashes, title) => {
                     const lvl = hashes.length;
@@ -4892,16 +5044,16 @@
                     return `<h4 id="${id}" class="text-sm font-black uppercase mt-3 mb-1 text-zinc-700 scroll-mt-6">${cleanTitle}</h4>`;
                 });
 
-                // 8. 樣式：粗體、斜體、刪除線
+                // 9. 樣式：粗體、斜體、刪除線
                 html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
                            .replace(/\*(.*?)\*/g, '<em>$1</em>')
                            .replace(/~~(.*?)~~/g, '<del class="text-zinc-400">$1</del>');
 
-                // 9. 待辦勾選框清單
+                // 10. 待辦勾選框清單
                 html = html.replace(/^- \[x\] (.*$)/gim, '<div class="flex items-center gap-2 my-1"><input type="checkbox" checked disabled class="accent-black"> <span class="line-through text-zinc-400">$1</span></div>')
                            .replace(/^- \[ \] (.*$)/gim, '<div class="flex items-center gap-2 my-1"><input type="checkbox" disabled class="accent-black"> <span>$1</span></div>');
 
-                // 10. 協作並存藍色標註區塊
+                // 11. 協作並存藍色標註區塊
                 html = html.replace(/(?:^|\n)&gt;\s*🔹\s*(?:&lt;strong&gt;)?\[隊友協作並存內容\](?:&lt;\/strong&gt;)?([\s\S]*?)(?=(?:\n(?!&gt;)|\n\n|$))/g, (match, body) => {
                     const lines = body.split('\n').map(l => l.replace(/^&gt;\s?/, '').trim()).filter(Boolean);
                     return `
@@ -4915,14 +5067,19 @@
                     `;
                 });
 
-                // 11. 一般清單與引言
+                // 12. 一般清單與引言
                 html = html.replace(/^[\*\-] (.*$)/gim, '<li class="ml-4 list-disc">$1</li>')
                             .replace(/^\> (.*$)/gim, '<blockquote class="border-l-4 border-black pl-3 py-1 my-2 bg-zinc-100 italic text-zinc-700 font-medium">$1</blockquote>');
 
-                // 12. 換行
+                // 13. 換行
                 html = html.replace(/\n/gim, '<br>');
 
-                // 13. 還原代碼區塊
+                // 14. 還原數學公式 (Math Blocks)
+                mathBlocks.forEach((mb, idx) => {
+                    html = html.replace(`__MATH_BLOCK_${idx}__`, mb);
+                });
+
+                // 15. 還原代碼區塊
                 codeBlocks.forEach((cb, idx) => {
                     html = html.replace(`__CODE_BLOCK_${idx}__`, cb);
                 });

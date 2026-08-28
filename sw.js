@@ -1,5 +1,5 @@
 // FlatSpec Drive - Service Worker (Offline First Support)
-const CACHE_NAME = 'flatspec-cache-v10';
+const CACHE_NAME = 'flatspec-cache-v11';
 const PRECACHE_ASSETS = [
   './',
   './index.html',
@@ -7,6 +7,8 @@ const PRECACHE_ASSETS = [
   './icon-192.png',
   './icon-512.png',
   'https://cdn.tailwindcss.com',
+  'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css',
+  'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js',
   'https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&family=JetBrains+Mono:wght@400;700&display=swap'
 ];
 
