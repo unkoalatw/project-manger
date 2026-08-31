@@ -1726,10 +1726,14 @@
                             const prevActiveProject = JSON.parse(JSON.stringify(this.getCurrentProject() || {}));
                             // ✅ 智慧合併雲端與本地專案
                             const normalizedCloud = data.map(p => this.normalizeProject(p)).filter(Boolean);
-                            this.state.projects = this.mergeProjects(normalizedCloud, this.state.projects);
+                            const mergedProjects = this.mergeProjects(normalizedCloud, this.state.projects);
+
+                            // 檢查本地是否含有雲端尚未收錄的新專案或文檔變更 (例如 PC 端新增的專案)
+                            const hasNewLocalData = mergedProjects.length > normalizedCloud.length || 
+                                (this.state.hasUnsavedChanges || localStorage.getItem('flatSpecHasPendingChanges') === 'true');
+
+                            this.state.projects = mergedProjects;
                             this.state.isCloudLoaded = true;
-                            this.state.hasUnsavedChanges = false;
-                            localStorage.removeItem('flatSpecHasPendingChanges');
                             this.state.lastSyncTime = new Date();
                             this.state.lastSyncedProjects = JSON.parse(JSON.stringify(this.state.projects));
                             this.saveToLocal();
@@ -1742,7 +1746,18 @@
 
                             this.smartRenderAll();
                             this.updateMyPresence();
-                            this.updateSyncStatus('success');
+
+                            if (hasNewLocalData) {
+                                console.log("[Sync] 偵測到本地包含雲端未收錄的專案，自動回推完整合併清單至雲端...");
+                                this.state.hasUnsavedChanges = true;
+                                localStorage.setItem('flatSpecHasPendingChanges', 'true');
+                                this.debouncedSaveAndSync();
+                            } else {
+                                this.state.hasUnsavedChanges = false;
+                                localStorage.removeItem('flatSpecHasPendingChanges');
+                                this.updateSyncStatus('success');
+                            }
+
                             if (isManual) this.showToast('✅ 成功從 Google 試算表載入最新資料！');
                             return true;
                         } else {
