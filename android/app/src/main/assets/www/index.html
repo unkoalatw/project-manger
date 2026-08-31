@@ -2051,7 +2051,13 @@
                 if (this.state.projects.length === 0) return;
                 
                 if (!this.state.activeProjectId || !this.getProject(this.state.activeProjectId)) {
-                    this.state.activeProjectId = this.state.projects[0].id;
+                    // 自動挑選最新更新時間 (updatedAt) 的專案作為當前啟用專案
+                    const sorted = [...this.state.projects].sort((a, b) => {
+                        const timeA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+                        const timeB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+                        return timeB - timeA;
+                    });
+                    this.state.activeProjectId = sorted[0]?.id || this.state.projects[0].id;
                 }
                 const p = this.getProject(this.state.activeProjectId);
                 if (p && Array.isArray(p.docs) && p.docs.length > 0) {
