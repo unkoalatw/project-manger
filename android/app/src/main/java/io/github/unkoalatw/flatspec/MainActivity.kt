@@ -105,9 +105,10 @@ class MainActivity : AppCompatActivity() {
         }
 
         // 100% 離線虛擬資產伺服器 (AndroidX WebViewAssetLoader)
+        // 註冊 "/assets/" 前綴，將請求 https://appassets.androidplatform.net/assets/www/... 精確對應至 assets/www/...
         assetLoader = WebViewAssetLoader.Builder()
             .setDomain("appassets.androidplatform.net")
-            .addPathHandler("/assets/www/", AssetsPathHandler(this))
+            .addPathHandler("/assets/", AssetsPathHandler(this))
             .build()
 
         val settings: WebSettings = webView.settings
@@ -121,7 +122,7 @@ class MainActivity : AppCompatActivity() {
         settings.useWideViewPort = true
         settings.mediaPlaybackRequiresUserGesture = false
         settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-        settings.allowFileAccess = false
+        settings.allowFileAccess = true
         settings.allowContentAccess = true
 
         // 啟用硬體加速
@@ -145,10 +146,39 @@ class MainActivity : AppCompatActivity() {
                 view: WebView?,
                 request: WebResourceRequest?
             ): WebResourceResponse? {
-                if (request != null) {
-                    val response = assetLoader.shouldInterceptRequest(request.url)
-                    if (response != null) return response
+                val url = request?.url ?: return null
+                
+                // 1. 優先使用 WebViewAssetLoader 攔截
+                val response = assetLoader.shouldInterceptRequest(url)
+                if (response != null) return response
+
+                // 2. 雙重保險：本地資產兜底直接讀取 (Zero-Fail Asset Fallback)
+                val path = url.path ?: ""
+                if (url.host == "appassets.androidplatform.net" || path.startsWith("/assets/")) {
+                    val assetPath = path.removePrefix("/assets/").removePrefix("/")
+                    try {
+                        val inputStream = assets.open(assetPath)
+                        val mimeType = when {
+                            assetPath.endsWith(".html") -> "text/html"
+                            assetPath.endsWith(".js") -> "application/javascript"
+                            assetPath.endsWith(".css") -> "text/css"
+                            assetPath.endsWith(".png") -> "image/png"
+                            assetPath.endsWith(".json") -> "application/json"
+                            assetPath.endsWith(".woff2") -> "font/woff2"
+                            assetPath.endsWith(".woff") -> "font/woff"
+                            assetPath.endsWith(".ttf") -> "font/ttf"
+                            else -> "application/octet-stream"
+                        }
+                        val headers = mapOf(
+                            "Access-Control-Allow-Origin" to "*",
+                            "Cache-Control" to "no-cache"
+                        )
+                        return WebResourceResponse(mimeType, "UTF-8", 200, "OK", headers, inputStream)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
                 }
+
                 return super.shouldInterceptRequest(view, request)
             }
 
