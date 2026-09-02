@@ -15,6 +15,8 @@
     <link rel="apple-touch-icon" href="icon-192.png">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Marked.js 全規格 Markdown 與 GFM 表格解析引擎 -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@14.1.2/marked.min.js"></script>
     <!-- KaTeX 數學公式即時視覺化渲染支援 (支援 $$...$$ 塊級公式與 $...$ 行內公式) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
@@ -4977,20 +4979,170 @@ ${rawHtml}
                 window.open(url, '_blank');
             },
 
-            // ================= 📝 Markdown 解析引擎 (含 KaTeX 數學公式) =================
+            // ================= 📝 Markdown 解析引擎 (全規格 GFM、表格、KaTeX 數學公式) =================
+            initMarked() {
+                if (this._markedInitialized || typeof marked === 'undefined') return;
+                
+                const self = this;
+                const renderer = new marked.Renderer();
+
+                // 1. GFM 表格專用渲染 (Neo-Brutalist 硬派方塊表格)
+                renderer.table = function(token) {
+                    let headerHtml = '';
+                    if (Array.isArray(token.header)) {
+                        token.header.forEach(cell => {
+                            headerHtml += this.tablecell(cell);
+                        });
+                        headerHtml = this.tablerow({ text: headerHtml });
+                    }
+
+                    let bodyHtml = '';
+                    if (Array.isArray(token.rows)) {
+                        token.rows.forEach(row => {
+                            let rowHtml = '';
+                            if (Array.isArray(row)) {
+                                row.forEach(cell => {
+                                    rowHtml += this.tablecell(cell);
+                                });
+                            }
+                            bodyHtml += this.tablerow({ text: rowHtml });
+                        });
+                    }
+
+                    return `
+                        <div class="overflow-x-auto my-4 border-2 border-black shadow-[3px_3px_0px_0px_#000] bg-white">
+                            <table class="w-full text-left border-collapse text-xs md:text-sm font-sans">
+                                <thead class="bg-yellow-200 border-b-2 border-black">
+                                    ${headerHtml}
+                                </thead>
+                                <tbody class="divide-y-2 divide-black">
+                                    ${bodyHtml}
+                                </tbody>
+                            </table>
+                        </div>
+                    `;
+                };
+
+                renderer.tablerow = function(token) {
+                    return `<tr class="hover:bg-zinc-100 transition-colors">${token.text}</tr>`;
+                };
+
+                renderer.tablecell = function(token) {
+                    const text = this.parser.parseInline(token.tokens || []);
+                    const align = token.align;
+                    const alignClass = align === 'center' ? 'text-center' : (align === 'right' ? 'text-right' : 'text-left');
+                    if (token.header) {
+                        return `<th class="border-2 border-black px-3 py-2 font-black uppercase tracking-wider text-black ${alignClass}">${text}</th>`;
+                    }
+                    return `<td class="border-2 border-black px-3 py-2 text-zinc-900 bg-white font-medium ${alignClass}">${text}</td>`;
+                };
+
+                // 2. 標題自動賦予 ID (供大綱跳轉)
+                renderer.heading = function(token) {
+                    const text = this.parser.parseInline(token.tokens || []);
+                    const lvl = token.depth;
+                    const id = `heading_${self._headingCount++}`;
+                    if (lvl === 1) return `<h1 id="${id}" class="text-xl md:text-2xl font-black mt-6 mb-3 border-b-2 border-black pb-1 scroll-mt-6">${text}</h1>`;
+                    if (lvl === 2) return `<h2 id="${id}" class="text-lg md:text-xl font-black mt-5 mb-2 border-b-2 border-zinc-200 pb-1 scroll-mt-6">${text}</h2>`;
+                    if (lvl === 3) return `<h3 id="${id}" class="text-base font-black mt-4 mb-1.5 scroll-mt-6">${text}</h3>`;
+                    return `<h4 id="${id}" class="text-sm font-black uppercase mt-3 mb-1 text-zinc-700 scroll-mt-6">${text}</h4>`;
+                };
+
+                // 3. 代碼區塊與複製按鈕
+                renderer.code = function(token) {
+                    const lang = (token.lang || '').toLowerCase();
+                    const code = token.text || '';
+                    const escaped = self.escapeHtml(code);
+                    return `
+                        <div class="my-3 border-2 border-black shadow-[3px_3px_0px_0px_#000] overflow-hidden bg-zinc-900">
+                            <div class="bg-zinc-800 text-zinc-300 px-3 py-1 text-[11px] font-mono font-bold border-b-2 border-black flex justify-between items-center select-none">
+                                <span>💻 ${lang ? lang.toUpperCase() : 'CODE'}</span>
+                                <button type="button" onclick="navigator.clipboard.writeText(this.closest('div').nextElementSibling.innerText); app.showToast('📋 代碼已複製至剪貼簿！');" class="hover:text-white cursor-pointer px-1.5 py-0.5 bg-zinc-700 hover:bg-zinc-600 rounded text-[10px]">複製代碼</button>
+                            </div>
+                            <pre class="p-3 text-zinc-100 font-mono text-xs overflow-x-auto leading-relaxed"><code>${escaped}</code></pre>
+                        </div>
+                    `;
+                };
+
+                // 4. 行內代碼
+                renderer.codespan = function(token) {
+                    return `<code class="bg-zinc-200 text-zinc-900 px-1.5 py-0.5 font-mono text-xs border border-zinc-400 font-bold">${token.text}</code>`;
+                };
+
+                // 5. 待辦任務清單 Checkbox
+                renderer.checkbox = function(token) {
+                    return `<input type="checkbox" ${token.checked ? 'checked' : ''} disabled class="accent-black mr-1.5 inline-block align-middle cursor-default" />`;
+                };
+
+                renderer.listitem = function(token) {
+                    if (token.task) {
+                        const content = this.parser.parse(token.tokens || []);
+                        return `<li class="list-none flex items-start gap-1.5 my-1 ${token.checked ? 'line-through text-zinc-400' : 'text-zinc-900 font-medium'}">${content}</li>`;
+                    }
+                    const content = this.parser.parse(token.tokens || []);
+                    return `<li class="my-0.5 text-zinc-900 ml-4 list-disc">${content}</li>`;
+                };
+
+                // 6. 引言區塊 Blockquote
+                renderer.blockquote = function(token) {
+                    const content = this.parser.parse(token.tokens || []);
+                    return `<blockquote class="border-l-4 border-black pl-3 py-2 my-3 bg-zinc-100 italic text-zinc-800 font-medium">${content}</blockquote>`;
+                };
+
+                // 7. 分隔線 Horizontal Rule
+                renderer.hr = function() {
+                    return `<hr class="my-6 border-t-2 border-black" />`;
+                };
+
+                // 8. 圖片可點擊放大檢視
+                renderer.image = function(token) {
+                    const href = token.href || '';
+                    const title = token.title || '';
+                    const alt = token.text || '圖片';
+                    const cleanAlt = self.escapeHtml(alt);
+                    return `
+                        <div class="my-3 flex flex-col items-start">
+                            <img src="${href}" alt="${cleanAlt}" class="border-2 border-black max-w-full h-auto shadow-[3px_3px_0px_0px_#000] bg-white rounded-none inline-block max-h-[550px] object-contain cursor-zoom-in hover:opacity-95 transition-opacity" onclick="app.openImageViewer(this.src, '${cleanAlt}')" loading="lazy" />
+                            ${alt ? '<div class="text-[11px] text-zinc-500 mt-1.5 font-mono flex items-center gap-1 font-bold"><span>📷</span> <span>' + cleanAlt + '</span></div>' : ''}
+                        </div>
+                    `;
+                };
+
+                // 9. 連結自訂（支援 doc: 內部跳轉與外部連結）
+                renderer.link = function(token) {
+                    const href = token.href || '';
+                    const text = this.parser.parseInline(token.tokens || []);
+                    if (href.startsWith('doc:')) {
+                        const target = href.replace(/^doc:/, '').trim();
+                        const doc = self.findDocByNameOrId(target);
+                        if (doc) {
+                            return `<a href="javascript:void(0)" onclick="app.openDoc('${self.escapeHtml(doc.id)}')" class="doc-link inline-flex items-center gap-1 font-bold text-blue-800 bg-blue-100 hover:bg-blue-200 border-2 border-blue-900 px-2 py-0.5 text-xs shadow-[2px_2px_0px_0px_#1e3a8a] active:translate-x-0.5 active:translate-y-0.5 no-underline my-0.5 transition-all cursor-pointer" title="點擊跳轉至文檔: ${self.escapeHtml(doc.title)}">📄 ${text} ➔</a>`;
+                        } else {
+                            return `<span class="inline-flex items-center gap-1 font-bold text-zinc-500 bg-zinc-200 border border-dashed border-zinc-400 px-1.5 py-0.5 text-xs line-through" title="文檔不存在">📄 ${text} (未找到)</span>`;
+                        }
+                    }
+                    return `<a href="${href}" target="_blank" rel="noopener noreferrer" class="text-blue-600 underline font-bold hover:text-blue-800">${text} ↗</a>`;
+                };
+
+                marked.setOptions({
+                    gfm: true,
+                    breaks: true,
+                    renderer
+                });
+
+                this._markedInitialized = true;
+            },
+
             parseMarkdown(md) {
                 if (!md) return '';
 
-                // 1. 保留代碼區塊 Code blocks ``` ... ```
-                const codeBlocks = [];
-                let text = md.replace(/```([\s\S]*?)```/g, (match, code) => {
-                    const placeholder = `__CODE_BLOCK_${codeBlocks.length}__`;
-                    codeBlocks.push(`<pre class="bg-zinc-900 text-zinc-100 p-3 my-3 font-mono text-xs overflow-x-auto border-2 border-black"><code>${this.escapeHtml(code.trim())}</code></pre>`);
-                    return placeholder;
-                });
+                this._headingCount = 0;
+                this.initMarked();
 
-                // 2. 提取並渲染數學公式 LaTeX / KaTeX ($$...$$, \[...\], $...$, \(...\))
+                // 1. 提取並保護數學公式 LaTeX / KaTeX ($$...$$, \[...\], $...$, \(...\))
                 const mathBlocks = [];
+                let text = md;
+
                 // 塊級公式 $$...$$
                 text = text.replace(/\$\$([\s\S]*?)\$\$/g, (match, formula) => {
                     const placeholder = `__MATH_BLOCK_${mathBlocks.length}__`;
@@ -5016,67 +5168,29 @@ ${rawHtml}
                     return placeholder;
                 });
 
-                let html = this.escapeHtml(text);
-
-                // 3. Markdown 圖片解析：![alt](url 或 data:image/...)
-                html = html.replace(/!\[([^\]]*)\]\((https?:\/\/[^\s)]+|data:image\/[^\s)]+)\)/gi, (match, alt, src) => {
-                    const cleanAlt = (alt || '圖片').trim();
-                    return `<div class="my-3 flex flex-col items-start"><img src="${src}" alt="${this.escapeHtml(cleanAlt)}" class="border-2 border-black max-w-full h-auto shadow-[3px_3px_0px_0px_#000] bg-white rounded-none inline-block max-h-[550px] object-contain cursor-zoom-in hover:opacity-95 transition-opacity" onclick="app.openImageViewer(this.src, '${this.escapeHtml(cleanAlt)}')" loading="lazy" />${alt ? '<div class="text-[11px] text-zinc-500 mt-1.5 font-mono flex items-center gap-1 font-bold"><span>📷</span> <span>' + this.escapeHtml(cleanAlt) + '</span></div>' : ''}</div>`;
-                });
-
-                // 4. 行內代碼 Inline code `...`
-                html = html.replace(/`([^`]+)`/g, '<code class="bg-zinc-200 text-zinc-900 px-1 py-0.5 font-mono text-xs border border-zinc-400">$1</code>');
-
-                // 5. 文檔引用連結 Wiki-style [[文檔標題]] 或 [[文檔標題|顯示文字]]
-                html = html.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (match, target, customLabel) => {
+                // 2. Wiki-style 文檔引用 [[文檔名稱]] 或 [[文檔名稱|顯示文字]]
+                text = text.replace(/\[\[([^\]|]+)(?:\|([^\]]+))?\]\]/g, (match, target, customLabel) => {
                     const cleanTarget = target.trim();
-                    const doc = this.findDocByNameOrId(cleanTarget);
-                    const label = (customLabel || (doc ? doc.title : cleanTarget)).trim();
-                    if (doc) {
-                        return `<a href="javascript:void(0)" onclick="app.openDoc('${this.escapeHtml(doc.id)}')" class="doc-link inline-flex items-center gap-1 font-bold text-blue-800 bg-blue-100 hover:bg-blue-200 border-2 border-blue-900 px-2 py-0.5 text-xs shadow-[2px_2px_0px_0px_#1e3a8a] active:translate-x-0.5 active:translate-y-0.5 no-underline my-0.5 transition-all cursor-pointer" title="點擊跳轉至文檔: ${this.escapeHtml(doc.title)}">📄 ${this.escapeHtml(label)} ➔</a>`;
-                    } else {
-                        return `<span class="inline-flex items-center gap-1 font-bold text-zinc-500 bg-zinc-200 border border-dashed border-zinc-400 px-1.5 py-0.5 text-xs line-through" title="文檔不存在">📄 ${this.escapeHtml(label)} (未找到)</span>`;
+                    const label = (customLabel || cleanTarget).trim();
+                    return `[${label}](doc:${cleanTarget})`;
+                });
+
+                // 3. 執行全規格 Marked.js 解析
+                let html = '';
+                if (typeof marked !== 'undefined') {
+                    try {
+                        html = marked.parse(text);
+                    } catch(err) {
+                        console.warn('[Markdown] Marked parse failed, using fallback:', err);
+                        html = this.fallbackMarkdownParser(text);
                     }
-                });
+                } else {
+                    html = this.fallbackMarkdownParser(text);
+                }
 
-                // 6. Markdown 格式的文檔連結 [自訂文字](doc:文檔名稱或ID)
-                html = html.replace(/\[([^\]]+)\]\(doc:([^)]+)\)/g, (match, label, target) => {
-                    const cleanTarget = target.trim();
-                    const doc = this.findDocByNameOrId(cleanTarget);
-                    if (doc) {
-                        return `<a href="javascript:void(0)" onclick="app.openDoc('${this.escapeHtml(doc.id)}')" class="doc-link inline-flex items-center gap-1 font-bold text-blue-800 bg-blue-100 hover:bg-blue-200 border-2 border-blue-900 px-2 py-0.5 text-xs shadow-[2px_2px_0px_0px_#1e3a8a] active:translate-x-0.5 active:translate-y-0.5 no-underline my-0.5 transition-all cursor-pointer" title="點擊跳轉至文檔: ${this.escapeHtml(doc.title)}">📄 ${this.escapeHtml(label)} ➔</a>`;
-                    } else {
-                        return `<span class="inline-flex items-center gap-1 font-bold text-zinc-500 bg-zinc-200 border border-dashed border-zinc-400 px-1.5 py-0.5 text-xs line-through" title="文檔不存在">📄 ${this.escapeHtml(label)} (未找到)</span>`;
-                    }
-                });
-
-                // 7. 一般外部超連結 [文字](https://...)
-                html = html.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" class="text-blue-600 underline font-bold hover:text-blue-800">$1 ↗</a>');
-
-                // 8. 標題 Headings (自動賦予唯一 ID 供 TOC 大綱目錄跳轉)
-                let headingIdx = 0;
-                html = html.replace(/^(#{1,4})\s+(.*$)/gim, (match, hashes, title) => {
-                    const lvl = hashes.length;
-                    const id = `heading_${headingIdx++}`;
-                    const cleanTitle = title.trim();
-                    if (lvl === 1) return `<h1 id="${id}" class="text-xl md:text-2xl font-black mt-6 mb-3 border-b-2 border-black pb-1 scroll-mt-6">${cleanTitle}</h1>`;
-                    if (lvl === 2) return `<h2 id="${id}" class="text-lg md:text-xl font-black mt-5 mb-2 border-b-2 border-zinc-200 pb-1 scroll-mt-6">${cleanTitle}</h2>`;
-                    if (lvl === 3) return `<h3 id="${id}" class="text-base font-black mt-4 mb-1.5 scroll-mt-6">${cleanTitle}</h3>`;
-                    return `<h4 id="${id}" class="text-sm font-black uppercase mt-3 mb-1 text-zinc-700 scroll-mt-6">${cleanTitle}</h4>`;
-                });
-
-                // 9. 樣式：粗體、斜體、刪除線
-                html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                           .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                           .replace(/~~(.*?)~~/g, '<del class="text-zinc-400">$1</del>');
-
-                // 10. 待辦勾選框清單
-                html = html.replace(/^- \[x\] (.*$)/gim, '<div class="flex items-center gap-2 my-1"><input type="checkbox" checked disabled class="accent-black"> <span class="line-through text-zinc-400">$1</span></div>')
-                           .replace(/^- \[ \] (.*$)/gim, '<div class="flex items-center gap-2 my-1"><input type="checkbox" disabled class="accent-black"> <span>$1</span></div>');
-
-                // 11. 協作並存藍色標註區塊
-                html = html.replace(/(?:^|\n)&gt;\s*🔹\s*(?:&lt;strong&gt;)?\[隊友協作並存內容\](?:&lt;\/strong&gt;)?([\s\S]*?)(?=(?:\n(?!&gt;)|\n\n|$))/g, (match, body) => {
-                    const lines = body.split('\n').map(l => l.replace(/^&gt;\s?/, '').trim()).filter(Boolean);
+                // 4. 協作並存藍色標註區塊
+                html = html.replace(/(?:<p>)?&gt;\s*🔹\s*(?:&lt;strong&gt;)?\[隊友協作並存內容\](?:&lt;\/strong&gt;)?([\s\S]*?)(?:<\/p>|(?=(?:\n(?!&gt;)|\n\n|$)))/g, (match, body) => {
+                    const lines = body.split(/<br\s*\/?>|\n/).map(l => l.replace(/^&gt;\s?/, '').trim()).filter(Boolean);
                     return `
                         <div class="my-3 p-3 bg-blue-50 border-2 border-blue-600 text-blue-950 flat-box shadow-[3px_3px_0px_0px_#2563eb]">
                             <div class="flex items-center gap-1.5 text-xs font-black text-blue-700 uppercase tracking-wider mb-1.5">
@@ -5088,23 +5202,43 @@ ${rawHtml}
                     `;
                 });
 
-                // 12. 一般清單與引言
-                html = html.replace(/^[\*\-] (.*$)/gim, '<li class="ml-4 list-disc">$1</li>')
-                            .replace(/^\> (.*$)/gim, '<blockquote class="border-l-4 border-black pl-3 py-1 my-2 bg-zinc-100 italic text-zinc-700 font-medium">$1</blockquote>');
-
-                // 13. 換行
-                html = html.replace(/\n/gim, '<br>');
-
-                // 14. 還原數學公式 (Math Blocks)
+                // 5. 還原數學公式 (Math Blocks)
                 mathBlocks.forEach((mb, idx) => {
-                    html = html.replace(`__MATH_BLOCK_${idx}__`, mb);
+                    html = html.replaceAll(`__MATH_BLOCK_${idx}__`, mb);
                 });
 
-                // 15. 還原代碼區塊
-                codeBlocks.forEach((cb, idx) => {
-                    html = html.replace(`__CODE_BLOCK_${idx}__`, cb);
+                return html;
+            },
+
+            fallbackMarkdownParser(text) {
+                // 輕量備用 Markdown 解析器 (支援基礎表格與排版)
+                let html = this.escapeHtml(text);
+                
+                // 表格解析支援
+                html = html.replace(/(?:^|\n)(\|.+?\|\n\|[-:\s|]+?\|\n(?:\|.+?\|\n?)+)/g, (match, tableStr) => {
+                    const lines = tableStr.trim().split('\n');
+                    if (lines.length < 2) return match;
+                    const headers = lines[0].split('|').slice(1, -1).map(h => h.trim());
+                    const rows = lines.slice(2).map(r => r.split('|').slice(1, -1).map(c => c.trim()));
+                    
+                    let tableHtml = '<div class="overflow-x-auto my-4 border-2 border-black shadow-[3px_3px_0px_0px_#000] bg-white"><table class="w-full text-left border-collapse text-xs md:text-sm font-sans">';
+                    tableHtml += '<thead class="bg-yellow-200 border-b-2 border-black"><tr>';
+                    headers.forEach(h => { tableHtml += `<th class="border-2 border-black px-3 py-2 font-black uppercase tracking-wider text-black">${h}</th>`; });
+                    tableHtml += '</tr></thead><tbody class="divide-y-2 divide-black">';
+                    rows.forEach(r => {
+                        tableHtml += '<tr class="hover:bg-zinc-100 transition-colors">';
+                        r.forEach(c => { tableHtml += `<td class="border-2 border-black px-3 py-2 text-zinc-900 bg-white font-medium">${c}</td>`; });
+                        tableHtml += '</tr>';
+                    });
+                    tableHtml += '</tbody></table></div>';
+                    return tableHtml;
                 });
 
+                html = html.replace(/^(#{1,4})\s+(.*$)/gim, '<h$1 class="font-black my-2">$2</h$1>')
+                           .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                           .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                           .replace(/~~(.*?)~~/g, '<del class="text-zinc-400">$1</del>')
+                           .replace(/\n/g, '<br>');
                 return html;
             },
 
