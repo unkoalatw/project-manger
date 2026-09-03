@@ -2294,7 +2294,7 @@
                             }
                         }
                         if (previewEl && this.state.docMode === 'preview') {
-                            previewEl.innerHTML = this.parseMarkdown(doc.content || '');
+                            this.updateDocPreview(doc, previewEl);
                         }
                         this.renderDocLinksPanel(doc);
                         this.toggleDocMode(this.state.docMode || 'edit');
@@ -2814,13 +2814,7 @@
                 if (editorEl && document.activeElement !== editorEl) editorEl.value = doc.content || '';
                 
                 if (previewEl && this.state.docMode === 'preview') {
-                    if (this.isHtmlContent(doc.content || '')) {
-                        previewEl.innerHTML = this.renderHtmlSandbox(doc.content || '');
-                        previewEl.className = 'w-full p-0 max-w-none';
-                    } else {
-                        previewEl.innerHTML = this.parseMarkdown(doc.content || '');
-                        previewEl.className = 'w-full border-2 border-black bg-white p-6 md:p-8 prose prose-zinc max-w-none shadow-[4px_4px_0px_0px_#000] min-h-[300px] md:min-h-[420px]';
-                    }
+                    this.updateDocPreview(doc, previewEl);
                 }
                 
                 this.renderDocLinksPanel(doc);
@@ -2885,13 +2879,7 @@
                     
                     const previewEl = document.getElementById('docPreview');
                     if (previewEl && this.state.docMode === 'preview') {
-                        if (this.isHtmlContent(val)) {
-                            previewEl.innerHTML = this.renderHtmlSandbox(val);
-                            previewEl.className = 'w-full p-0 max-w-none';
-                        } else {
-                            previewEl.innerHTML = this.parseMarkdown(val);
-                            previewEl.className = 'w-full border-2 border-black bg-white p-6 md:p-8 prose prose-zinc max-w-none shadow-[4px_4px_0px_0px_#000] min-h-[300px] md:min-h-[420px]';
-                        }
+                        this.updateDocPreview(val, previewEl);
                     }
                     this.renderDocLinksPanel(doc);
                     this.renderDocToc();
@@ -2941,13 +2929,7 @@
                         previewDate.innerText = d ? `更新於 ${d}` : '';
                     }
 
-                    if (this.isHtmlContent(content)) {
-                        previewEl.innerHTML = this.renderHtmlSandbox(content);
-                        previewEl.className = 'w-full p-0 max-w-none';
-                    } else {
-                        previewEl.innerHTML = this.parseMarkdown(content);
-                        previewEl.className = 'w-full border-2 border-black bg-white p-6 md:p-8 prose prose-zinc max-w-none shadow-[4px_4px_0px_0px_#000] min-h-[300px] md:min-h-[420px]';
-                    }
+                    this.updateDocPreview(content, previewEl);
 
                     btnPrev.className = 'px-3 py-1 bg-black text-white font-bold text-xs transition-colors flex items-center gap-1';
                     btnEdit.className = 'px-3 py-1 bg-zinc-100 text-black font-bold text-xs transition-colors hover:bg-zinc-200 flex items-center gap-1';
@@ -4909,6 +4891,60 @@
                 return false;
             },
 
+            updateDocPreview(docOrContent, previewEl, forceReload = false) {
+                if (!previewEl) return;
+                
+                let content = '';
+                let docId = '';
+                if (typeof docOrContent === 'string') {
+                    content = docOrContent;
+                    docId = this.state.activeDocId || 'temp';
+                } else if (docOrContent) {
+                    content = docOrContent.content || '';
+                    docId = docOrContent.id || this.state.activeDocId || 'temp';
+                }
+
+                const isHtml = this.isHtmlContent(content);
+                const currentHash = this.fastHash(content);
+                const prevDocId = previewEl.getAttribute('data-preview-doc-id');
+                const prevMode = previewEl.getAttribute('data-preview-mode');
+                const prevHash = previewEl.getAttribute('data-content-hash');
+
+                if (isHtml) {
+                    const existingIframe = document.getElementById('htmlSandboxIframe');
+                    // 如果沙盒 iframe 已存在、文檔 ID 相同、且內容無變更 (且非使用者手動強制重載)，絕不破壞 iframe DOM 狀態
+                    if (!forceReload && existingIframe && prevMode === 'html' && prevDocId === docId && prevHash === currentHash) {
+                        return;
+                    }
+
+                    previewEl.setAttribute('data-preview-mode', 'html');
+                    previewEl.setAttribute('data-preview-doc-id', docId);
+                    previewEl.setAttribute('data-content-hash', currentHash);
+                    previewEl.className = 'w-full p-0 max-w-none';
+                    previewEl.innerHTML = this.renderHtmlSandbox(content);
+                } else {
+                    if (!forceReload && prevMode === 'markdown' && prevDocId === docId && prevHash === currentHash) {
+                        return;
+                    }
+
+                    previewEl.setAttribute('data-preview-mode', 'markdown');
+                    previewEl.setAttribute('data-preview-doc-id', docId);
+                    previewEl.setAttribute('data-content-hash', currentHash);
+                    previewEl.className = 'w-full border-2 border-black bg-white p-6 md:p-8 prose prose-zinc max-w-none shadow-[4px_4px_0px_0px_#000] min-h-[300px] md:min-h-[420px]';
+                    previewEl.innerHTML = this.parseMarkdown(content);
+                }
+            },
+
+            fastHash(str) {
+                let hash = 0;
+                if (!str) return '0_0';
+                for (let i = 0; i < str.length; i++) {
+                    hash = ((hash << 5) - hash) + str.charCodeAt(i);
+                    hash |= 0;
+                }
+                return hash.toString(36) + '_' + str.length;
+            },
+
             renderHtmlSandbox(rawHtml) {
                 let fullHtml = rawHtml;
                 if (!/^<!DOCTYPE/i.test(rawHtml.trim()) && !/<html/i.test(rawHtml)) {
@@ -4955,11 +4991,11 @@ ${rawHtml}
             },
 
             refreshHtmlSandbox() {
-                const iframe = document.getElementById('htmlSandboxIframe');
-                if (iframe) {
-                    const srcdoc = iframe.getAttribute('srcdoc');
-                    iframe.srcdoc = '';
-                    setTimeout(() => { iframe.srcdoc = srcdoc; }, 50);
+                const p = this.getCurrentProject();
+                const doc = p?.docs?.find(d => d.id === this.state.activeDocId);
+                const previewEl = document.getElementById('docPreview');
+                if (doc && previewEl) {
+                    this.updateDocPreview(doc, previewEl, true);
                     this.showToast('🔄 網頁沙盒已重新載入！');
                 }
             },
