@@ -184,10 +184,14 @@
         </div>
 
         <!-- 側邊欄底部快捷列 -->
-        <div class="p-2 border-t-2 border-black bg-zinc-300 grid grid-cols-4 gap-1">
+        <div class="p-2 border-t-2 border-black bg-zinc-300 grid grid-cols-5 gap-1">
             <button onclick="app.openTeamModal()" class="p-1 hover:bg-zinc-100 border-2 border-transparent hover:border-black font-bold text-[10px] flex flex-col items-center gap-0.5 transition-colors flat-box" title="團隊成員與協作分享">
                 <span class="text-base">👥</span>
                 <span>團隊</span>
+            </button>
+            <button onclick="app.openHistoryModal()" class="p-1 hover:bg-zinc-100 border-2 border-transparent hover:border-black font-bold text-[10px] flex flex-col items-center gap-0.5 transition-colors flat-box" title="歷史版本快照時光機">
+                <span class="text-base">🕒</span>
+                <span>時光機</span>
             </button>
             <button onclick="app.openBackupModal()" class="p-1 hover:bg-zinc-100 border-2 border-transparent hover:border-black font-bold text-[10px] flex flex-col items-center gap-0.5 transition-colors flat-box" title="本機檔案備份與還原">
                 <span class="text-base">💾</span>
@@ -1103,6 +1107,103 @@
         </div>
     </div>
 
+    <!-- 跨裝置離線版本衝突決策對話框 (Conflict Resolver Modal) -->
+    <div id="conflictModal" class="hidden fixed inset-0 bg-black/80 z-[110] flex items-center justify-center p-3 md:p-6">
+        <div class="bg-white border-4 border-black p-5 md:p-6 max-w-2xl w-full shadow-[8px_8px_0px_0px_#000] flex flex-col max-h-[92vh] space-y-4">
+            <div class="flex items-center justify-between border-b-2 border-black pb-3 shrink-0 bg-amber-100 p-3 -m-5 md:-m-6 mb-2 border-b-2 border-black">
+                <div class="flex items-center gap-2">
+                    <span class="text-2xl">⚡</span>
+                    <div>
+                        <h3 class="font-black text-base md:text-lg uppercase text-amber-950">跨裝置離線同步衝突決策</h3>
+                        <p class="text-[11px] font-bold text-amber-900">偵測到「雲端內容」與「本機離線編輯」同時存在不同修改，請選擇處理配套措施</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="overflow-y-auto space-y-4 pr-1 no-scrollbar flex-1 py-1">
+                <!-- 專案與文檔提示 -->
+                <div id="conflictDocInfo" class="text-xs font-bold text-zinc-700 bg-zinc-100 p-2.5 border-2 border-black">
+                    <!-- 動態注入衝突文檔與時間 -->
+                </div>
+
+                <!-- 雙版本對比卡片 -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <!-- 雲端版本 -->
+                    <div class="border-2 border-black bg-blue-50 p-3 flex flex-col space-y-2">
+                        <div class="flex items-center justify-between border-b border-blue-900 pb-1 text-blue-950 font-black text-xs">
+                            <span>🖥️ 雲端最新版 (電腦端/其他裝置)</span>
+                            <span id="conflictCloudTime" class="text-[10px] font-mono"></span>
+                        </div>
+                        <pre id="conflictCloudPreview" class="text-[11px] font-mono bg-white p-2 border border-blue-800 text-zinc-800 max-h-36 overflow-y-auto whitespace-pre-wrap select-all"></pre>
+                    </div>
+
+                    <!-- 本機版本 -->
+                    <div class="border-2 border-black bg-emerald-50 p-3 flex flex-col space-y-2">
+                        <div class="flex items-center justify-between border-b border-emerald-900 pb-1 text-emerald-950 font-black text-xs">
+                            <span>📱 本機離線版 (此裝置最新修改)</span>
+                            <span id="conflictLocalTime" class="text-[10px] font-mono"></span>
+                        </div>
+                        <pre id="conflictLocalPreview" class="text-[11px] font-mono bg-white p-2 border border-emerald-800 text-zinc-800 max-h-36 overflow-y-auto whitespace-pre-wrap select-all"></pre>
+                    </div>
+                </div>
+
+                <!-- 配套措施 3 選 1 -->
+                <div class="space-y-2 pt-1">
+                    <div class="text-xs font-black uppercase text-zinc-800">請選擇您的決策方案：</div>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                        <!-- 選項 1: 採用雲端 -->
+                        <button onclick="app.resolveConflict('cloud')" class="p-3 bg-blue-100 hover:bg-blue-200 border-2 border-black font-bold text-xs flat-box flex flex-col items-center justify-center gap-1 shadow-[2px_2px_0px_0px_#000]">
+                            <span class="text-base">🖥️</span>
+                            <span class="font-black text-blue-950">採用雲端版本</span>
+                            <span class="text-[10px] text-blue-900 text-center font-normal">以電腦端雲端內容為準 (本地自動備份至歷史)</span>
+                        </button>
+
+                        <!-- 選項 2: 強制採用本機 -->
+                        <button onclick="app.resolveConflict('local')" class="p-3 bg-emerald-100 hover:bg-emerald-200 border-2 border-black font-bold text-xs flat-box flex flex-col items-center justify-center gap-1 shadow-[2px_2px_0px_0px_#000]">
+                            <span class="text-base">📱</span>
+                            <span class="font-black text-emerald-950">強制採用本機</span>
+                            <span class="text-[10px] text-emerald-900 text-center font-normal">以本機離線內容為準，並立即推送到雲端</span>
+                        </button>
+
+                        <!-- 選項 3: 雙版本並存 (最安全推薦) -->
+                        <button onclick="app.resolveConflict('both')" class="p-3 bg-yellow-300 hover:bg-yellow-400 border-2 border-black font-bold text-xs flat-box flex flex-col items-center justify-center gap-1 shadow-[2px_2px_0px_0px_#000]">
+                            <span class="text-base">📑</span>
+                            <span class="font-black text-black">雙版本並存 (推薦)</span>
+                            <span class="text-[10px] text-zinc-900 text-center font-normal">採用雲端版，並將本機離線版另存為副本</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 歷史版本快照時光機 Modal -->
+    <div id="historyModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-3 md:p-6" onclick="app.closeHistoryModal()">
+        <div class="bg-white border-2 border-black p-5 md:p-6 max-w-xl w-full flat-shadow-lg flex flex-col max-h-[88vh]" onclick="event.stopPropagation()">
+            <div class="flex items-center justify-between border-b-2 border-black pb-3 mb-3 shrink-0">
+                <h3 class="font-black text-lg uppercase flex items-center gap-2">
+                    <span>🕒</span> 本機歷史版本時光機 (Snapshot Rollback)
+                </h3>
+                <button onclick="app.closeHistoryModal()" class="text-xl font-bold hover:text-red-600 px-2">&times;</button>
+            </div>
+
+            <p class="text-xs text-zinc-600 font-medium leading-relaxed mb-3">
+                系統每次同步或存檔時皆會自動留下時光機快照。若發現內容被覆蓋或遺失，可在此選取歷史時間點一鍵還原！
+            </p>
+
+            <div id="historySnapshotsList" class="flex-1 overflow-y-auto space-y-2 pr-1 no-scrollbar min-h-[220px]">
+                <!-- 動態注入歷史快照 -->
+            </div>
+
+            <!-- Google 試算表版本提示 -->
+            <div class="mt-3 p-2.5 bg-blue-50 border-2 border-blue-900 text-xs font-bold text-blue-950 flex items-center justify-between">
+                <span>📊 Google 試算表雲端版本記錄：可由試算表「檔案 ➔ 版本記錄」隨時倒帶</span>
+                <a href="javascript:void(0)" onclick="app.openGasUrlInBrowser()" class="underline text-blue-800">開啟試算表 ↗</a>
+            </div>
+        </div>
+    </div>
+
     <!-- 系統訊息 Toast -->
     <div id="toast" class="fixed top-4 left-1/2 transform -translate-x-1/2 bg-black text-white px-4 py-2 font-bold text-sm border-2 border-black shadow-[4px_4px_0px_0px_#cbd5e1] z-[100] transition-all duration-300 opacity-0 pointer-events-none translate-y-[-20px]">
         訊息
@@ -1367,7 +1468,18 @@
                     const lNorm = this.normalizeProject(localProj);
                     const bNorm = baseProj ? this.normalizeProject(baseProj) : null;
 
-                    const mergedProj = { ...cNorm };
+                    const cTime = new Date(cNorm.updatedAt || 0).getTime();
+                    const lTime = new Date(lNorm.updatedAt || 0).getTime();
+                    const isTypingNow = this.state.isUserTyping || (this.state.hasUnsavedChanges && (Date.now() - (this.state.lastLocalSaveTime?.getTime() || 0) < 5000));
+
+                    // ✅ 核心防線 1：如果當前裝置沒有在主動打字，且雲端時間戳 >= 本地（例如電腦剛同步，手機剛打開 App）
+                    // 100% 以最新雲端為準（SSOT），絕對防止手機舊快取倒灌覆蓋雲端！
+                    if (!isTypingNow && cTime >= lTime) {
+                        mergedMap.set(projId, cNorm);
+                        return;
+                    }
+
+                    const mergedProj = { ...(cTime >= lTime ? cNorm : lNorm) };
                     mergedProj.id = projId;
 
                     // 專案名稱與分類：若本地有編輯則以本地為準
@@ -1375,8 +1487,8 @@
                         mergedProj.title = (lNorm.title !== bNorm.title) ? lNorm.title : cNorm.title;
                         mergedProj.category = (lNorm.category !== bNorm.category) ? lNorm.category : cNorm.category;
                     } else {
-                        mergedProj.title = lNorm.title || cNorm.title;
-                        mergedProj.category = lNorm.category || cNorm.category;
+                        mergedProj.title = (cTime >= lTime) ? cNorm.title : (lNorm.title || cNorm.title);
+                        mergedProj.category = (cTime >= lTime) ? cNorm.category : (lNorm.category || cNorm.category);
                     }
 
                     // 精靈欄位細粒度合併
@@ -1745,8 +1857,43 @@
                     localStorage.setItem('flatSpecData', JSON.stringify(this.state.projects));
                     localStorage.setItem('flatSpecGasUrl', this.state.gasUrl);
                     this.state.lastLocalSaveTime = new Date();
+                    this.recordLocalHistorySnapshot(this.state.projects, '本地自動存檔');
                 } catch (e) {
                     console.error("Local storage error:", e);
+                }
+            },
+
+            recordLocalHistorySnapshot(projects, label = '自動存檔') {
+                if (!Array.isArray(projects) || projects.length === 0) return;
+                try {
+                    let history = [];
+                    try {
+                        history = JSON.parse(localStorage.getItem('flatSpecHistory') || '[]');
+                    } catch(e) {}
+                    if (!Array.isArray(history)) history = [];
+
+                    const now = new Date();
+                    const entry = {
+                        time: now.toISOString(),
+                        label: label,
+                        projectsCount: projects.length,
+                        data: JSON.parse(JSON.stringify(projects))
+                    };
+
+                    // 避免連續無變更重複寫入相同快照
+                    if (history.length > 0) {
+                        const lastData = JSON.stringify(history[0].data);
+                        if (lastData === JSON.stringify(projects)) {
+                            return;
+                        }
+                    }
+
+                    // 最多保留最近 20 份歷史快照
+                    history.unshift(entry);
+                    if (history.length > 20) history = history.slice(0, 20);
+                    localStorage.setItem('flatSpecHistory', JSON.stringify(history));
+                } catch(e) {
+                    console.warn("Failed to record history snapshot:", e);
                 }
             },
 
@@ -1777,13 +1924,6 @@
 
                 if (this.state.isSyncing) return false;
 
-                // 若當前有未同步的修改，優先把修改推上雲端
-                if (this.state.hasUnsavedChanges && !isManual) {
-                    console.log("偵測到本地有未存修改，自動發起雲端推送");
-                    await this.pushToCloud(false);
-                    return true;
-                }
-
                 if (!isBackgroundPoll) {
                     this.updateSyncStatus('syncing', '正在讀取雲端...');
                 }
@@ -1813,19 +1953,20 @@
                     if (Array.isArray(data)) {
                         if (data.length > 0) {
                             const prevActiveProject = JSON.parse(JSON.stringify(this.getCurrentProject() || {}));
-                            // ✅ 智慧合併雲端與本地專案
+                            // ✅ 智慧合併雲端與本地專案（以最新時間戳為準，絕不被舊裝置快取覆蓋）
                             const normalizedCloud = data.map(p => this.normalizeProject(p)).filter(Boolean);
                             const mergedProjects = this.mergeProjects(normalizedCloud, this.state.projects);
 
-                            // 檢查本地是否含有雲端尚未收錄的新專案或文檔變更 (例如 PC 端新增的專案)
-                            const hasNewLocalData = mergedProjects.length > normalizedCloud.length || 
-                                (this.state.hasUnsavedChanges || localStorage.getItem('flatSpecHasPendingChanges') === 'true');
+                            // 檢查本地是否含有雲端完全沒有的新建專案 (例如斷網時在本地新建的專案)
+                            const localOnlyProjects = this.state.projects.filter(lp => !normalizedCloud.some(cp => cp.id === lp.id));
+                            const hasNewLocalProjects = localOnlyProjects.length > 0;
 
                             this.state.projects = mergedProjects;
                             this.state.isCloudLoaded = true;
                             this.state.lastSyncTime = new Date();
                             this.state.lastSyncedProjects = JSON.parse(JSON.stringify(this.state.projects));
                             this.saveToLocal();
+                            this.recordLocalHistorySnapshot(mergedProjects, '雲端同步快照');
                             this.ensureActivePointers();
                             
                             const newActiveProject = this.getCurrentProject();
@@ -1836,8 +1977,8 @@
                             this.smartRenderAll();
                             this.updateMyPresence();
 
-                            if (hasNewLocalData) {
-                                console.log("[Sync] 偵測到本地包含雲端未收錄的專案，自動回推完整合併清單至雲端...");
+                            if (hasNewLocalProjects) {
+                                console.log("[Sync] 偵測到本地包含雲端未收錄的新建專案，自動回推完整合併清單至雲端...");
                                 this.state.hasUnsavedChanges = true;
                                 localStorage.setItem('flatSpecHasPendingChanges', 'true');
                                 this.debouncedSaveAndSync();
@@ -5096,6 +5237,206 @@ ${rawHtml}
                 const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8' });
                 const url = URL.createObjectURL(blob);
                 window.open(url, '_blank');
+            },
+
+            // ================= 🕒 歷史版本快照時光機與跨裝置衝突決策 =================
+            openHistoryModal() {
+                this.renderHistorySnapshotsList();
+                const modal = document.getElementById('historyModal');
+                if (modal) modal.classList.remove('hidden');
+            },
+
+            closeHistoryModal() {
+                const modal = document.getElementById('historyModal');
+                if (modal) modal.classList.add('hidden');
+            },
+
+            renderHistorySnapshotsList() {
+                const listEl = document.getElementById('historySnapshotsList');
+                if (!listEl) return;
+
+                let history = [];
+                try {
+                    history = JSON.parse(localStorage.getItem('flatSpecHistory') || '[]');
+                } catch(e) {}
+
+                if (!Array.isArray(history) || history.length === 0) {
+                    listEl.innerHTML = `
+                        <div class="text-center py-10 text-zinc-500 font-bold text-xs bg-zinc-50 border-2 border-dashed border-zinc-300">
+                            <span>🕒 尚無歷史快照紀錄</span>
+                            <p class="text-[11px] text-zinc-400 mt-1">每次儲存或雲端同步後將自動在此建立時光機還原點</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                listEl.innerHTML = history.map((snap, idx) => {
+                    const d = new Date(snap.time);
+                    const timeStr = d.toLocaleString('zh-TW', { hour12: false });
+                    const isLatest = idx === 0;
+                    const count = (snap.data || []).length;
+                    const projNames = (snap.data || []).map(p => p.title).slice(0, 3).join('、') + (count > 3 ? ' 等' : '');
+
+                    return `
+                        <div class="p-3 bg-white border-2 border-black flat-box shadow-[2px_2px_0px_0px_#000] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5">
+                            <div class="space-y-0.5 min-w-0">
+                                <div class="flex items-center gap-2">
+                                    <span class="font-black text-xs text-black font-mono">${timeStr}</span>
+                                    <span class="px-1.5 py-0.2 ${isLatest ? 'bg-green-500 text-white' : 'bg-zinc-200 text-zinc-800'} font-bold text-[10px] uppercase">${snap.label || '自動存檔'}</span>
+                                    ${isLatest ? '<span class="text-[10px] font-black text-green-700 font-mono">（當前版本）</span>' : ''}
+                                </div>
+                                <div class="text-[11px] text-zinc-600 truncate font-medium">
+                                    專案數：<span class="font-bold text-black">${count}</span> 個 (${this.escapeHtml(projNames || '無專案')})
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-1.5 shrink-0 self-end sm:self-center">
+                                <button onclick="app.restoreHistorySnapshot(${idx})" class="px-3 py-1 bg-black text-white hover:bg-zinc-800 font-bold text-xs flat-box shadow-[1px_1px_0px_0px_#000] flex items-center gap-1" title="將所有專案與文檔還原至此時間點">
+                                    <span>⏪</span> <span>還原此版本</span>
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            },
+
+            restoreHistorySnapshot(idx) {
+                let history = [];
+                try {
+                    history = JSON.parse(localStorage.getItem('flatSpecHistory') || '[]');
+                } catch(e) {}
+
+                const targetSnap = history[idx];
+                if (!targetSnap || !Array.isArray(targetSnap.data)) {
+                    this.showToast('快照資料不存在或已損壞', 'error');
+                    return;
+                }
+
+                if (!confirm(`確定要將系統資料還原至 【${new Date(targetSnap.time).toLocaleString()}】 的歷史快照版本嗎？\n\n（還原前會自動為當前狀態備份一份最新快照，安全無虞）`)) {
+                    return;
+                }
+
+                // 1. 還原前先自動備份當前版本
+                this.recordLocalHistorySnapshot(this.state.projects, '還原前自動安全快照');
+
+                // 2. 還原資料並寫入本地
+                this.state.projects = JSON.parse(JSON.stringify(targetSnap.data));
+                this.saveToLocal();
+                this.ensureActivePointers();
+                this.renderAll();
+                this.closeHistoryModal();
+
+                // 3. 標記待同步並推送到雲端
+                this.state.hasUnsavedChanges = true;
+                localStorage.setItem('flatSpecHasPendingChanges', 'true');
+                this.debouncedSaveAndSync();
+
+                this.showToast('🎉 已成功還原至指定歷史快照，並同步至雲端！');
+            },
+
+            openGasUrlInBrowser() {
+                if (this.state.gasUrl) {
+                    window.open(this.state.gasUrl, '_blank');
+                } else {
+                    this.openGasModal();
+                }
+            },
+
+            showConflictModal(conflict) {
+                this.state.currentConflict = conflict;
+                const modal = document.getElementById('conflictModal');
+                const infoEl = document.getElementById('conflictDocInfo');
+                const cTimeEl = document.getElementById('conflictCloudTime');
+                const lTimeEl = document.getElementById('conflictLocalTime');
+                const cPrevEl = document.getElementById('conflictCloudPreview');
+                const lPrevEl = document.getElementById('conflictLocalPreview');
+
+                if (!modal || !conflict) return;
+
+                if (infoEl) {
+                    infoEl.innerHTML = `📌 專案：<span class="text-black font-black">${this.escapeHtml(conflict.projTitle || '未命名專案')}</span> ➔ 文檔：<span class="text-blue-700 font-black">${this.escapeHtml(conflict.docTitle || '未命名文檔')}</span>`;
+                }
+
+                if (cTimeEl) cTimeEl.innerText = conflict.cloudTime ? new Date(conflict.cloudTime).toLocaleString() : '雲端版本';
+                if (lTimeEl) lTimeEl.innerText = conflict.localTime ? new Date(conflict.localTime).toLocaleString() : '離線本機版';
+
+                if (cPrevEl) cPrevEl.innerText = conflict.cloudContent || '(無內文)';
+                if (lPrevEl) lPrevEl.innerText = conflict.localContent || '(無內文)';
+
+                modal.classList.remove('hidden');
+            },
+
+            closeConflictModal() {
+                const modal = document.getElementById('conflictModal');
+                if (modal) modal.classList.add('hidden');
+                this.state.currentConflict = null;
+            },
+
+            resolveConflict(action) {
+                const conflict = this.state.currentConflict;
+                if (!conflict) {
+                    this.closeConflictModal();
+                    return;
+                }
+
+                const p = this.getProject(conflict.projId);
+                if (!p) {
+                    this.closeConflictModal();
+                    return;
+                }
+
+                // 決策前先自動記錄安全快照
+                this.recordLocalHistorySnapshot(this.state.projects, '衝突決策前快照');
+
+                if (action === 'cloud') {
+                    // 1. 採用雲端版本
+                    const doc = p.docs?.find(d => d.id === conflict.docId);
+                    if (doc) {
+                        doc.content = conflict.cloudContent;
+                        doc.title = conflict.cloudTitle || doc.title;
+                    }
+                    p.updatedAt = conflict.cloudTime || new Date().toISOString();
+                    this.saveToLocal();
+                    this.smartRenderAll();
+                    this.showToast('✅ 已採用雲端版本！');
+                } else if (action === 'local') {
+                    // 2. 強制採用本機版本
+                    const doc = p.docs?.find(d => d.id === conflict.docId);
+                    if (doc) {
+                        doc.content = conflict.localContent;
+                        doc.title = conflict.localTitle || doc.title;
+                    }
+                    p.updatedAt = new Date().toISOString();
+                    this.saveToLocal();
+                    this.smartRenderAll();
+                    this.state.hasUnsavedChanges = true;
+                    localStorage.setItem('flatSpecHasPendingChanges', 'true');
+                    this.debouncedSaveAndSync();
+                    this.showToast('✅ 已採用本機版本並同步至雲端！');
+                } else if (action === 'both') {
+                    // 3. 雙版本並存：採用雲端主檔，並將本機離線修改另存為副本
+                    const doc = p.docs?.find(d => d.id === conflict.docId);
+                    if (doc) {
+                        doc.content = conflict.cloudContent;
+                        doc.title = conflict.cloudTitle || doc.title;
+                    }
+                    // 建立本機副本
+                    const copyDoc = {
+                        id: 'doc_' + Date.now(),
+                        title: `${conflict.localTitle || doc?.title || '文檔'} (離線編輯副本)`,
+                        content: conflict.localContent
+                    };
+                    if (!p.docs) p.docs = [];
+                    p.docs.push(copyDoc);
+                    p.updatedAt = new Date().toISOString();
+                    this.saveToLocal();
+                    this.smartRenderAll();
+                    this.state.hasUnsavedChanges = true;
+                    localStorage.setItem('flatSpecHasPendingChanges', 'true');
+                    this.debouncedSaveAndSync();
+                    this.showToast('📑 已雙版本並存！離線內容已另存為獨立副本文檔。');
+                }
+
+                this.closeConflictModal();
             },
 
             // ================= 📝 Markdown 解析引擎 (全規格 GFM、表格、KaTeX 數學公式) =================
