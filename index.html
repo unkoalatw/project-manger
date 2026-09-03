@@ -1357,9 +1357,48 @@
                         } else if (!cDoc && lDoc) {
                             mergedDocs.push({ ...lDoc });
                         } else {
-                            // 兩端皆有，執行 3-Way 文本智慧合併
-                            const mTitle = (bDoc && lDoc.title !== bDoc.title) ? lDoc.title : cDoc.title;
-                            const mContent = this.threeWayMergeText(bDoc?.content || '', lDoc.content || '', cDoc.content || '');
+                            // 兩端皆有
+                            let mTitle = lDoc.title;
+                            let mContent = lDoc.content;
+
+                            // 1. 若本地與雲端完全相同，直接使用
+                            if (lDoc.content === cDoc.content && lDoc.title === cDoc.title) {
+                                mTitle = lDoc.title;
+                                mContent = lDoc.content;
+                            }
+                            // 2. 若當前文檔是本地使用者正在編輯/有未存修改的文檔，本地 100% 絕對優先，絕不被舊雲端覆蓋或插入偽衝突
+                            else if (docId === this.state.activeDocId && (this.state.hasUnsavedChanges || this.state.isUserTyping)) {
+                                mTitle = lDoc.title || cDoc.title;
+                                mContent = lDoc.content;
+                            }
+                            // 3. 若有歷史 Base 版本進行比對
+                            else if (bDoc) {
+                                const localChanged = lDoc.content !== bDoc.content || lDoc.title !== bDoc.title;
+                                const cloudChanged = cDoc.content !== bDoc.content || cDoc.title !== bDoc.title;
+
+                                if (localChanged && !cloudChanged) {
+                                    // 本地有改，雲端沒改 -> 以本地為準
+                                    mTitle = lDoc.title;
+                                    mContent = lDoc.content;
+                                } else if (!localChanged && cloudChanged) {
+                                    // 雲端有改，本地沒改 -> 以雲端為準
+                                    mTitle = cDoc.title;
+                                    mContent = cDoc.content;
+                                } else if (localChanged && cloudChanged) {
+                                    // 兩端皆有真正修改，執行 3-Way 文本智慧合併
+                                    mTitle = (lDoc.title !== bDoc.title) ? lDoc.title : cDoc.title;
+                                    mContent = this.threeWayMergeText(bDoc.content || '', lDoc.content || '', cDoc.content || '');
+                                } else {
+                                    mTitle = lDoc.title;
+                                    mContent = lDoc.content;
+                                }
+                            }
+                            // 4. 若無 Base 歷史紀錄，以本地最新內容為準
+                            else {
+                                mTitle = lDoc.title || cDoc.title;
+                                mContent = lDoc.content || cDoc.content || '';
+                            }
+
                             mergedDocs.push({
                                 id: docId,
                                 title: mTitle || '未命名文檔',
@@ -2279,18 +2318,12 @@
                             titleEl.value = doc.title || '';
                         }
                         if (editorEl) {
-                            if (document.activeElement === editorEl) {
-                                // 若使用者正在打字中，且 3-Way 合併產生了新內文，安全同步並保留游標位置
-                                if (editorEl.value !== doc.content) {
-                                    const selStart = editorEl.selectionStart;
-                                    const selEnd = editorEl.selectionEnd;
-                                    editorEl.value = doc.content;
-                                    if (typeof editorEl.setSelectionRange === 'function') {
-                                        editorEl.setSelectionRange(selStart, selEnd);
-                                    }
-                                }
+                            if (document.activeElement === editorEl || this.state.isUserTyping) {
+                                // 使用者正在輸入中，以本地編輯器為準，絕不可重設 editorEl.value 抹除未存輸入
                             } else {
-                                editorEl.value = doc.content || '';
+                                if (editorEl.value !== doc.content) {
+                                    editorEl.value = doc.content || '';
+                                }
                             }
                         }
                         if (previewEl && this.state.docMode === 'preview') {
@@ -4213,6 +4246,8 @@
 
             detectRemoteChanges(oldP, newP) {
                 if (!oldP || !newP) return;
+                // 若當前本地正在輸入或有未存修改，絕不跳出偽遠端衝突提示
+                if (this.state.hasUnsavedChanges || this.state.isUserTyping) return;
 
                 // 1. 任務狀態與新增檢測
                 const oldTasks = oldP.tasks || [];
@@ -4221,12 +4256,12 @@
                 newTasks.forEach(nT => {
                     const oT = oldTasks.find(x => x.id === nT.id);
                     if (!oT) {
-                        this.showLiveBroadcast('✨', '隊友新增任務', `新增了「${nT.title}」`);
+                        this.showLiveBroadcast('✨', '雲端任務同步', `新增了「${nT.title}」`);
                         this.pulseElement(`task_${nT.id}`);
                     } else {
                         if (oT.status !== nT.status) {
                             if (nT.status === 'DONE') {
-                                this.showLiveBroadcast('🎉', '隊友完成任務', `已完成「${nT.title}」！`);
+                                this.showLiveBroadcast('🎉', '任務已完成', `已完成「${nT.title}」！`);
                             } else if (nT.status === 'DOING') {
                                 this.showLiveBroadcast('⏳', '任務進行中', `開始進行「${nT.title}」`);
                             } else {
@@ -4240,7 +4275,7 @@
                         const nCommentsCount = (nT.comments || []).length;
                         if (nCommentsCount > oCommentsCount) {
                             const latestComment = nT.comments[nCommentsCount - 1];
-                            const author = latestComment?.author || '隊友';
+                            const author = latestComment?.author || '協作成員';
                             this.showLiveBroadcast('💬', `${author} 發表了新留言`, `在「${nT.title}」：${latestComment?.text || ''}`);
                             this.pulseElement(`task_${nT.id}`);
                         }
@@ -4256,13 +4291,13 @@
                     if (oD) {
                         if (oD.content !== nD.content || oD.title !== nD.title) {
                             if (nD.id === this.state.activeDocId) {
-                                this.showLiveBroadcast('📄', '文檔即時更新', `隊友更新了「${nD.title}」內容！`);
+                                this.showLiveBroadcast('📄', '雲端同步更新', `「${nD.title}」已同步最新內容`);
                                 this.pulseElement('docEditor');
                                 this.pulseElement('docPreview');
                             }
                         }
                     } else {
-                        this.showLiveBroadcast('📂', '隊友建立了新文檔', `「${nD.title}」`);
+                        this.showLiveBroadcast('📂', '雲端新文檔', `已同步新文檔「${nD.title}」`);
                     }
                 });
             },
