@@ -1261,8 +1261,14 @@
             normalizeProject(proj) {
                 if (!proj || typeof proj !== 'object') return null;
                 const p = { ...proj };
-                p.id = p.id || 'proj_' + Date.now();
                 p.title = p.title || p.name || '未命名專案';
+
+                // 移除系統預設展示專案
+                if (p.title && (p.title.includes('FlatSpec 系統開發') || p.title.includes('FlatSpec 系統開發計畫') || p.title.includes('FlatSpec 系統開發範例'))) {
+                    return null;
+                }
+
+                p.id = p.id || 'proj_' + Date.now();
                 p.category = p.category || '預設';
                 p.updatedAt = p.updatedAt || new Date().toISOString();
                 
@@ -2297,33 +2303,24 @@
             createInitialDefaultProject() {
                 const defaultProj = {
                     id: 'proj_' + Date.now(),
-                    title: 'FlatSpec 系統開發計畫',
-                    category: '預設',
+                    title: '新專案',
+                    category: '一般',
                     updatedAt: new Date().toISOString(),
                     docs: [
                         { 
-                            id: 'doc_spec_1', 
-                            title: '專案核心規格書', 
-                            content: '# FlatSpec 專案核心規格書\n\n## 1. 專案願景\n打造一個全直角極簡風格的專案設計軟體，支援多文檔雙向引用連結。\n\n詳細技術設計請參閱 [[設計架構筆記]]。\n\n## 2. 核心功能\n- 側邊欄檔案目錄與搜尋功能\n- 文檔內文引用連結 (例如 [[設計架構筆記]])\n- Google Apps Script 雲端背景備份' 
-                        },
-                        { 
-                            id: 'doc_note_1', 
-                            title: '設計架構筆記', 
-                            content: '# 設計架構筆記\n\n- 採用 Tailwind CSS 配合 0px border-radius 硬派設計。\n- 支援文檔引用：可在規格書中快速連結至 [[專案核心規格書]]。\n- 單一 HTML 完全運作，不需打包建置。' 
+                            id: 'doc_' + Date.now(), 
+                            title: '核心規格書', 
+                            content: '# 新專案規格書\n\n開始記錄專案需求與架構規劃...' 
                         }
                     ],
-                    tasks: [
-                        { id: 'task_1', title: '建立 HTML 全直角基本佈局結構', status: 'DONE', priority: 'HIGH' },
-                        { id: 'task_2', title: '支援文檔交互引用與超連結點擊跳轉', status: 'DONE', priority: 'HIGH' },
-                        { id: 'task_3', title: '對接 Google Apps Script 自動備份', status: 'DONE', priority: 'MED' }
-                    ],
+                    tasks: [],
                     wizard: { 
-                        vision: '打造一個極簡、全直角、流暢且具備背景備份的專案設計與執行控制台。', 
-                        features: '- 側邊欄檔案目錄與搜尋功能\n- 文檔雙向引用與跳轉\n- Google Apps Script 雲端同步', 
-                        tech: 'Tailwind CSS, Vanilla JS, Google Sheets API' 
+                        vision: '', 
+                        features: '', 
+                        tech: '' 
                     }
                 };
-                this.state.projects = [this.normalizeProject(defaultProj)];
+                this.state.projects = [this.normalizeProject(defaultProj)].filter(Boolean);
                 this.saveToLocal();
                 this.ensureActivePointers();
             },
