@@ -2002,9 +2002,35 @@
 
                 this.state.isSyncing = true;
                 this.state.hasPendingSync = false;
-                this.updateSyncStatus('syncing', '正在寫入試算表...');
+                this.updateSyncStatus('syncing', '正在驗證雲端版本...');
 
                 try {
+                    // ✅ 核心防線：推送前先檢查雲端最新時間戳，防止舊裝置倒灌產生連鎖覆蓋效應
+                    if (!isManual) {
+                        try {
+                            const checkRes = await fetch(this.state.gasUrl, { method: 'GET', redirect: 'follow' });
+                            if (checkRes.ok) {
+                                const checkText = await checkRes.text();
+                                const cloudData = JSON.parse(checkText);
+                                if (Array.isArray(cloudData) && cloudData.length > 0) {
+                                    const latestCloudTime = Math.max(...cloudData.map(p => new Date(p.updatedAt || 0).getTime()));
+                                    const myBaselineTime = Math.max(...(this.state.lastSyncedProjects || []).map(p => new Date(p.updatedAt || 0).getTime()), 0);
+                                    
+                                    // 若雲端在我們上次同步後已被其他裝置（如電腦端）更新過，且雲端時間戳比我們的基線更新
+                                    if (myBaselineTime > 0 && latestCloudTime > myBaselineTime + 2000) {
+                                        console.warn("🛡️ [SafeGuard] 偵測到雲端已有其他裝置的新版本，中斷自動推送以防止連鎖覆蓋！轉為安全拉取與衝突決策...");
+                                        this.state.isSyncing = false;
+                                        await this.pullFromCloud(false);
+                                        return false;
+                                    }
+                                }
+                            }
+                        } catch(checkErr) {
+                            console.warn("Pre-flight version check skipped:", checkErr);
+                        }
+                    }
+
+                    this.updateSyncStatus('syncing', '正在寫入試算表...');
                     const payload = JSON.stringify(this.state.projects);
                     // 嚴格使用 text/plain;charset=utf-8 杜絕 CORS OPTIONS 預檢被拒
                     const response = await fetch(this.state.gasUrl, {
