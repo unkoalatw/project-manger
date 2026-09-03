@@ -211,15 +211,15 @@
     <main class="flex-1 flex flex-col min-w-0 bg-white relative pb-16 md:pb-0 h-full overflow-hidden">
         
         <!-- 頂部導覽列 (Header) -->
-        <header class="h-14 border-b-2 border-black bg-white flex items-center justify-between px-3 md:px-4 shrink-0 shadow-sm z-10">
-            <div class="flex items-center gap-3 min-w-0">
-                <button onclick="app.toggleSidebar()" class="md:hidden p-1.5 bg-zinc-100 border-2 border-black font-bold flat-box shrink-0">
+        <header class="h-14 border-b-2 border-black bg-white flex items-center justify-between px-2 sm:px-4 shrink-0 shadow-sm z-10 gap-1.5">
+            <div class="flex items-center gap-1.5 sm:gap-3 min-w-0">
+                <button onclick="app.toggleSidebar()" class="md:hidden p-1.5 px-2 bg-zinc-100 border-2 border-black font-bold flat-box shrink-0 text-sm">
                     ☰
                 </button>
                 <!-- 專案進度迷你儀表 -->
-                <div class="hidden sm:flex flex-col min-w-0">
+                <div class="flex flex-col min-w-0 max-w-[120px] sm:max-w-xs">
                     <div class="text-xs font-black truncate uppercase" id="headerProjectName">未選擇專案</div>
-                    <div class="w-32 h-2 bg-zinc-200 border border-black mt-0.5 relative">
+                    <div class="w-20 sm:w-32 h-1.5 sm:h-2 bg-zinc-200 border border-black mt-0.5 relative">
                         <div id="headerProgressBar" class="h-full bg-green-400 border-r border-black" style="width: 0%"></div>
                     </div>
                 </div>
@@ -233,36 +233,33 @@
                 <button id="viewTabWizard" onclick="app.switchView('Wizard')" class="px-4 py-1 border-2 border-black bg-violet-200 hover:bg-violet-100 transition-colors uppercase">✨ 精靈</button>
             </div>
 
-            <!-- 即時在線成員呼吸燈 (Live Presence Bar) -->
-            <div id="headerPresenceBar" onclick="app.openTeamModal()" class="flex items-center gap-1.5 cursor-pointer bg-emerald-50 hover:bg-emerald-100 border-2 border-emerald-900 px-2 py-1 flat-box transition-colors shrink-0" title="點擊查看即時在線成員與活動">
-                <span class="relative flex h-2 w-2">
-                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                    <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
-                </span>
-                <div id="presenceAvatarsList" class="flex -space-x-1.5 overflow-hidden">
-                    <!-- 動態注入在線頭像 -->
+            <!-- 右側協作、搜尋與同步狀態燈 -->
+            <div class="flex items-center gap-1 sm:gap-2 shrink-0">
+                <!-- 即時在線成員呼吸燈 -->
+                <div id="headerPresenceBar" onclick="app.openTeamModal()" class="hidden sm:flex items-center gap-1 cursor-pointer bg-emerald-50 hover:bg-emerald-100 border-2 border-emerald-900 px-1.5 py-1 flat-box transition-colors shrink-0" title="點擊查看即時在線成員與活動">
+                    <span class="relative flex h-2 w-2">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
+                    </span>
+                    <div id="presenceAvatarsList" class="flex -space-x-1 overflow-hidden"></div>
+                    <span id="presenceCountText" class="text-[10px] font-black text-emerald-950 ml-0.5 hidden md:inline font-mono">1人在線</span>
                 </div>
-                <span id="presenceCountText" class="text-[10px] font-black text-emerald-950 ml-0.5 hidden sm:inline font-mono">1 人在線</span>
-            </div>
 
-            <!-- 協作、搜尋與同步狀態燈 -->
-            <div class="flex items-center gap-2 shrink-0">
-                <button onclick="app.openTeamModal()" class="p-1.5 px-2 bg-violet-100 hover:bg-violet-200 border-2 border-black font-bold text-xs flat-box flex items-center gap-1 transition-colors text-violet-950" title="團隊成員管理與一鍵邀請">
+                <button onclick="app.openTeamModal()" class="hidden md:flex p-1.5 px-2 bg-violet-100 hover:bg-violet-200 border-2 border-black font-bold text-xs flat-box items-center gap-1 transition-colors text-violet-950" title="團隊成員管理與一鍵邀請">
                     <span class="text-sm">👥</span>
-                    <span class="hidden md:inline">團隊協作</span>
+                    <span class="hidden lg:inline">團隊協作</span>
                 </button>
-                <button onclick="app.openSearchModal()" class="p-1.5 px-2 bg-zinc-100 hover:bg-yellow-200 border-2 border-black font-bold text-xs flat-box flex items-center gap-1.5 transition-colors" title="快速全域搜尋 (快捷鍵: Ctrl+K / Cmd+K)">
+                <button onclick="app.openSearchModal()" class="p-1.5 px-2 bg-zinc-100 hover:bg-yellow-200 border-2 border-black font-bold text-xs flat-box flex items-center gap-1 transition-colors shrink-0" title="快速全域搜尋 (Ctrl+K)">
                     <span class="text-sm">🔍</span>
-                    <span class="hidden lg:inline text-zinc-800">搜尋</span>
-                    <kbd class="hidden md:inline-block bg-white border border-zinc-400 px-1 py-0.2 text-[9px] font-mono text-zinc-600 rounded-none">Ctrl+K</kbd>
+                    <span class="hidden md:inline text-zinc-800">搜尋</span>
                 </button>
-                <button onclick="app.pullFromCloud(true)" class="p-1.5 bg-zinc-100 hover:bg-zinc-200 border-2 border-black font-bold text-xs flat-box flex items-center gap-1" title="從 Google 試算表拉取最新資料">
+                <button onclick="app.pullFromCloud(true)" class="p-1.5 px-2 bg-zinc-100 hover:bg-zinc-200 border-2 border-black font-bold text-xs flat-box flex items-center gap-1 shrink-0" title="從 Google 試算表拉取最新資料">
                     <span class="text-sm">🔄</span>
-                    <span class="hidden sm:inline">重新整理</span>
+                    <span class="hidden md:inline">重整</span>
                 </button>
-                <div id="syncStatusBadge" onclick="app.openGasModal()" class="cursor-pointer px-2.5 py-1.5 border-2 border-black font-bold text-[10px] md:text-xs flex items-center gap-1.5 bg-zinc-100 flat-shadow-sm hover:translate-y-px transition-transform">
-                    <span id="syncDot" class="w-2.5 h-2.5 rounded-full bg-zinc-400 border border-black"></span>
-                    <span id="syncText">正在連線...</span>
+                <div id="syncStatusBadge" onclick="app.openGasModal()" class="cursor-pointer px-2 py-1.5 border-2 border-black font-bold text-[10px] md:text-xs flex items-center gap-1 bg-zinc-100 flat-shadow-sm hover:translate-y-px transition-transform shrink-0">
+                    <span id="syncDot" class="w-2 h-2 rounded-full bg-zinc-400 border border-black shrink-0"></span>
+                    <span id="syncText" class="max-w-[70px] sm:max-w-none truncate">已連線</span>
                 </div>
             </div>
         </header>
@@ -317,40 +314,40 @@
             <div id="viewDocs" class="hidden min-h-full flex flex-col p-4 md:p-6 max-w-5xl mx-auto space-y-4 pb-28 md:pb-12">
                 
                 <!-- 模式切換頂欄 (常駐於上方) -->
-                <div class="flex items-center justify-between mb-2 border-b-2 border-black pb-2">
-                    <div class="flex items-center gap-2">
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-2 border-b-2 border-black pb-2">
+                    <div class="flex items-center gap-1.5 flex-wrap">
                         <!-- 模式切換按鈕組 -->
                         <div class="flex items-center border-2 border-black bg-white shadow-[2px_2px_0px_0px_#000]">
-                            <button id="btnEditMode" type="button" onclick="app.toggleDocMode('edit')" class="px-3 py-1 bg-black text-white font-bold text-xs transition-colors flex items-center gap-1" title="切換至編輯模式">
-                                <span>✏️</span> <span>編輯模式</span>
+                            <button id="btnEditMode" type="button" onclick="app.toggleDocMode('edit')" class="px-2.5 py-1 bg-black text-white font-bold text-xs transition-colors flex items-center gap-1 shrink-0" title="切換至編輯模式">
+                                <span>✏️</span> <span>編輯</span>
                             </button>
-                            <button id="btnPreviewMode" type="button" onclick="app.toggleDocMode('preview')" class="px-3 py-1 bg-zinc-100 text-black font-bold text-xs transition-colors hover:bg-zinc-200 flex items-center gap-1" title="切換至純檢視 (預覽) 模式">
-                                <span>📖</span> <span>純檢視 (預覽)</span>
+                            <button id="btnPreviewMode" type="button" onclick="app.toggleDocMode('preview')" class="px-2.5 py-1 bg-zinc-100 text-black font-bold text-xs transition-colors hover:bg-zinc-200 flex items-center gap-1 shrink-0" title="切換至純檢視 (預覽) 模式">
+                                <span>📖</span> <span>預覽</span>
                             </button>
                         </div>
                         <span id="docWordCountBadge" class="hidden sm:inline-block px-2 py-0.5 bg-zinc-100 border border-zinc-300 text-[11px] font-bold text-zinc-600 font-mono"></span>
-                        <span id="docLivePresenceBadge" class="hidden px-2 py-0.5 bg-emerald-100 border border-emerald-500 text-[11px] font-bold text-emerald-900 flex items-center gap-1.5 animate-pulse">
-                            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-                            <span id="docLivePresenceText">1 人正在此文檔</span>
+                        <span id="docLivePresenceBadge" class="hidden px-2 py-0.5 bg-emerald-100 border border-emerald-500 text-[10px] sm:text-[11px] font-bold text-emerald-900 flex items-center gap-1 animate-pulse">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                            <span id="docLivePresenceText">1人在線</span>
                         </span>
                     </div>
 
                     <!-- 右側操作按鈕區 (大綱目錄、搜尋取代、純檢視專屬按鈕) -->
-                    <div class="flex items-center gap-1.5 flex-wrap">
-                        <button type="button" id="btnToggleFindReplace" onclick="app.toggleDocFindReplace()" class="px-2.5 py-1 bg-white hover:bg-yellow-200 border-2 border-black font-bold text-xs flex items-center gap-1 flat-box shadow-[2px_2px_0px_0px_#000]" title="在文檔中尋找與取代 (快捷鍵: Ctrl+F / Ctrl+H)">
-                            <span>🔍</span> <span class="hidden sm:inline">尋找/取代</span>
+                    <div class="flex items-center gap-1.5 shrink-0">
+                        <button type="button" id="btnToggleFindReplace" onclick="app.toggleDocFindReplace()" class="px-2 py-1 bg-white hover:bg-yellow-200 border-2 border-black font-bold text-xs flex items-center gap-1 flat-box shadow-[1px_1px_0px_0px_#000]" title="在文檔中尋找與取代 (Ctrl+F)">
+                            <span>🔍</span> <span class="hidden sm:inline">尋找</span>
                         </button>
-                        <button type="button" id="btnToggleToc" onclick="app.toggleDocToc()" class="px-2.5 py-1 bg-white hover:bg-zinc-100 border-2 border-black font-bold text-xs flex items-center gap-1.5 flat-box shadow-[2px_2px_0px_0px_#000]" title="展開文檔大綱目錄 (TOC)">
-                            <span>🗂️</span> <span class="hidden sm:inline">目錄大綱</span> <span id="docTocCountBadge" class="bg-black text-white px-1 py-0.2 text-[9px] font-mono font-black">0</span>
+                        <button type="button" id="btnToggleToc" onclick="app.toggleDocToc()" class="px-2 py-1 bg-white hover:bg-zinc-100 border-2 border-black font-bold text-xs flex items-center gap-1 flat-box shadow-[1px_1px_0px_0px_#000]" title="展開文檔大綱目錄">
+                            <span>🗂️</span> <span class="hidden sm:inline">大綱</span> <span id="docTocCountBadge" class="bg-black text-white px-1 py-0.2 text-[9px] font-mono font-black">0</span>
                         </button>
 
                         <!-- 純檢視模式專屬頂部操作 -->
                         <div id="docPreviewActions" class="hidden flex items-center gap-1.5">
-                            <button type="button" onclick="app.copyDocContent()" class="px-2.5 py-1 bg-white hover:bg-zinc-100 border-2 border-black font-bold text-xs flex items-center gap-1 flat-box shadow-[2px_2px_0px_0px_#000]" title="複製文檔 Markdown 內容">
-                                <span>📋</span> <span class="hidden sm:inline">複製內容</span>
+                            <button type="button" onclick="app.copyDocContent()" class="px-2 py-1 bg-white hover:bg-zinc-100 border-2 border-black font-bold text-xs flex items-center gap-1 flat-box shadow-[1px_1px_0px_0px_#000]" title="複製內容">
+                                <span>📋</span> <span class="hidden sm:inline">複製</span>
                             </button>
-                            <button type="button" onclick="app.toggleDocMode('edit')" class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white border-2 border-black font-bold text-xs flex items-center gap-1 flat-box shadow-[2px_2px_0px_0px_#000]" title="進入編輯此文檔">
-                                <span>✏️</span> <span>進入編輯</span>
+                            <button type="button" onclick="app.toggleDocMode('edit')" class="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white border-2 border-black font-bold text-xs flex items-center gap-1 flat-box shadow-[1px_1px_0px_0px_#000]" title="進入編輯此文檔">
+                                <span>✏️</span> <span>編輯</span>
                             </button>
                         </div>
                     </div>
@@ -371,19 +368,19 @@
                 </div>
 
                 <!-- 編輯模式專屬 Header (可改名、刪除) -->
-                <div id="docEditHeader" class="flex justify-between items-center mb-1 gap-4 border-b-2 border-zinc-200 pb-2">
-                    <div class="flex items-center gap-2 flex-1 min-w-0">
-                        <span class="text-2xl shrink-0">📄</span>
-                        <input type="text" id="docTitleInput" class="text-2xl md:text-3xl font-black bg-transparent border-b-2 border-transparent hover:border-zinc-300 focus:border-black focus:bg-zinc-50 focus:outline-none w-full px-1 py-0.5 transition-colors" placeholder="輸入文檔名稱..." oninput="app.updateDocTitle(this.value)" title="點擊即可直接修改文檔名稱">
+                <div id="docEditHeader" class="flex justify-between items-center mb-1 gap-2 sm:gap-4 border-b-2 border-zinc-200 pb-2">
+                    <div class="flex items-center gap-1.5 sm:gap-2 flex-1 min-w-0">
+                        <span class="text-xl sm:text-2xl shrink-0">📄</span>
+                        <input type="text" id="docTitleInput" class="text-xl sm:text-2xl md:text-3xl font-black bg-transparent border-b-2 border-transparent hover:border-zinc-300 focus:border-black focus:bg-zinc-50 focus:outline-none w-full px-1 py-0.5 transition-colors truncate" placeholder="輸入文檔名稱..." oninput="app.updateDocTitle(this.value)" title="點擊即可直接修改文檔名稱">
                     </div>
-                    <button onclick="app.deleteCurrentDoc()" class="shrink-0 p-2 text-red-600 hover:bg-red-100 border-2 border-transparent hover:border-red-600 font-bold text-sm transition-colors" title="刪除文檔">🗑️ 刪除</button>
+                    <button onclick="app.deleteCurrentDoc()" class="shrink-0 px-2 py-1 text-red-600 hover:bg-red-100 border-2 border-transparent hover:border-red-600 font-bold text-xs sm:text-sm transition-colors" title="刪除文檔">🗑️ 刪除</button>
                 </div>
 
                 <!-- 純檢視模式專屬 Header (無輸入框、純淨文章大標題排版) -->
                 <div id="docPreviewHeader" class="hidden mb-2 pb-2 border-b-2 border-zinc-200">
                     <div class="flex items-center gap-2 mb-1">
                         <span class="text-2xl">📄</span>
-                        <h1 id="docPreviewTitle" class="text-2xl md:text-3xl font-black text-black leading-tight"></h1>
+                        <h1 id="docPreviewTitle" class="text-xl sm:text-2xl md:text-3xl font-black text-black leading-tight"></h1>
                     </div>
                     <div class="flex flex-wrap items-center gap-2 text-xs text-zinc-500 font-bold">
                         <span id="docPreviewProjectLabel" class="bg-zinc-200 text-zinc-800 px-1.5 py-0.5"></span>
@@ -396,55 +393,55 @@
                 <div id="docFindReplaceBar" class="hidden p-2.5 bg-yellow-50 border-2 border-black shadow-[3px_3px_0px_0px_#000] space-y-2 text-xs">
                     <!-- 第一行：搜尋關鍵字、導航、選項 -->
                     <div class="flex flex-wrap items-center justify-between gap-2">
-                        <div class="flex flex-wrap items-center gap-2 flex-1 min-w-0">
-                            <div class="relative flex-1 min-w-[160px] max-w-sm">
+                        <div class="flex flex-wrap items-center gap-1.5 flex-1 min-w-0">
+                            <div class="relative flex-1 min-w-[140px] max-w-sm">
                                 <input type="text" id="docFindInput" placeholder="在文檔中尋找... (按 Enter 跳至下一個)" class="flat-input w-full p-1.5 pr-14 text-xs font-mono bg-white" oninput="app.handleDocFindInput(this.value)" onkeydown="app.handleDocFindKeydown(event)">
                                 <span id="docFindCountBadge" class="absolute right-1.5 top-1.5 text-[10px] font-mono font-bold text-zinc-500 bg-zinc-100 px-1 border border-zinc-300">0 / 0</span>
                             </div>
-                            <div class="flex items-center border border-black bg-white">
+                            <div class="flex items-center border border-black bg-white shrink-0">
                                 <button type="button" onclick="app.jumpDocFindMatch(-1)" class="p-1 px-2 hover:bg-zinc-200 font-bold border-r border-black" title="上一個匹配 (Shift+Enter)">▲</button>
                                 <button type="button" onclick="app.jumpDocFindMatch(1)" class="p-1 px-2 hover:bg-zinc-200 font-bold" title="下一個匹配 (Enter)">▼</button>
                             </div>
-                            <button type="button" id="btnFindMatchCase" onclick="app.toggleFindOption('matchCase')" class="px-2 py-1 border border-black bg-white hover:bg-zinc-100 font-mono font-bold text-[11px]" title="大小寫須相符 (Match Case)">Aa</button>
-                            <button type="button" id="btnFindWholeWord" onclick="app.toggleFindOption('wholeWord')" class="px-2 py-1 border border-black bg-white hover:bg-zinc-100 font-mono font-bold text-[11px]" title="全字匹配 (Whole Word)">\b</button>
+                            <button type="button" id="btnFindMatchCase" onclick="app.toggleFindOption('matchCase')" class="px-2 py-1 border border-black bg-white hover:bg-zinc-100 font-mono font-bold text-[11px] shrink-0" title="大小寫須相符 (Match Case)">Aa</button>
+                            <button type="button" id="btnFindWholeWord" onclick="app.toggleFindOption('wholeWord')" class="px-2 py-1 border border-black bg-white hover:bg-zinc-100 font-mono font-bold text-[11px] shrink-0" title="全字匹配 (Whole Word)">\b</button>
                         </div>
-                        <button type="button" onclick="app.closeDocFindReplace()" class="text-zinc-500 hover:text-black font-bold text-sm px-1.5">✕</button>
+                        <button type="button" onclick="app.closeDocFindReplace()" class="text-zinc-500 hover:text-black font-bold text-sm px-1.5 shrink-0">✕</button>
                     </div>
 
                     <!-- 第二行：取代文字與按鈕 -->
-                    <div id="docReplaceRow" class="flex flex-wrap items-center gap-2 pt-1 border-t border-yellow-200">
-                        <input type="text" id="docReplaceInput" placeholder="取代為..." class="flat-input flex-1 min-w-[160px] max-w-sm p-1.5 text-xs font-mono bg-white" onkeydown="if(event.key==='Enter') app.replaceCurrentDocFindMatch()">
-                        <button type="button" onclick="app.replaceCurrentDocFindMatch()" class="px-3 py-1 bg-white hover:bg-zinc-100 border-2 border-black font-bold text-xs flat-box">替換</button>
-                        <button type="button" onclick="app.replaceAllDocFindMatches()" class="px-3 py-1 bg-black text-white hover:bg-zinc-800 font-bold text-xs flat-box">全部替換</button>
+                    <div id="docReplaceRow" class="flex flex-wrap items-center gap-1.5 pt-1 border-t border-yellow-200">
+                        <input type="text" id="docReplaceInput" placeholder="取代為..." class="flat-input flex-1 min-w-[140px] max-w-sm p-1.5 text-xs font-mono bg-white" onkeydown="if(event.key==='Enter') app.replaceCurrentDocFindMatch()">
+                        <button type="button" onclick="app.replaceCurrentDocFindMatch()" class="px-2.5 py-1 bg-white hover:bg-zinc-100 border-2 border-black font-bold text-xs flat-box shrink-0">替換</button>
+                        <button type="button" onclick="app.replaceAllDocFindMatches()" class="px-2.5 py-1 bg-black text-white hover:bg-zinc-800 font-bold text-xs flat-box shrink-0">全部替換</button>
                     </div>
                 </div>
 
-                <!-- 編輯工具列 (僅在編輯模式顯示) -->
-                <div id="docEditToolbar" class="flex flex-wrap items-center justify-between gap-2 p-2 bg-zinc-100 border-2 border-black">
-                    <div class="flex flex-wrap items-center gap-1.5">
+                <!-- 編輯工具列 (僅在編輯模式顯示，手機端支援平滑橫向滑動不破版) -->
+                <div id="docEditToolbar" class="flex items-center justify-between gap-1.5 p-1.5 sm:p-2 bg-zinc-100 border-2 border-black overflow-x-auto no-scrollbar flex-nowrap sm:flex-wrap">
+                    <div class="flex items-center gap-1 sm:gap-1.5 shrink-0">
                         <!-- 引用文檔下拉選單 -->
-                        <div class="relative inline-block" id="docLinkPickerContainer">
-                            <button type="button" onclick="app.toggleDocLinkDropdown()" class="px-2.5 py-1 bg-white hover:bg-zinc-200 border-2 border-black font-bold text-xs flex items-center gap-1.5 flat-box" title="在游踢處引用專案內其他文檔">
-                                <span>🔗 引用文檔</span>
-                                <span class="text-[10px]">▼</span>
+                        <div class="relative inline-block shrink-0" id="docLinkPickerContainer">
+                            <button type="button" onclick="app.toggleDocLinkDropdown()" class="px-2 py-1 bg-white hover:bg-zinc-200 border-2 border-black font-bold text-xs flex items-center gap-1 flat-box shrink-0" title="在游標處引用專案內其他文檔">
+                                <span>🔗 引用</span>
+                                <span class="text-[9px]">▼</span>
                             </button>
                             <div id="docLinkDropdown" class="hidden absolute left-0 top-full mt-1 w-64 bg-white border-2 border-black shadow-[4px_4px_0px_0px_#000] z-30 max-h-56 overflow-y-auto no-scrollbar p-1">
                                 <!-- 動態注入文檔清單 -->
                             </div>
                         </div>
 
-                        <div class="h-4 w-px bg-zinc-400 mx-1"></div>
+                        <div class="h-4 w-px bg-zinc-400 mx-0.5"></div>
 
-                        <button type="button" onclick="app.insertMarkdown('**', '**')" class="px-2 py-1 bg-white hover:bg-zinc-200 border-2 border-black font-black text-xs" title="粗體">B</button>
-                        <button type="button" onclick="app.insertMarkdown('## ', '')" class="px-2 py-1 bg-white hover:bg-zinc-200 border-2 border-black font-bold text-xs" title="標題 H2">H2</button>
-                        <button type="button" onclick="app.insertMarkdown('- ', '')" class="px-2 py-1 bg-white hover:bg-zinc-200 border-2 border-black font-bold text-xs" title="清單項目">• 清單</button>
-                        <button type="button" onclick="app.insertMarkdown('- [ ] ', '')" class="px-2 py-1 bg-white hover:bg-zinc-200 border-2 border-black font-bold text-xs" title="待辦任務">☑ 任務</button>
-                        <button type="button" onclick="app.insertMarkdown('`', '`')" class="px-2 py-1 bg-white hover:bg-zinc-200 border-2 border-black font-mono text-xs" title="行內代碼">&lt;/&gt;</button>
-                        <button type="button" onclick="app.insertMarkdown('> ', '')" class="px-2 py-1 bg-white hover:bg-zinc-200 border-2 border-black font-bold text-xs" title="引言">&gt; 引言</button>
+                        <button type="button" onclick="app.insertMarkdown('**', '**')" class="px-2 py-1 bg-white hover:bg-zinc-200 border-2 border-black font-black text-xs shrink-0" title="粗體">B</button>
+                        <button type="button" onclick="app.insertMarkdown('## ', '')" class="px-2 py-1 bg-white hover:bg-zinc-200 border-2 border-black font-bold text-xs shrink-0" title="標題 H2">H2</button>
+                        <button type="button" onclick="app.insertMarkdown('- ', '')" class="px-2 py-1 bg-white hover:bg-zinc-200 border-2 border-black font-bold text-xs shrink-0" title="清單項目">• 清單</button>
+                        <button type="button" onclick="app.insertMarkdown('- [ ] ', '')" class="px-2 py-1 bg-white hover:bg-zinc-200 border-2 border-black font-bold text-xs shrink-0" title="待辦任務">☑ 任務</button>
+                        <button type="button" onclick="app.insertMarkdown('`', '`')" class="px-2 py-1 bg-white hover:bg-zinc-200 border-2 border-black font-mono text-xs shrink-0" title="行內代碼">&lt;/&gt;</button>
+                        <button type="button" onclick="app.insertMarkdown('> ', '')" class="px-2 py-1 bg-white hover:bg-zinc-200 border-2 border-black font-bold text-xs shrink-0" title="引言">&gt;</button>
                         
-                        <div class="h-4 w-px bg-zinc-400 mx-1"></div>
-                        <button type="button" onclick="app.openInsertImageModal()" class="px-2.5 py-1 bg-white hover:bg-zinc-200 border-2 border-black font-bold text-xs flex items-center gap-1 flat-box text-blue-900" title="插入本機圖片或網路圖片 (支援拍照、拖曳與剪貼簿貼上)">
-                            <span>🖼️</span> <span>插入圖片</span>
+                        <div class="h-4 w-px bg-zinc-400 mx-0.5"></div>
+                        <button type="button" onclick="app.openInsertImageModal()" class="px-2 py-1 bg-white hover:bg-zinc-200 border-2 border-black font-bold text-xs flex items-center gap-1 flat-box text-blue-900 shrink-0" title="插入圖片">
+                            <span>🖼️</span> <span class="hidden sm:inline">圖片</span>
                         </button>
                     </div>
 
@@ -518,18 +515,20 @@
                         <!-- 動態載入成員過濾按鈕 -->
                     </div>
 
-                    <!-- 任務新增列 -->
-                    <div class="flex flex-wrap sm:flex-nowrap gap-2">
-                        <input type="text" id="newTaskInput" placeholder="輸入新任務... (按 Enter 新增)" class="flat-input flex-1 p-2.5 font-bold text-sm min-w-[180px]" onkeypress="if(event.key==='Enter') app.addTask()">
-                        <select id="newTaskAssignee" class="flat-input p-2.5 font-bold text-xs bg-zinc-100 cursor-pointer w-32 shrink-0">
-                            <!-- 動態載入指派成員 -->
-                        </select>
-                        <select id="newTaskPriority" class="flat-input p-2.5 font-bold text-xs bg-zinc-100 cursor-pointer w-24 shrink-0">
-                            <option value="HIGH">🔴 高</option>
-                            <option value="MED" selected>🟡 中</option>
-                            <option value="LOW">🔵 低</option>
-                        </select>
-                        <button onclick="app.addTask()" class="bg-black text-white px-5 py-2.5 border-2 border-black font-bold text-xs flat-box whitespace-nowrap hover:bg-zinc-800">＋ 新增任務</button>
+                    <!-- 任務新增列 (手機端雙排整齊適配、桌機端整齊單排) -->
+                    <div class="flex flex-col sm:flex-row gap-2 bg-zinc-50 sm:bg-transparent p-2.5 sm:p-0 border-2 sm:border-0 border-black shadow-[2px_2px_0px_0px_#000] sm:shadow-none">
+                        <input type="text" id="newTaskInput" placeholder="輸入新任務名稱... (按 Enter 新增)" class="flat-input w-full sm:flex-1 p-2 sm:p-2.5 font-bold text-sm min-w-0" onkeypress="if(event.key==='Enter') app.addTask()">
+                        <div class="flex items-center gap-1.5 w-full sm:w-auto shrink-0">
+                            <select id="newTaskAssignee" class="flat-input p-2 sm:p-2.5 font-bold text-xs bg-white sm:bg-zinc-100 cursor-pointer flex-1 sm:w-32 min-w-0 shrink-0">
+                                <!-- 動態載入指派成員 -->
+                            </select>
+                            <select id="newTaskPriority" class="flat-input p-2 sm:p-2.5 font-bold text-xs bg-white sm:bg-zinc-100 cursor-pointer w-20 sm:w-24 shrink-0">
+                                <option value="HIGH">🔴 高</option>
+                                <option value="MED" selected>🟡 中</option>
+                                <option value="LOW">🔵 低</option>
+                            </select>
+                            <button onclick="app.addTask()" class="bg-black text-white px-3.5 sm:px-5 py-2 sm:py-2.5 border-2 border-black font-bold text-xs flat-box whitespace-nowrap hover:bg-zinc-800 shrink-0">＋ 新增</button>
+                        </div>
                     </div>
                 </div>
 
@@ -3769,16 +3768,16 @@
                 });
 
                 const getPrioBadge = (prio) => {
-                    if (prio === 'HIGH') return `<span class="bg-red-100 text-red-900 border border-red-500 px-1.5 py-0.2 text-[10px] font-black">🔴 HIGH</span>`;
-                    if (prio === 'LOW') return `<span class="bg-blue-100 text-blue-900 border border-blue-500 px-1.5 py-0.2 text-[10px] font-black">🔵 LOW</span>`;
-                    return `<span class="bg-yellow-100 text-yellow-900 border border-yellow-500 px-1.5 py-0.2 text-[10px] font-black">🟡 MED</span>`;
+                    if (prio === 'HIGH') return `<span class="bg-red-100 text-red-900 border border-red-500 px-1 py-0.2 text-[9px] sm:text-[10px] font-black shrink-0">🔴<span class="hidden sm:inline ml-0.5">HIGH</span></span>`;
+                    if (prio === 'LOW') return `<span class="bg-blue-100 text-blue-900 border border-blue-500 px-1 py-0.2 text-[9px] sm:text-[10px] font-black shrink-0">🔵<span class="hidden sm:inline ml-0.5">LOW</span></span>`;
+                    return `<span class="bg-yellow-100 text-yellow-900 border border-yellow-500 px-1 py-0.2 text-[9px] sm:text-[10px] font-black shrink-0">🟡<span class="hidden sm:inline ml-0.5">MED</span></span>`;
                 };
 
                 const getAssigneeBadge = (assigneeId) => {
                     if (!assigneeId) return '';
                     const m = members.find(x => x.id === assigneeId || x.name === assigneeId);
-                    if (!m) return `<span class="bg-zinc-100 text-zinc-700 border border-zinc-400 px-1.5 py-0.2 text-[10px] font-bold">👤 ${this.escapeHtml(assigneeId)}</span>`;
-                    return `<span class="bg-violet-100 text-violet-900 border border-violet-400 px-1.5 py-0.2 text-[10px] font-bold flex items-center gap-0.5"><span>${m.avatar}</span> <span>${this.escapeHtml(m.name)}</span></span>`;
+                    if (!m) return `<span class="bg-zinc-100 text-zinc-700 border border-zinc-400 px-1 py-0.2 text-[9px] sm:text-[10px] font-bold shrink-0">👤<span class="hidden sm:inline ml-0.5">${this.escapeHtml(assigneeId)}</span></span>`;
+                    return `<span class="bg-violet-100 text-violet-900 border border-violet-400 px-1 py-0.2 text-[9px] sm:text-[10px] font-bold flex items-center gap-0.5 shrink-0" title="${this.escapeHtml(m.name)}"><span>${m.avatar}</span><span class="hidden sm:inline">${this.escapeHtml(m.name)}</span></span>`;
                 };
 
                 // 清單模式渲染
@@ -3789,29 +3788,29 @@
                             filteredTasks.map(t => {
                                 const commentCount = (t.comments || []).length;
                                 return `
-                                    <div id="task_${t.id}" class="bg-white border-2 border-black p-3 flat-box flex items-center justify-between gap-3 ${t.status === 'DONE' ? 'opacity-60 bg-zinc-50' : ''}">
-                                        <div class="flex items-center gap-2.5 flex-1 min-w-0">
-                                            <input type="checkbox" class="w-5 h-5 border-2 border-black accent-black cursor-pointer shrink-0" 
+                                    <div id="task_${t.id}" class="bg-white border-2 border-black p-2.5 sm:p-3 flat-box flex items-center justify-between gap-2 ${t.status === 'DONE' ? 'opacity-60 bg-zinc-50' : ''}">
+                                        <div class="flex items-center gap-2 flex-1 min-w-0">
+                                            <input type="checkbox" class="w-4 h-4 sm:w-5 sm:h-5 border-2 border-black accent-black cursor-pointer shrink-0" 
                                                 ${t.status === 'DONE' ? 'checked' : ''} 
                                                 onchange="app.updateTaskStatus('${t.id}', this.checked ? 'DONE' : 'TODO')">
                                             <div class="flex flex-col min-w-0">
-                                                <span onclick="app.openEditTaskModal('${t.id}')" class="font-black text-sm truncate cursor-pointer hover:underline ${t.status === 'DONE' ? 'line-through text-zinc-500' : ''}" title="點擊編輯任務">${this.escapeHtml(t.title)}</span>
-                                                ${t.desc ? `<span class="text-[11px] text-zinc-500 font-mono truncate max-w-md">${this.escapeHtml(t.desc)}</span>` : ''}
+                                                <span onclick="app.openEditTaskModal('${t.id}')" class="font-black text-xs sm:text-sm truncate cursor-pointer hover:underline ${t.status === 'DONE' ? 'line-through text-zinc-500' : ''}" title="點擊編輯任務">${this.escapeHtml(t.title)}</span>
+                                                ${t.desc ? `<span class="text-[10px] sm:text-[11px] text-zinc-500 font-mono truncate max-w-md">${this.escapeHtml(t.desc)}</span>` : ''}
                                             </div>
                                         </div>
-                                        <div class="flex items-center gap-1.5 shrink-0">
+                                        <div class="flex items-center gap-1 sm:gap-1.5 shrink-0">
                                             ${getAssigneeBadge(t.assignee)}
                                             ${getPrioBadge(t.priority)}
-                                            <button onclick="app.openTaskComments('${t.id}')" class="p-1 px-1.5 border-2 border-black font-bold text-[11px] bg-white hover:bg-yellow-200 flat-box flex items-center gap-1" title="任務討論串">
+                                            <button onclick="app.openTaskComments('${t.id}')" class="p-0.5 sm:p-1 px-1 sm:px-1.5 border border-black font-bold text-[10px] sm:text-[11px] bg-white hover:bg-yellow-200 flat-box flex items-center gap-0.5 shrink-0" title="任務討論串">
                                                 <span>💬</span> <span>${commentCount}</span>
                                             </button>
-                                            <select onchange="app.updateTaskStatus('${t.id}', this.value)" class="flat-input text-xs font-bold p-1 bg-zinc-100 cursor-pointer hidden sm:block">
+                                            <select onchange="app.updateTaskStatus('${t.id}', this.value)" class="flat-input text-xs font-bold p-1 bg-zinc-100 cursor-pointer hidden md:block">
                                                 <option value="TODO" ${t.status === 'TODO' ? 'selected' : ''}>TODO</option>
                                                 <option value="DOING" ${t.status === 'DOING' ? 'selected' : ''}>DOING</option>
                                                 <option value="DONE" ${t.status === 'DONE' ? 'selected' : ''}>DONE</option>
                                             </select>
-                                            <button onclick="app.openEditTaskModal('${t.id}')" class="text-zinc-600 hover:bg-zinc-200 p-1 border-2 border-transparent hover:border-black transition-colors text-xs font-bold" title="編輯">✏️</button>
-                                            <button onclick="app.deleteTask('${t.id}')" class="text-red-500 hover:bg-red-100 p-1 border-2 border-transparent hover:border-red-500 transition-colors" title="刪除">🗑️</button>
+                                            <button onclick="app.openEditTaskModal('${t.id}')" class="text-zinc-600 hover:bg-zinc-200 p-1 border border-transparent hover:border-black transition-colors text-xs font-bold shrink-0" title="編輯">✏️</button>
+                                            <button onclick="app.deleteTask('${t.id}')" class="text-red-500 hover:bg-red-100 p-1 border border-transparent hover:border-red-500 transition-colors text-xs shrink-0" title="刪除">🗑️</button>
                                         </div>
                                     </div>
                                 `;
