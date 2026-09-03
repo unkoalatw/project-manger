@@ -9,6 +9,7 @@
     <title>FlatSpec Drive - 專案設計與執行系統</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#000000">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="FlatSpec">
@@ -1740,11 +1741,10 @@
                 }
                 
                 try {
-                    const fetchUrl = this.state.gasUrl + (this.state.gasUrl.includes('?') ? '&' : '?') + 't=' + Date.now();
+                    const fetchUrl = this.state.gasUrl;
                     const response = await fetch(fetchUrl, { 
                         method: 'GET',
-                        redirect: 'follow',
-                        cache: 'no-store'
+                        redirect: 'follow'
                     });
                     
                     if (!response.ok) {
@@ -4988,9 +4988,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script src="https://cdn.tailwindcss.com"><\/script>
     <style>
-        body { font-family: system-ui, -apple-system, sans-serif; padding: 1rem; }
+        * { box-sizing: border-box; }
+        body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 1rem; margin: 0; line-height: 1.5; color: #18181b; background-color: #ffffff; }
     </style>
 </head>
 <body>
@@ -5019,7 +5019,7 @@ ${rawHtml}
 
                         <!-- 嵌入式沙盒 iframe -->
                         <div class="w-full border-2 border-black bg-white shadow-[4px_4px_0px_0px_#000] overflow-hidden">
-                            <iframe id="htmlSandboxIframe" class="w-full min-h-[520px] md:min-h-[640px] border-0 bg-white" sandbox="allow-scripts allow-modals allow-forms allow-popups allow-same-origin" srcdoc="${this.escapeHtml(fullHtml)}"></iframe>
+                            <iframe id="htmlSandboxIframe" class="w-full min-h-[520px] md:min-h-[640px] border-0 bg-white" sandbox="allow-scripts allow-modals allow-forms allow-popups" srcdoc="${this.escapeHtml(fullHtml)}"></iframe>
                         </div>
                     </div>
                 `;
