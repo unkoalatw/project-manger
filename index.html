@@ -21,6 +21,8 @@
     <!-- KaTeX 數學公式即時視覺化渲染支援 (支援 $$...$$ 塊級公式與 $...$ 行內公式) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+    <!-- Mermaid.js 圖表流程圖即時視覺化渲染引擎 -->
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&family=JetBrains+Mono:wght@400;700&display=swap');
         
@@ -2814,6 +2816,7 @@
                 if (visionEl) {
                     const visionText = p.wizard?.vision || '尚未設定專案願景。前往「精靈」設定目標！';
                     visionEl.innerHTML = this.parseMarkdown(visionText);
+                    this.renderMermaidDiagrams(visionEl);
                 }
 
                 const docListEl = document.getElementById('dashDocList');
@@ -5310,6 +5313,7 @@
                     previewEl.setAttribute('data-content-hash', currentHash);
                     previewEl.className = 'w-full border-2 border-black bg-white p-6 md:p-8 prose prose-zinc max-w-none shadow-[4px_4px_0px_0px_#000] min-h-[300px] md:min-h-[420px]';
                     previewEl.innerHTML = this.parseMarkdown(content);
+                    this.renderMermaidDiagrams(previewEl);
                 }
             },
 
@@ -5662,10 +5666,34 @@ ${rawHtml}
                     return `<h4 id="${id}" class="text-sm font-black uppercase mt-3 mb-1 text-zinc-700 scroll-mt-6">${text}</h4>`;
                 };
 
-                // 3. 代碼區塊與複製按鈕
+                // 3. 代碼區塊與複製按鈕 (自動偵測 Mermaid 視覺化圖表)
                 renderer.code = function(token) {
-                    const lang = (token.lang || '').toLowerCase();
+                    const lang = (token.lang || '').toLowerCase().trim();
                     const code = token.text || '';
+                    const isMermaid = lang === 'mermaid' || /^\s*(?:flowchart|graph|sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|pie|gitGraph|mindmap|timeline)\b/i.test(code);
+                    
+                    if (isMermaid) {
+                        const cleanCode = code.trim();
+                        const escaped = self.escapeHtml(cleanCode);
+                        return `
+                            <div class="my-4 border-2 border-black bg-white shadow-[3px_3px_0px_0px_#000] flat-box overflow-hidden">
+                                <div class="bg-amber-100 text-amber-950 px-3 py-1.5 text-[11px] font-mono font-bold border-b-2 border-black flex justify-between items-center select-none">
+                                    <span class="flex items-center gap-1.5 font-sans font-black tracking-wide">📊 流程圖 / 圖表視覺化 (Mermaid)</span>
+                                    <div class="flex items-center gap-2">
+                                        <button type="button" onclick="const codeEl = this.closest('.flat-box').querySelector('.mermaid-source'); codeEl.classList.toggle('hidden');" class="hover:underline cursor-pointer px-1.5 py-0.5 bg-amber-200 hover:bg-amber-300 border border-black rounded text-[10px] font-bold">切換原始碼</button>
+                                        <button type="button" onclick="navigator.clipboard.writeText(this.closest('.flat-box').querySelector('.mermaid-code-text').innerText); app.showToast('📋 圖表代碼已複製至剪貼簿！');" class="hover:underline cursor-pointer px-1.5 py-0.5 bg-amber-200 hover:bg-amber-300 border border-black rounded text-[10px] font-bold">複製代碼</button>
+                                    </div>
+                                </div>
+                                <div class="p-3 md:p-5 overflow-x-auto flex justify-center bg-white min-h-[80px]">
+                                    <pre class="mermaid text-xs font-mono text-center w-full flex justify-center">${escaped}</pre>
+                                </div>
+                                <div class="mermaid-source hidden border-t-2 border-black bg-zinc-900 p-3">
+                                    <pre class="text-zinc-100 font-mono text-xs overflow-x-auto leading-relaxed mermaid-code-text"><code>${escaped}</code></pre>
+                                </div>
+                            </div>
+                        `;
+                    }
+
                     const escaped = self.escapeHtml(code);
                     return `
                         <div class="my-3 border-2 border-black shadow-[3px_3px_0px_0px_#000] overflow-hidden bg-zinc-900">
@@ -5753,9 +5781,13 @@ ${rawHtml}
                 this._headingCount = 0;
                 this.initMarked();
 
+                let text = md;
+
+                // 0. 流程圖 / Mermaid 語法智慧容錯前處理 (針對單行反引號 `...` 或裸露語法自動轉為 ```mermaid 代碼區塊)
+                text = this.preprocessMermaidDiagrams(text);
+
                 // 1. 提取並保護數學公式 LaTeX / KaTeX ($$...$$, \[...\], $...$, \(...\))
                 const mathBlocks = [];
-                let text = md;
 
                 // 塊級公式 $$...$$
                 text = text.replace(/\$\$([\s\S]*?)\$\$/g, (match, formula) => {
@@ -5854,6 +5886,112 @@ ${rawHtml}
                            .replace(/~~(.*?)~~/g, '<del class="text-zinc-400">$1</del>')
                            .replace(/\n/g, '<br>');
                 return html;
+            },
+
+            preprocessMermaidDiagrams(text) {
+                if (!text || typeof text !== 'string') return text || '';
+                
+                // 智慧識別：包含被單行反引號 `...` 包裹的流程圖，或未包在代碼塊中的流程圖語法
+                const lines = text.split('\n');
+                const resultLines = [];
+                let inDiagram = false;
+                let diagramBuffer = [];
+                let inFencedBlock = false;
+
+                const diagramStartRegex = /^\s*`?\s*(flowchart|graph|sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|pie|gitGraph|mindmap|timeline)\b/i;
+
+                for (let i = 0; i < lines.length; i++) {
+                    const line = lines[i];
+                    const trimmed = line.trim();
+
+                    // 記錄是否已經在標準 code fence 中 (```)
+                    if (trimmed.startsWith('```')) {
+                        inFencedBlock = !inFencedBlock;
+                        if (inDiagram) {
+                            // 遇到新 code fence，結算之前的 diagram
+                            resultLines.push('```mermaid');
+                            resultLines.push(...diagramBuffer);
+                            resultLines.push('```');
+                            diagramBuffer = [];
+                            inDiagram = false;
+                        }
+                        resultLines.push(line);
+                        continue;
+                    }
+
+                    if (inFencedBlock) {
+                        resultLines.push(line);
+                        continue;
+                    }
+
+                    if (!inDiagram) {
+                        if (diagramStartRegex.test(trimmed)) {
+                            inDiagram = true;
+                            const cleanLine = trimmed.replace(/^`+|`+$/g, '').trim();
+                            diagramBuffer = [cleanLine];
+                        } else {
+                            resultLines.push(line);
+                        }
+                    } else {
+                        // 流程圖累積中：允許空行、反引號包裹行、以及常見的 mermaid 語法行 (節點定義、箭頭、style 等)
+                        if (trimmed === '') {
+                            diagramBuffer.push('');
+                        } else if (trimmed.startsWith('`') || 
+                                   /^\s*(subgraph|end|style|class|click|direction|[A-Za-z0-9_\u4e00-\u9fa5]+|%%)/i.test(trimmed) || 
+                                   trimmed.includes('-->') || trimmed.includes('---') || trimmed.includes('==>') || trimmed.includes('-.-')) {
+                            const cleanLine = trimmed.replace(/^`+|`+$/g, '').trim();
+                            diagramBuffer.push(cleanLine);
+                        } else {
+                            // 圖表結束
+                            resultLines.push('```mermaid');
+                            resultLines.push(...diagramBuffer);
+                            resultLines.push('```');
+                            diagramBuffer = [];
+                            inDiagram = false;
+                            resultLines.push(line);
+                        }
+                    }
+                }
+
+                if (inDiagram) {
+                    resultLines.push('```mermaid');
+                    resultLines.push(...diagramBuffer);
+                    resultLines.push('```');
+                }
+
+                return resultLines.join('\n');
+            },
+
+            renderMermaidDiagrams(containerEl) {
+                if (!containerEl) return;
+                if (typeof mermaid === 'undefined') return;
+
+                const nodes = containerEl.querySelectorAll('.mermaid:not([data-processed="true"])');
+                if (!nodes || nodes.length === 0) return;
+
+                try {
+                    if (!this._mermaidInitialized) {
+                        mermaid.initialize({
+                            startOnLoad: false,
+                            theme: 'default',
+                            securityLevel: 'loose',
+                            flowchart: {
+                                htmlLabels: true,
+                                curve: 'basis'
+                            }
+                        });
+                        this._mermaidInitialized = true;
+                    }
+                    
+                    // 非同步渲染所有 mermaid 節點
+                    mermaid.run({
+                        nodes: Array.from(nodes)
+                    }).catch(err => {
+                        console.warn('[Mermaid] render error caught:', err);
+                    });
+                } catch(e) {
+                    console.warn('[Mermaid] init/run exception:', e);
+                }
             },
 
             exportMasterMarkdown() {
