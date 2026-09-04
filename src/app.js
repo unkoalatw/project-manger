@@ -608,7 +608,7 @@
                     }
                     this.ensureActivePointers();
                     this.renderAll();
-                    this.switchView('Dashboard');
+                    this.switchView(this.state.currentView || 'Dashboard');
 
                     // 2. 綁定事件監聽
                     this.bindEvents();
@@ -807,6 +807,28 @@
                         this.state.hasUnsavedChanges = true;
                     }
                     this.state.lastSyncedProjects = JSON.parse(JSON.stringify(this.state.projects));
+                    try {
+                        const savedProjId = localStorage.getItem('flatSpecLastActiveProjectId');
+                        if (savedProjId && this.state.projects.some(p => p.id === savedProjId)) {
+                            this.state.activeProjectId = savedProjId;
+                        }
+                        const savedDocId = localStorage.getItem('flatSpecLastActiveDocId');
+                        if (savedDocId) {
+                            this.state.activeDocId = savedDocId;
+                        }
+                        const savedView = localStorage.getItem('flatSpecLastView');
+                        if (savedView && ['Dashboard', 'Docs', 'Wizard', 'Execution'].includes(savedView)) {
+                            this.state.currentView = savedView;
+                        }
+                        const savedDocMode = localStorage.getItem('flatSpecLastDocMode');
+                        if (savedDocMode && ['edit', 'preview'].includes(savedDocMode)) {
+                            this.state.docMode = savedDocMode;
+                        }
+                        const savedExecMode = localStorage.getItem('flatSpecLastExecMode');
+                        if (savedExecMode && ['list', 'kanban'].includes(savedExecMode)) {
+                            this.state.execViewMode = savedExecMode;
+                        }
+                    } catch(e) {}
                 } catch (e) {
                     console.warn("Local storage parse error:", e);
                     this.state.projects = [];
@@ -1245,7 +1267,13 @@
                 }
                 const p = this.getProject(this.state.activeProjectId);
                 if (p && Array.isArray(p.docs) && p.docs.length > 0) {
-                    if (!this.state.activeDocId || !p.docs.find(d => d.id === this.state.activeDocId)) {
+                    let rememberedDocId = null;
+                    try {
+                        rememberedDocId = localStorage.getItem('flatSpecLastDocFor_' + p.id) || localStorage.getItem('flatSpecLastActiveDocId');
+                    } catch(e) {}
+                    if (rememberedDocId && p.docs.some(d => d.id === rememberedDocId)) {
+                        this.state.activeDocId = rememberedDocId;
+                    } else if (!this.state.activeDocId || !p.docs.find(d => d.id === this.state.activeDocId)) {
                         this.state.activeDocId = p.docs[0].id;
                     }
                 }
@@ -1377,6 +1405,7 @@
 
             switchProject(id) {
                 this.state.activeProjectId = id;
+                try { localStorage.setItem('flatSpecLastActiveProjectId', id); } catch(e) {}
                 const p = this.getCurrentProject();
                 if (p && p.docs && p.docs.length > 0) {
                     this.state.activeDocId = p.docs[0].id;
@@ -1393,6 +1422,7 @@
                 if (!views.includes(viewName)) return;
 
                 this.state.currentView = viewName;
+                try { localStorage.setItem('flatSpecLastView', viewName); } catch(e) {}
                 
                 views.forEach(v => {
                     const viewEl = document.getElementById(`view${v}`);
@@ -1663,6 +1693,12 @@
             // ================= 文檔編輯器與引用連結邏輯 =================
             openDoc(docId, targetMode) {
                 this.state.activeDocId = docId;
+                try {
+                    localStorage.setItem('flatSpecLastActiveDocId', docId);
+                    if (this.state.activeProjectId) {
+                        localStorage.setItem('flatSpecLastDocFor_' + this.state.activeProjectId, docId);
+                    }
+                } catch(e) {}
                 if (targetMode) {
                     this.state.docMode = targetMode;
                 }
@@ -2200,6 +2236,7 @@
 
             toggleDocMode(mode) {
                 this.state.docMode = mode || 'edit';
+                try { localStorage.setItem('flatSpecLastDocMode', this.state.docMode); } catch(e) {}
                 const p = this.getCurrentProject();
                 const doc = p?.docs?.find(d => d.id === this.state.activeDocId);
                 
@@ -2626,6 +2663,7 @@
 
             toggleExecutionView(mode) {
                 this.state.execViewMode = mode;
+                try { localStorage.setItem('flatSpecLastExecMode', mode); } catch(e) {}
                 const listV = document.getElementById('execListView');
                 const kanbanV = document.getElementById('execKanbanView');
                 const btnL = document.getElementById('btnViewList');
