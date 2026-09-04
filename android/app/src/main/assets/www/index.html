@@ -24,8 +24,8 @@
     <!-- Mermaid.js 圖表流程圖即時視覺化渲染引擎 -->
     <script src="./libs/mermaid.min.js"></script>
     <!-- FlatSpec 核心模組化樣式表 -->
-  <script type="module" crossorigin src="./assets/index-jmmO78et.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-Bb4qZxN6.css">
+  <script type="module" crossorigin src="./assets/index-D-uMEzNh.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-By33xTJP.css">
 
     <!-- FlatSpec Kotlin Native Android Bridge Integration -->
     <script>
@@ -404,6 +404,11 @@
                 <div class="w-full flex flex-col">
                     <textarea id="docEditor" oninput="app.updateDocContent(this.value)" class="w-full flat-input bg-white p-4 font-mono text-sm leading-relaxed shadow-inner min-h-[300px] md:min-h-[420px] resize-y" placeholder="支援 Markdown 語法與 [[文檔名稱]] 引用連結..."></textarea>
                     
+                    <!-- 📎 文檔附件與縮圖快速列 -->
+                    <div id="docAttachmentsBar" class="hidden my-2 p-2.5 bg-zinc-100 border-2 border-black flex flex-wrap items-center gap-2 text-xs shadow-[2px_2px_0px_0px_#000]">
+                        <!-- 動態渲染圖片縮圖卡片 -->
+                    </div>
+
                     <div id="docPreview" class="hidden w-full border-2 border-black bg-white p-6 md:p-8 prose prose-zinc max-w-none shadow-[4px_4px_0px_0px_#000] min-h-[300px] md:min-h-[420px]">
                         <!-- 純檢視 Markdown Preview -->
                     </div>

@@ -1497,6 +1497,7 @@
                             this.updateDocPreview(doc, previewEl);
                         }
                         this.renderDocLinksPanel(doc);
+                        this.renderDocAttachmentsBar(doc);
                         this.toggleDocMode(this.state.docMode || 'edit');
                     }
                 }
@@ -2089,6 +2090,7 @@
                 
                 this.renderDocLinksPanel(doc);
                 this.renderDocToc();
+                this.renderDocAttachmentsBar(doc);
                 this.toggleDocMode(this.state.docMode || 'edit');
             },
 
@@ -4028,6 +4030,86 @@
                 });
             },
 
+            saveAttachmentAndInsertTag(base64Data, altName = '圖片') {
+                const p = this.getCurrentProject();
+                const doc = p?.docs?.find(d => d.id === this.state.activeDocId);
+                if (!doc) {
+                    this.insertAtCursor(`\n\n![${altName}](${base64Data})\n\n`);
+                    return;
+                }
+
+                if (!doc.attachments) doc.attachments = {};
+                const imgId = 'img_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
+                doc.attachments[imgId] = {
+                    data: base64Data,
+                    name: altName,
+                    time: new Date().toISOString()
+                };
+
+                // 編輯器中僅插入精簡短標籤，杜絕數十萬字長文字亂碼
+                this.insertAtCursor(`\n\n![${altName}](attachment:${imgId})\n\n`);
+                this.renderDocAttachmentsBar(doc);
+                this.debouncedSaveAndSync();
+            },
+
+            renderDocAttachmentsBar(doc) {
+                const bar = document.getElementById('docAttachmentsBar');
+                if (!bar) return;
+
+                const attachments = doc?.attachments || {};
+                const keys = Object.keys(attachments);
+                if (keys.length === 0) {
+                    bar.classList.add('hidden');
+                    bar.innerHTML = '';
+                    return;
+                }
+
+                let html = `
+                    <div class="w-full flex items-center justify-between pb-1 mb-1 border-b border-zinc-300">
+                        <span class="font-black text-[11px] text-zinc-700 flex items-center gap-1">
+                            <span>📷</span> 文檔已附加圖片 (${keys.length} 張)：<span class="text-zinc-500 font-normal">點擊縮圖可放大檢視或重新插入標籤</span>
+                        </span>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2">
+                `;
+
+                keys.forEach(imgId => {
+                    const item = attachments[imgId];
+                    const cleanName = this.escapeHtml(item.name || '圖片');
+                    html += `
+                        <div class="group relative flex items-center gap-1.5 p-1 bg-white border border-black shadow-[1px_1px_0px_0px_#000] flat-box">
+                            <img src="${item.data}" alt="${cleanName}" class="w-9 h-9 object-cover border border-zinc-300 cursor-pointer hover:opacity-80 transition-opacity" onclick="app.openImageViewer('${item.data}', '${cleanName}')" title="點擊放大檢視" />
+                            <div class="flex flex-col text-[10px] max-w-[90px] truncate">
+                                <span class="font-bold truncate text-zinc-800" title="${cleanName}">${cleanName}</span>
+                                <span class="text-[9px] font-mono text-zinc-400">#${imgId.split('_')[1]?.slice(-4) || 'img'}</span>
+                            </div>
+                            <div class="flex items-center gap-0.5 ml-0.5">
+                                <button type="button" onclick="app.insertAtCursor('\\n\\n![${cleanName}](attachment:${imgId})\\n\\n'); app.showToast('📋 已插入圖片標籤');" class="px-1 py-0.5 bg-zinc-100 hover:bg-zinc-200 border border-zinc-400 text-[10px]" title="在游標處插入此圖片標籤">➕</button>
+                                <button type="button" onclick="app.deleteDocAttachment('${imgId}', event)" class="px-1 py-0.5 bg-red-100 hover:bg-red-200 border border-red-300 text-red-700 text-[10px]" title="刪除此圖片附件">🗑️</button>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                html += `</div>`;
+                bar.innerHTML = html;
+                bar.classList.remove('hidden');
+            },
+
+            deleteDocAttachment(imgId, event) {
+                if (event) event.stopPropagation();
+                const p = this.getCurrentProject();
+                const doc = p?.docs?.find(d => d.id === this.state.activeDocId);
+                if (!doc || !doc.attachments || !doc.attachments[imgId]) return;
+
+                if (!confirm(`確定要從文檔附件中移除「${doc.attachments[imgId].name || '圖片'}」嗎？`)) return;
+
+                delete doc.attachments[imgId];
+                this.renderDocAttachmentsBar(doc);
+                this.debouncedSaveAndSync();
+                this.showToast('🗑️ 圖片附件已移除');
+            },
+
             confirmInsertImage() {
                 const isUploadTab = !document.getElementById('panelImgUpload')?.classList.contains('hidden');
                 
@@ -4037,9 +4119,9 @@
                         return;
                     }
                     const alt = (document.getElementById('imageUploadAlt')?.value || '圖片').trim();
-                    this.insertAtCursor(`\n\n![${alt}](${this.currentSelectedImageBase64})\n\n`);
+                    this.saveAttachmentAndInsertTag(this.currentSelectedImageBase64, alt);
                     this.closeModals();
-                    this.showToast('🖼️ 圖片已成功插入文檔！');
+                    this.showToast('🖼️ 圖片已加入附件並插入文檔！');
                 } else {
                     const url = (document.getElementById('imageUrlInput')?.value || '').trim();
                     if (!url) {
@@ -4099,12 +4181,12 @@
                             const file = items[i].getAsFile();
                             if (file) {
                                 e.preventDefault();
-                                app.showToast('⏳ 正在壓縮並插入貼上的圖片...');
+                                app.showToast('⏳ 正在壓縮並加入貼上的圖片...');
                                 try {
                                     const compressedDataUrl = await app.compressImage(file);
                                     const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-                                    app.insertAtCursor(`\n\n![已貼上的圖片 - ${timeStr}](${compressedDataUrl})\n\n`);
-                                    app.showToast('🖼️ 圖片已成功貼上並插入文檔！');
+                                    app.saveAttachmentAndInsertTag(compressedDataUrl, `貼上的圖片-${timeStr}`);
+                                    app.showToast('🖼️ 圖片已加入文檔（無冗長代碼塞爆）！');
                                 } catch (err) {
                                     app.showToast('圖片處理失敗: ' + err.message, 'error');
                                 }
@@ -4127,12 +4209,12 @@
                         const imageFile = Array.from(files).find(f => f.type.startsWith('image/'));
                         if (imageFile) {
                             e.preventDefault();
-                            app.showToast('⏳ 正在壓縮並插入拖曳的圖片...');
+                            app.showToast('⏳ 正在壓縮並加入拖曳的圖片...');
                             try {
                                 const compressedDataUrl = await app.compressImage(imageFile);
                                 const altName = imageFile.name.replace(/\.[^/.]+$/, '');
-                                app.insertAtCursor(`\n\n![${altName}](${compressedDataUrl})\n\n`);
-                                app.showToast('🖼️ 圖片已成功拖曳加入文檔！');
+                                app.saveAttachmentAndInsertTag(compressedDataUrl, altName);
+                                app.showToast('🖼️ 圖片已成功加入文檔！');
                             } catch (err) {
                                 app.showToast('圖片處理失敗: ' + err.message, 'error');
                             }
@@ -4247,6 +4329,7 @@
                     previewEl.className = 'w-full border-2 border-black bg-white p-6 md:p-8 prose prose-zinc max-w-none shadow-[4px_4px_0px_0px_#000] min-h-[300px] md:min-h-[420px]';
                     previewEl.innerHTML = this.parseMarkdown(content);
                     this.renderMermaidDiagrams(previewEl);
+                    this.resolvePendingLinkPreviews(previewEl);
                 }
             },
 
@@ -4669,12 +4752,22 @@ ${rawHtml}
                     return `<hr class="my-6 border-t-2 border-black" />`;
                 };
 
-                // 8. 圖片可點擊放大檢視
+                // 8. 圖片可點擊放大檢視 (支援 attachment:img_xxx 附件快速對應)
                 renderer.image = function(token) {
-                    const href = token.href || '';
+                    let href = token.href || '';
                     const title = token.title || '';
                     const alt = token.text || '圖片';
                     const cleanAlt = self.escapeHtml(alt);
+
+                    if (href.startsWith('attachment:')) {
+                        const imgId = href.replace(/^attachment:/, '').trim();
+                        const p = self.getCurrentProject();
+                        const doc = p?.docs?.find(d => d.id === self.state.activeDocId);
+                        if (doc?.attachments?.[imgId]?.data) {
+                            href = doc.attachments[imgId].data;
+                        }
+                    }
+
                     return `
                         <div class="my-3 flex flex-col items-start">
                             <img src="${href}" alt="${cleanAlt}" class="border-2 border-black max-w-full h-auto shadow-[3px_3px_0px_0px_#000] bg-white rounded-none inline-block max-h-[550px] object-contain cursor-zoom-in hover:opacity-95 transition-opacity" onclick="app.openImageViewer(this.src, '${cleanAlt}')" loading="lazy" />
@@ -4683,7 +4776,7 @@ ${rawHtml}
                     `;
                 };
 
-                // 9. 連結自訂（支援 doc: 內部跳轉與外部連結）
+                // 9. 連結自訂（支援 doc: 內部跳轉、影片嵌入播放器、外部豐富預覽卡片）
                 renderer.link = function(token) {
                     const href = token.href || '';
                     const text = this.parser.parseInline(token.tokens || []);
@@ -4696,7 +4789,19 @@ ${rawHtml}
                             return `<span class="inline-flex items-center gap-1 font-bold text-zinc-500 bg-zinc-200 border border-dashed border-zinc-400 px-1.5 py-0.5 text-xs line-through" title="文檔不存在">📄 ${text} (未找到)</span>`;
                         }
                     }
-                    return `<a href="${href}" target="_blank" rel="noopener noreferrer" class="text-blue-600 underline font-bold hover:text-blue-800">${text} ↗</a>`;
+
+                    // 影片辨識 (YouTube, Vimeo, MP4, WebM, MOV, OGG)
+                    const videoEmbed = self.generateVideoEmbed(href, text);
+                    if (videoEmbed) {
+                        return videoEmbed;
+                    }
+
+                    // 外部一般連結：若為單獨貼上的網址（文字等於網址），自動生成豐富預覽卡片
+                    if (text === href || text === href + '/' || text.startsWith('http')) {
+                        return self.generateLinkPreviewCard(href);
+                    }
+
+                    return `<a href="${href}" target="_blank" rel="noopener noreferrer" class="text-blue-600 underline font-bold hover:text-blue-800 inline-flex items-center gap-0.5">${text} <span class="text-[10px]">↗</span></a>`;
                 };
 
                 marked.setOptions({
@@ -4706,6 +4811,223 @@ ${rawHtml}
                 });
 
                 this._markedInitialized = true;
+            },
+
+            // ================= 🎬 影片嵌入與可播放預覽 =================
+            generateVideoEmbed(url, label) {
+                if (!url || typeof url !== 'string') return null;
+                const cleanUrl = url.trim();
+
+                // 1. YouTube 支援 (youtube.com, youtu.be, shorts)
+                let ytId = null;
+                const ytMatch = cleanUrl.match(/(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=|shorts\/))([\w-]{11})/i);
+                if (ytMatch && ytMatch[1]) {
+                    ytId = ytMatch[1];
+                }
+
+                if (ytId) {
+                    return `
+                        <div class="video-preview-card my-4 border-2 border-black bg-white shadow-[3px_3px_0px_0px_#000] overflow-hidden not-prose">
+                            <div class="bg-red-600 text-white px-3 py-1.5 text-xs font-black flex items-center justify-between border-b-2 border-black">
+                                <span class="flex items-center gap-1.5"><span>▶️</span> <span>YouTube 影片播放器</span></span>
+                                <a href="https://www.youtube.com/watch?v=${ytId}" target="_blank" rel="noopener noreferrer" class="hover:underline text-[10px] text-zinc-100 flex items-center gap-0.5">新分頁開啟 ↗</a>
+                            </div>
+                            <div class="relative w-full aspect-video bg-black">
+                                <iframe src="https://www.youtube-nocookie.com/embed/${ytId}?rel=0" class="w-full h-full border-0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen loading="lazy"></iframe>
+                            </div>
+                            ${label && label !== cleanUrl ? `<div class="p-2 text-xs font-bold text-zinc-700 bg-zinc-50 border-t border-zinc-200">🎬 ${this.escapeHtml(label)}</div>` : ''}
+                        </div>
+                    `;
+                }
+
+                // 2. Vimeo 支援 (vimeo.com/12345678)
+                const vimeoMatch = cleanUrl.match(/(?:vimeo\.com\/(?:video\/)?|player\.vimeo\.com\/video\/)(\d+)/i);
+                if (vimeoMatch && vimeoMatch[1]) {
+                    const vId = vimeoMatch[1];
+                    return `
+                        <div class="video-preview-card my-4 border-2 border-black bg-white shadow-[3px_3px_0px_0px_#000] overflow-hidden not-prose">
+                            <div class="bg-sky-600 text-white px-3 py-1.5 text-xs font-black flex items-center justify-between border-b-2 border-black">
+                                <span class="flex items-center gap-1.5"><span>🎬</span> <span>Vimeo 影片播放器</span></span>
+                                <a href="https://vimeo.com/${vId}" target="_blank" rel="noopener noreferrer" class="hover:underline text-[10px] text-zinc-100 flex items-center gap-0.5">新分頁開啟 ↗</a>
+                            </div>
+                            <div class="relative w-full aspect-video bg-black">
+                                <iframe src="https://player.vimeo.com/video/${vId}" class="w-full h-full border-0" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen loading="lazy"></iframe>
+                            </div>
+                            ${label && label !== cleanUrl ? `<div class="p-2 text-xs font-bold text-zinc-700 bg-zinc-50 border-t border-zinc-200">🎬 ${this.escapeHtml(label)}</div>` : ''}
+                        </div>
+                    `;
+                }
+
+                // 3. 原生影片支援 (.mp4, .webm, .ogg, .mov)
+                if (/\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(cleanUrl)) {
+                    return `
+                        <div class="video-preview-card my-4 border-2 border-black bg-white shadow-[3px_3px_0px_0px_#000] overflow-hidden not-prose">
+                            <div class="bg-zinc-800 text-white px-3 py-1.5 text-xs font-black flex items-center justify-between border-b-2 border-black">
+                                <span class="flex items-center gap-1.5"><span>🎥</span> <span>內嵌影片播放預覽</span></span>
+                                <a href="${cleanUrl}" target="_blank" rel="noopener noreferrer" class="hover:underline text-[10px] text-zinc-300 flex items-center gap-0.5">下載/新分頁 ↗</a>
+                            </div>
+                            <div class="w-full bg-black flex items-center justify-center">
+                                <video controls class="w-full max-h-[500px] bg-black" preload="metadata">
+                                    <source src="${cleanUrl}">
+                                    您的瀏覽器不支援直接播放此影片。
+                                </video>
+                            </div>
+                            ${label && label !== cleanUrl ? `<div class="p-2 text-xs font-bold text-zinc-700 bg-zinc-50 border-t border-zinc-200">🎥 ${this.escapeHtml(label)}</div>` : ''}
+                        </div>
+                    `;
+                }
+
+                return null;
+            },
+
+            // ================= 🔗 網址自動抓取標題、縮圖預覽卡片 (Link Preview Card) =================
+            generateLinkPreviewCard(rawUrl) {
+                if (!rawUrl || !/^https?:\/\//i.test(rawUrl.trim())) {
+                    return `<a href="${rawUrl}" target="_blank" rel="noopener noreferrer" class="text-blue-600 underline font-bold">${rawUrl} ↗</a>`;
+                }
+
+                const cleanUrl = rawUrl.trim();
+                let domain = '';
+                try {
+                    domain = new URL(cleanUrl).hostname;
+                } catch(e) {
+                    domain = cleanUrl;
+                }
+
+                if (!this._linkPreviewCache) {
+                    this._linkPreviewCache = {};
+                }
+
+                const cached = this._linkPreviewCache[cleanUrl];
+                const cardId = 'linkcard_' + Math.abs(this.fastHash(cleanUrl).split('_')[0] || 'card');
+
+                if (cached) {
+                    const title = this.escapeHtml(cached.title || domain);
+                    const desc = this.escapeHtml(cached.description || cleanUrl);
+                    const img = cached.image ? `<div class="sm:w-44 w-full h-32 sm:h-auto bg-zinc-100 border-b sm:border-b-0 sm:border-r-2 border-black overflow-hidden shrink-0 flex items-center justify-center"><img src="${cached.image}" alt="${title}" class="w-full h-full object-cover" onerror="this.parentElement.style.display='none'" /></div>` : '';
+
+                    return `
+                        <div class="link-preview-card my-3 border-2 border-black bg-white shadow-[3px_3px_0px_0px_#000] flat-box overflow-hidden not-prose hover:bg-zinc-50 transition-all group">
+                            <a href="${cleanUrl}" target="_blank" rel="noopener noreferrer" class="flex flex-col sm:flex-row no-underline text-zinc-900 w-full">
+                                ${img}
+                                <div class="p-3 sm:p-4 flex flex-col justify-between flex-1 min-w-0 space-y-1.5">
+                                    <div class="space-y-1">
+                                        <div class="flex items-center gap-1.5 text-[11px] font-bold text-zinc-500 font-mono">
+                                            <img src="https://www.google.com/s2/favicons?domain=${domain}&sz=32" alt="" class="w-4 h-4 rounded-none border border-zinc-400 shrink-0" onerror="this.style.display='none'" />
+                                            <span class="truncate">${domain}</span>
+                                            <span>↗</span>
+                                        </div>
+                                        <div class="font-black text-sm text-black group-hover:text-blue-700 leading-snug line-clamp-2">${title}</div>
+                                        <div class="text-xs text-zinc-600 line-clamp-2 leading-relaxed font-normal">${desc}</div>
+                                    </div>
+                                    <div class="text-[10px] text-zinc-400 font-mono truncate pt-1 border-t border-zinc-200">${cleanUrl}</div>
+                                </div>
+                            </a>
+                        </div>
+                    `;
+                }
+
+                // 尚未有快取：先渲染即時卡片骨架，並標記非同步抓取標題與縮圖
+                return `
+                    <div id="${cardId}" data-preview-url="${cleanUrl}" class="link-preview-placeholder link-preview-card my-3 border-2 border-black bg-white shadow-[3px_3px_0px_0px_#000] flat-box overflow-hidden not-prose hover:bg-zinc-50 transition-all group">
+                        <a href="${cleanUrl}" target="_blank" rel="noopener noreferrer" class="flex items-center justify-between p-3 sm:p-4 no-underline text-zinc-900 w-full gap-3">
+                            <div class="flex items-center gap-3 min-w-0 flex-1">
+                                <img src="https://www.google.com/s2/favicons?domain=${domain}&sz=64" alt="" class="w-8 h-8 rounded-none border border-black p-0.5 bg-zinc-50 shrink-0" onerror="this.style.display='none'" />
+                                <div class="min-w-0 flex-1">
+                                    <div class="flex items-center gap-1.5 text-[11px] font-bold text-zinc-500 font-mono">
+                                        <span>${domain}</span>
+                                        <span class="link-status-badge text-[9px] bg-yellow-200 border border-black px-1 text-black font-bold">載入資訊中...</span>
+                                    </div>
+                                    <div class="font-black text-xs sm:text-sm text-black group-hover:text-blue-700 truncate">${domain}</div>
+                                    <div class="text-[11px] text-zinc-500 font-mono truncate">${cleanUrl}</div>
+                                </div>
+                            </div>
+                            <div class="shrink-0 font-bold text-xs bg-zinc-100 group-hover:bg-yellow-300 border border-black px-2 py-1 flex items-center gap-1">
+                                <span>瀏覽</span> <span>➔</span>
+                            </div>
+                        </a>
+                    </div>
+                `;
+            },
+
+            resolvePendingLinkPreviews(containerEl) {
+                if (!containerEl) return;
+                const placeholders = containerEl.querySelectorAll('.link-preview-placeholder[data-preview-url]');
+                if (!placeholders || placeholders.length === 0) return;
+
+                placeholders.forEach(el => {
+                    const url = el.getAttribute('data-preview-url');
+                    if (!url) return;
+
+                    this.fetchLinkPreviewData(url).then(data => {
+                        if (!data) return;
+                        const domain = new URL(url).hostname || url;
+                        const title = this.escapeHtml(data.title || domain);
+                        const desc = this.escapeHtml(data.description || url);
+                        const img = data.image ? `<div class="sm:w-44 w-full h-32 sm:h-auto bg-zinc-100 border-b sm:border-b-0 sm:border-r-2 border-black overflow-hidden shrink-0 flex items-center justify-center"><img src="${data.image}" alt="${title}" class="w-full h-full object-cover" onerror="this.parentElement.style.display='none'" /></div>` : '';
+
+                        el.innerHTML = `
+                            <a href="${url}" target="_blank" rel="noopener noreferrer" class="flex flex-col sm:flex-row no-underline text-zinc-900 w-full">
+                                ${img}
+                                <div class="p-3 sm:p-4 flex flex-col justify-between flex-1 min-w-0 space-y-1.5">
+                                    <div class="space-y-1">
+                                        <div class="flex items-center gap-1.5 text-[11px] font-bold text-zinc-500 font-mono">
+                                            <img src="https://www.google.com/s2/favicons?domain=${domain}&sz=32" alt="" class="w-4 h-4 rounded-none border border-zinc-400 shrink-0" onerror="this.style.display='none'" />
+                                            <span class="truncate">${domain}</span>
+                                            <span>↗</span>
+                                        </div>
+                                        <div class="font-black text-sm text-black group-hover:text-blue-700 leading-snug line-clamp-2">${title}</div>
+                                        <div class="text-xs text-zinc-600 line-clamp-2 leading-relaxed font-normal">${desc}</div>
+                                    </div>
+                                    <div class="text-[10px] text-zinc-400 font-mono truncate pt-1 border-t border-zinc-200">${url}</div>
+                                </div>
+                            </a>
+                        `;
+                        el.classList.remove('link-preview-placeholder');
+                    }).catch(() => {
+                        const badge = el.querySelector('.link-status-badge');
+                        if (badge) badge.style.display = 'none';
+                    });
+                });
+            },
+
+            async fetchLinkPreviewData(url) {
+                if (!this._linkPreviewCache) this._linkPreviewCache = {};
+                if (this._linkPreviewCache[url]) return this._linkPreviewCache[url];
+
+                try {
+                    // 使用 Microlink API 抓取 OpenGraph 標題與縮圖
+                    const apiUrl = `https://api.microlink.io?url=${encodeURIComponent(url)}`;
+                    const resp = await fetch(apiUrl, { method: 'GET' });
+                    if (resp.ok) {
+                        const res = await resp.json();
+                        if (res.status === 'success' && res.data) {
+                            const info = {
+                                title: res.data.title || '',
+                                description: res.data.description || '',
+                                image: res.data.image?.url || res.data.logo?.url || null
+                            };
+                            this._linkPreviewCache[url] = info;
+                            return info;
+                        }
+                    }
+                } catch(e) {
+                    console.warn('[LinkPreview] Fetch preview failed, fallback to domain info:', e);
+                }
+
+                // 備用方案：使用網域名稱與 Google Favicon
+                try {
+                    const d = new URL(url).hostname;
+                    const fallback = {
+                        title: d,
+                        description: url,
+                        image: null
+                    };
+                    this._linkPreviewCache[url] = fallback;
+                    return fallback;
+                } catch(e) {
+                    return null;
+                }
             },
 
             parseMarkdown(md) {

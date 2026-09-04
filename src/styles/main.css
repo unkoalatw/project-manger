@@ -188,10 +188,17 @@
                 page-break-inside: avoid !important;
                 break-inside: avoid !important;
             }
-            /* 確保代碼塊、圖片在適當長度內避免被硬生腰折 */
-            pre, img, blockquote {
+            /* 確保代碼塊、圖片、影片與連結卡片在適當長度內避免被硬生腰折 */
+            pre, img, blockquote, .video-preview-card, .link-preview-card {
                 page-break-inside: avoid !important;
                 break-inside: avoid !important;
+            }
+            .link-preview-card {
+                box-shadow: none !important;
+                border: 1px solid #000 !important;
+            }
+            .video-preview-card {
+                box-shadow: none !important;
             }
             /* 移除多餘空行與頁面限制 */
             @page {
