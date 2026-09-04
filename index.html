@@ -103,11 +103,11 @@
                 height: auto !important;
                 overflow: visible !important;
             }
-            /* 隱藏非列印元素 */
+            /* 隱藏所有非列印元素 (導航列、側邊欄、工具列、Toast 提示、按鈕等) */
             header, aside, #sidebar, #mobileBackdrop, #docEditHeader, #docEditToolbar, 
             #docFindReplaceBar, #docTocDrawer, #docLinksPanel, #docPreviewActions,
             #viewDashboard, #viewTasks, #viewWizard, #viewStats, #viewSettings, #docEditor,
-            .no-print, button {
+            #toast, #liveToast, .no-print, button {
                 display: none !important;
             }
             /* 展開文檔區域以供完整紙本列印 */
@@ -127,6 +127,7 @@
                 padding: 0 !important;
                 margin: 0 !important;
                 width: 100% !important;
+                min-height: auto !important;
             }
             #docPreviewHeader {
                 display: block !important;
@@ -134,8 +135,31 @@
                 padding-bottom: 12px !important;
                 margin-bottom: 20px !important;
             }
-            /* 確保圖表與表格避免被分頁硬生截斷 */
-            .mermaid, table, pre, img, blockquote {
+            /* 流程圖視覺化卡片列印最佳化：移除裝飾框與陰影，SVG 自然縮放貼合頁寬 */
+            .mermaid-diagram-card {
+                border: none !important;
+                box-shadow: none !important;
+                margin: 1rem 0 !important;
+                background: transparent !important;
+                page-break-inside: auto !important;
+                break-inside: auto !important;
+            }
+            .mermaid-diagram-card > div:first-child {
+                display: none !important; /* 隱藏流程圖卡片頂部標題列與按鈕 */
+            }
+            .mermaid-diagram-card .mermaid {
+                display: block !important;
+                width: 100% !important;
+                text-align: center !important;
+                overflow: visible !important;
+            }
+            .mermaid-diagram-card svg {
+                max-width: 100% !important;
+                height: auto !important;
+                display: inline-block !important;
+            }
+            /* 確保表格、代碼塊、圖片在適當長度內避免被硬生腰折 */
+            table, pre, img, blockquote {
                 page-break-inside: avoid !important;
                 break-inside: avoid !important;
             }
@@ -3266,11 +3290,16 @@
                 // 2. 觸發音效回饋
                 this.playSound('click');
 
-                // 3. 延遲 250ms 確保 Mermaid 圖表與 KaTeX 公式已完全在 DOM 中排版佈局
-                this.showToast('🖨️ 準備列印文檔預覽版本...');
+                // 3. 確保隱藏任何畫面上現存的 Toast，避免印在紙上或遮擋流程圖
+                const toastEl = document.getElementById('toast');
+                if (toastEl) {
+                    toastEl.classList.add('opacity-0', 'pointer-events-none', 'translate-y-[-20px]');
+                }
+
+                // 4. 等待 DOM 與 Mermaid SVG 佈局穩定後呼叫 window.print()
                 setTimeout(() => {
                     window.print();
-                }, 280);
+                }, 300);
             },
 
             copyDocContent() {
@@ -5751,7 +5780,7 @@ ${rawHtml}
                         const cleanCode = code.trim();
                         const escaped = self.escapeHtml(cleanCode);
                         return `
-                            <div class="my-4 border-2 border-black bg-white shadow-[3px_3px_0px_0px_#000] flat-box overflow-hidden">
+                            <div class="mermaid-diagram-card my-4 border-2 border-black bg-white shadow-[3px_3px_0px_0px_#000] flat-box overflow-hidden">
                                 <div class="bg-amber-100 text-amber-950 px-3 py-1.5 text-[11px] font-mono font-bold border-b-2 border-black flex justify-between items-center select-none">
                                     <span class="flex items-center gap-1.5 font-sans font-black tracking-wide">📊 流程圖 / 圖表視覺化 (Mermaid)</span>
                                     <div class="flex items-center gap-2">
