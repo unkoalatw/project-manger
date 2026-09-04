@@ -84,7 +84,7 @@
                 overflow: visible !important;
             }
             /* 隱藏所有非列印元素 (導航列、側邊欄、工具列、Toast 提示、按鈕等) */
-            header, aside, #sidebar, #mobileBackdrop, #docEditHeader, #docEditToolbar, 
+            header, aside, #sidebar, #mobileBackdrop, #docModeSwitchBar, #docEditHeader, #docEditToolbar, 
             #docFindReplaceBar, #docTocDrawer, #docLinksPanel, #docPreviewActions,
             #viewDashboard, #viewTasks, #viewWizard, #viewStats, #viewSettings, #docEditor,
             #toast, #liveToast, .no-print, button {
@@ -114,6 +114,40 @@
                 border-bottom: 2px solid #000 !important;
                 padding-bottom: 12px !important;
                 margin-bottom: 20px !important;
+            }
+            /* 表格列印最佳化：移除外部 wrapper 陰影、溢位與外框，避免跨頁被黑條切斷覆蓋 */
+            .neo-brutalist-table-wrapper {
+                box-shadow: none !important;
+                border: none !important;
+                overflow: visible !important;
+                margin: 1rem 0 !important;
+                background: transparent !important;
+                break-inside: auto !important;
+                page-break-inside: auto !important;
+            }
+            table {
+                border-collapse: collapse !important;
+                width: 100% !important;
+                break-inside: auto !important;
+                page-break-inside: auto !important;
+            }
+            thead {
+                display: table-header-group !important; /* 每頁跨頁時自動重複表頭或保持清晰 */
+                break-inside: avoid !important;
+                page-break-inside: avoid !important;
+            }
+            tr {
+                break-inside: avoid !important;
+                page-break-inside: avoid !important;
+            }
+            th, td {
+                border: 1.5px solid #000 !important;
+                background-color: #fff !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            thead th {
+                background-color: #fef08a !important; /* 保留淺黃表頭高光 */
             }
             /* 流程圖視覺化卡片列印最佳化：移除裝飾框與陰影，SVG 自然縮放貼合頁寬 */
             .mermaid-diagram-card {
@@ -147,8 +181,15 @@
                 display: block !important;
                 margin: 0 auto !important;
             }
-            /* 確保表格、代碼塊、圖片在適當長度內避免被硬生腰折 */
-            table, pre, img, blockquote {
+            /* 標題與段落避免孤行孤字 */
+            h1, h2, h3, h4, h5, h6 {
+                page-break-after: avoid !important;
+                break-after: avoid !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+            /* 確保代碼塊、圖片在適當長度內避免被硬生腰折 */
+            pre, img, blockquote {
                 page-break-inside: avoid !important;
                 break-inside: avoid !important;
             }

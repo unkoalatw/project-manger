@@ -4561,7 +4561,7 @@ ${rawHtml}
                     }
 
                     return `
-                        <div class="overflow-x-auto my-4 border-2 border-black shadow-[3px_3px_0px_0px_#000] bg-white">
+                        <div class="neo-brutalist-table-wrapper overflow-x-auto my-4 border-2 border-black shadow-[3px_3px_0px_0px_#000] bg-white">
                             <table class="w-full text-left border-collapse text-xs md:text-sm font-sans">
                                 <thead class="bg-yellow-200 border-b-2 border-black">
                                     ${headerHtml}
@@ -4808,7 +4808,7 @@ ${rawHtml}
                     const headers = lines[0].split('|').slice(1, -1).map(h => h.trim());
                     const rows = lines.slice(2).map(r => r.split('|').slice(1, -1).map(c => c.trim()));
                     
-                    let tableHtml = '<div class="overflow-x-auto my-4 border-2 border-black shadow-[3px_3px_0px_0px_#000] bg-white"><table class="w-full text-left border-collapse text-xs md:text-sm font-sans">';
+                    let tableHtml = '<div class="neo-brutalist-table-wrapper overflow-x-auto my-4 border-2 border-black shadow-[3px_3px_0px_0px_#000] bg-white"><table class="w-full text-left border-collapse text-xs md:text-sm font-sans">';
                     tableHtml += '<thead class="bg-yellow-200 border-b-2 border-black"><tr>';
                     headers.forEach(h => { tableHtml += `<th class="border-2 border-black px-3 py-2 font-black uppercase tracking-wider text-black">${h}</th>`; });
                     tableHtml += '</tr></thead><tbody class="divide-y-2 divide-black">';
