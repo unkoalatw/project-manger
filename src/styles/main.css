@@ -113,28 +113,42 @@
             .mermaid-diagram-card {
                 border: none !important;
                 box-shadow: none !important;
-                margin: 1rem 0 !important;
+                margin: 0.5rem 0 !important;
+                padding: 0 !important;
                 background: transparent !important;
-                page-break-inside: auto !important;
-                break-inside: auto !important;
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
             }
             .mermaid-diagram-card > div:first-child {
                 display: none !important; /* 隱藏流程圖卡片頂部標題列與按鈕 */
+            }
+            .mermaid-diagram-card > div:nth-child(2) {
+                padding: 0 !important;
+                min-height: 0 !important;
+                overflow: visible !important;
             }
             .mermaid-diagram-card .mermaid {
                 display: block !important;
                 width: 100% !important;
                 text-align: center !important;
                 overflow: visible !important;
+                margin: 0 auto !important;
             }
             .mermaid-diagram-card svg {
                 max-width: 100% !important;
+                max-height: 650px !important;
                 height: auto !important;
-                display: inline-block !important;
+                display: block !important;
+                margin: 0 auto !important;
             }
             /* 確保表格、代碼塊、圖片在適當長度內避免被硬生腰折 */
             table, pre, img, blockquote {
                 page-break-inside: avoid !important;
                 break-inside: avoid !important;
+            }
+            /* 移除多餘空行與頁面限制 */
+            @page {
+                margin: 1.2cm;
+                size: auto;
             }
         }

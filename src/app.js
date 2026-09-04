@@ -2111,10 +2111,21 @@
                     toastEl.classList.add('opacity-0', 'pointer-events-none', 'translate-y-[-20px]');
                 }
 
-                // 4. 等待 DOM 與 Mermaid SVG 佈局穩定後呼叫 window.print()
-                setTimeout(() => {
-                    window.print();
-                }, 300);
+                const previewEl = document.getElementById('docPreview');
+                // 4. 等待 Mermaid 渲染完成與 DOM 佈局穩定後呼叫 window.print()
+                const triggerPrint = () => {
+                    setTimeout(() => {
+                        window.print();
+                    }, 250);
+                };
+
+                const unrenderedMermaid = previewEl ? previewEl.querySelectorAll('.mermaid:not([data-processed="true"])') : [];
+                if (unrenderedMermaid && unrenderedMermaid.length > 0) {
+                    this.renderMermaidDiagrams(previewEl);
+                    setTimeout(triggerPrint, 500);
+                } else {
+                    setTimeout(triggerPrint, 200);
+                }
             },
 
             copyDocContent() {
