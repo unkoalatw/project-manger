@@ -201,6 +201,10 @@
                     <span class="text-sm">👥</span>
                     <span class="hidden lg:inline">團隊協作</span>
                 </button>
+                <button id="soundToggleBtn" onclick="app.toggleSound()" class="p-1.5 px-2 bg-zinc-100 hover:bg-zinc-200 border-2 border-black font-bold text-xs flat-box flex items-center gap-1 transition-colors shrink-0" title="點擊切換音效開關">
+                    <span>🔊</span>
+                    <span class="hidden md:inline">音效</span>
+                </button>
                 <button onclick="app.openSearchModal()" class="p-1.5 px-2 bg-zinc-100 hover:bg-yellow-200 border-2 border-black font-bold text-xs flat-box flex items-center gap-1 transition-colors shrink-0" title="快速全域搜尋 (Ctrl+K)">
                     <span class="text-sm">🔍</span>
                     <span class="hidden md:inline text-zinc-800">搜尋</span>
@@ -1208,6 +1212,162 @@
                 isDocTocOpen: false
             },
 
+            // ================= 🎵 互動音效引擎 (Web Audio API 零依賴即時合成器) =================
+            audioCtx: null,
+            soundEnabled: true,
+
+            initAudio() {
+                try {
+                    const saved = localStorage.getItem('flatSpecSoundEnabled');
+                    this.soundEnabled = saved !== 'false';
+                    this.updateSoundToggleUI();
+                } catch(e) {}
+            },
+
+            getAudioContext() {
+                if (!this.audioCtx) {
+                    const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
+                    if (AudioCtxClass) {
+                        this.audioCtx = new AudioCtxClass();
+                    }
+                }
+                if (this.audioCtx && this.audioCtx.state === 'suspended') {
+                    this.audioCtx.resume();
+                }
+                return this.audioCtx;
+            },
+
+            toggleSound() {
+                this.soundEnabled = !this.soundEnabled;
+                localStorage.setItem('flatSpecSoundEnabled', this.soundEnabled ? 'true' : 'false');
+                this.updateSoundToggleUI();
+                if (this.soundEnabled) {
+                    this.playSound('create');
+                    this.showToast('🔊 音效已開啟');
+                } else {
+                    this.showToast('🔇 音效已靜音');
+                }
+            },
+
+            updateSoundToggleUI() {
+                const btn = document.getElementById('soundToggleBtn');
+                if (btn) {
+                    btn.innerHTML = this.soundEnabled 
+                        ? '<span>🔊</span><span class="hidden md:inline">音效</span>' 
+                        : '<span>🔇</span><span class="hidden md:inline">靜音</span>';
+                    btn.title = this.soundEnabled ? '點擊靜音音效' : '點擊開啟音效';
+                    btn.className = this.soundEnabled 
+                        ? 'p-1.5 px-2 bg-zinc-100 hover:bg-zinc-200 border-2 border-black font-bold text-xs flat-box flex items-center gap-1 transition-colors shrink-0'
+                        : 'p-1.5 px-2 bg-zinc-200 hover:bg-zinc-300 border-2 border-zinc-500 text-zinc-500 font-bold text-xs flat-box flex items-center gap-1 transition-colors shrink-0';
+                }
+            },
+
+            playSound(type) {
+                if (!this.soundEnabled) return;
+                try {
+                    const ctx = this.getAudioContext();
+                    if (!ctx) return;
+                    const now = ctx.currentTime;
+
+                    if (type === 'click') {
+                        // 清脆微點擊音 (700Hz -> 250Hz 短暫柔和按壓反饋)
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(700, now);
+                        osc.frequency.exponentialRampToValueAtTime(250, now + 0.04);
+                        gain.gain.setValueAtTime(0.08, now);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.start(now);
+                        osc.stop(now + 0.04);
+                    } else if (type === 'switch') {
+                        // 視圖/文檔切換音 (輕盈雙音 C5 -> E5)
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(523.25, now);
+                        osc.frequency.setValueAtTime(659.25, now + 0.035);
+                        gain.gain.setValueAtTime(0.09, now);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.start(now);
+                        osc.stop(now + 0.08);
+                    } else if (type === 'task_done' || type === 'success') {
+                        // 任務完成/成功音效 (歡樂上揚 3 和弦：C5 -> E5 -> G5)
+                        [523.25, 659.25, 783.99].forEach((freq, i) => {
+                            const osc = ctx.createOscillator();
+                            const gain = ctx.createGain();
+                            osc.type = 'sine';
+                            osc.frequency.setValueAtTime(freq, now + i * 0.06);
+                            gain.gain.setValueAtTime(0.12, now + i * 0.06);
+                            gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.06 + 0.12);
+                            osc.connect(gain);
+                            gain.connect(ctx.destination);
+                            osc.start(now + i * 0.06);
+                            osc.stop(now + i * 0.06 + 0.12);
+                        });
+                    } else if (type === 'create') {
+                        // 新建專案/文檔氣泡音 (440Hz -> 880Hz)
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(440, now);
+                        osc.frequency.exponentialRampToValueAtTime(880, now + 0.07);
+                        gain.gain.setValueAtTime(0.11, now);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.start(now);
+                        osc.stop(now + 0.07);
+                    } else if (type === 'delete') {
+                        // 刪除音效 (低沉下沉)
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.type = 'sawtooth';
+                        osc.frequency.setValueAtTime(300, now);
+                        osc.frequency.exponentialRampToValueAtTime(80, now + 0.09);
+                        gain.gain.setValueAtTime(0.08, now);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.start(now);
+                        osc.stop(now + 0.09);
+                    } else if (type === 'notify') {
+                        // 協作/雲端通知雙鈴聲
+                        const osc = ctx.createOscillator();
+                        const gain = ctx.createGain();
+                        osc.type = 'sine';
+                        osc.frequency.setValueAtTime(880, now);
+                        osc.frequency.setValueAtTime(1318.51, now + 0.08);
+                        gain.gain.setValueAtTime(0.12, now);
+                        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+                        osc.connect(gain);
+                        gain.connect(ctx.destination);
+                        osc.start(now);
+                        osc.stop(now + 0.22);
+                    } else if (type === 'error') {
+                        // 錯誤警告音 (低頻雙波)
+                        [180, 140].forEach((freq, i) => {
+                            const osc = ctx.createOscillator();
+                            const gain = ctx.createGain();
+                            osc.type = 'square';
+                            osc.frequency.setValueAtTime(freq, now + i * 0.08);
+                            gain.gain.setValueAtTime(0.05, now + i * 0.08);
+                            gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.08 + 0.08);
+                            osc.connect(gain);
+                            gain.connect(ctx.destination);
+                            osc.start(now + i * 0.08);
+                            osc.stop(now + i * 0.08 + 0.08);
+                        });
+                    }
+                } catch(e) {
+                    console.warn('Audio play failed:', e);
+                }
+            },
+
             // ================= 專案資料結構正規化 =================
             normalizeProject(proj) {
                 if (!proj || typeof proj !== 'object') return null;
@@ -1593,6 +1753,9 @@
             // ================= 初始化與生命週期 =================
             async init() {
                 try {
+                    // 初始化音效設定
+                    this.initAudio();
+
                     // 0. 檢查是否有邀請連結參數 (?gasUrl=...&proj=...)
                     try {
                         const urlParams = new URLSearchParams(window.location.search);
@@ -1647,6 +1810,20 @@
             },
 
             bindEvents() {
+                // 0. 全局手勢自動解鎖 AudioContext 與互動按鈕點擊微音效
+                document.addEventListener('pointerdown', (e) => {
+                    if (this.audioCtx && this.audioCtx.state === 'suspended') {
+                        this.audioCtx.resume();
+                    }
+                    const btn = e.target.closest('button, [onclick], .flat-box, input[type="checkbox"]');
+                    if (btn && !btn.hasAttribute('data-no-sound')) {
+                        const oc = btn.getAttribute('onclick') || '';
+                        if (!oc.includes('switchView') && !oc.includes('switchProject') && !oc.includes('openDoc') && !oc.includes('addTask') && !oc.includes('delete') && !oc.includes('createNew') && !oc.includes('toggleSound')) {
+                            this.playSound('click');
+                        }
+                    }
+                }, true);
+
                 // 1. 註冊 PWA Service Worker (支援 100% 離線本地運作與快取)
                 if ('serviceWorker' in navigator) {
                     navigator.serviceWorker.register('./sw.js')
@@ -4489,6 +4666,8 @@
                 toast.classList.remove('opacity-0', 'pointer-events-none', 'translate-x-[20px]');
                 toast.classList.add('opacity-100', 'translate-x-0');
 
+                this.playSound('notify');
+
                 clearTimeout(this._liveToastTimer);
                 this._liveToastTimer = setTimeout(() => {
                     toast.classList.remove('opacity-100', 'translate-x-0');
@@ -5033,6 +5212,7 @@
                 if (type === 'error') {
                     toast.classList.replace('bg-black', 'bg-red-600');
                     toast.classList.replace('text-white', 'text-white');
+                    this.playSound('error');
                 } else {
                     toast.classList.replace('bg-red-600', 'bg-black');
                 }
