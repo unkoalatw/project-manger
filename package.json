@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "FlatSpec Drive - 專案設計與執行系統",
   "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "bundle:android": "node ./scripts/bundle_android.js",
     "gas:login": "clasp login",
     "gas:push": "clasp push",
     "gas:watch": "clasp push --watch",
@@ -10,6 +13,7 @@
     "gas:open": "clasp open"
   },
   "devDependencies": {
-    "@google/clasp": "^2.4.2"
+    "@google/clasp": "^2.4.2",
+    "vite": "^8.2.2"
   }
 }

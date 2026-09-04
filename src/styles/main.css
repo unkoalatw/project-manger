@@ -1,0 +1,140 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&family=JetBrains+Mono:wght@400;700&display=swap');
+        
+        :root {
+            --flat-border: 2px solid #000;
+            --flat-shadow: 4px 4px 0px 0px #000;
+            --flat-shadow-hover: 2px 2px 0px 0px #000;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f4f4f5; /* zinc-100 */
+            overscroll-behavior-y: none;
+        }
+
+        .font-mono {
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        /* 全直角與硬陰影系統 */
+        .flat-box {
+            border: var(--flat-border);
+            border-radius: 0px !important;
+            box-shadow: var(--flat-shadow);
+            transition: all 0.15s ease-in-out;
+        }
+
+        .flat-box:hover:not(:disabled) {
+            transform: translate(2px, 2px);
+            box-shadow: var(--flat-shadow-hover);
+        }
+
+        .flat-box:active:not(:disabled) {
+            transform: translate(4px, 4px);
+            box-shadow: 0px 0px 0px 0px #000;
+        }
+        
+        .flat-input {
+            border: var(--flat-border);
+            border-radius: 0px !important;
+            outline: none;
+        }
+        
+        .flat-input:focus {
+            background-color: #fef08a; /* yellow-200 */
+        }
+
+        /* 隱藏捲動條但保留功能 */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* Markdown 渲染基礎樣式 */
+        .prose h1 { font-size: 1.5rem; font-weight: 900; margin-bottom: 1rem; border-bottom: 2px solid #000; padding-bottom: 0.5rem; }
+        .prose h2 { font-size: 1.25rem; font-weight: 800; margin-top: 1.5rem; margin-bottom: 0.75rem; }
+        .prose ul { list-style-type: square; padding-left: 1.5rem; margin-bottom: 1rem; }
+        .prose p { margin-bottom: 1rem; line-height: 1.6; }
+        /* 即時多人協作脈衝與閃爍動畫 */
+        @keyframes liveRemotePulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.9); background-color: #fef08a; }
+            50% { transform: scale(1.02); box-shadow: 0 0 0 10px rgba(234, 179, 8, 0); background-color: #fef9c3; }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(234, 179, 8, 0); }
+        }
+        .live-remote-glow {
+            animation: liveRemotePulse 1.8s ease-in-out 2 !important;
+            border-color: #000 !important;
+        }
+
+        /* 列印預覽專屬樣式 (@media print) */
+        @media print {
+            body {
+                background: #ffffff !important;
+                color: #000000 !important;
+                height: auto !important;
+                overflow: visible !important;
+            }
+            /* 隱藏所有非列印元素 (導航列、側邊欄、工具列、Toast 提示、按鈕等) */
+            header, aside, #sidebar, #mobileBackdrop, #docEditHeader, #docEditToolbar, 
+            #docFindReplaceBar, #docTocDrawer, #docLinksPanel, #docPreviewActions,
+            #viewDashboard, #viewTasks, #viewWizard, #viewStats, #viewSettings, #docEditor,
+            #toast, #liveToast, .no-print, button {
+                display: none !important;
+            }
+            /* 展開文檔區域以供完整紙本列印 */
+            main, #mainContent, #viewDocs, .prose {
+                overflow: visible !important;
+                height: auto !important;
+                max-width: 100% !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                border: none !important;
+                box-shadow: none !important;
+            }
+            #docPreview {
+                display: block !important;
+                border: none !important;
+                box-shadow: none !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                width: 100% !important;
+                min-height: auto !important;
+            }
+            #docPreviewHeader {
+                display: block !important;
+                border-bottom: 2px solid #000 !important;
+                padding-bottom: 12px !important;
+                margin-bottom: 20px !important;
+            }
+            /* 流程圖視覺化卡片列印最佳化：移除裝飾框與陰影，SVG 自然縮放貼合頁寬 */
+            .mermaid-diagram-card {
+                border: none !important;
+                box-shadow: none !important;
+                margin: 1rem 0 !important;
+                background: transparent !important;
+                page-break-inside: auto !important;
+                break-inside: auto !important;
+            }
+            .mermaid-diagram-card > div:first-child {
+                display: none !important; /* 隱藏流程圖卡片頂部標題列與按鈕 */
+            }
+            .mermaid-diagram-card .mermaid {
+                display: block !important;
+                width: 100% !important;
+                text-align: center !important;
+                overflow: visible !important;
+            }
+            .mermaid-diagram-card svg {
+                max-width: 100% !important;
+                height: auto !important;
+                display: inline-block !important;
+            }
+            /* 確保表格、代碼塊、圖片在適當長度內避免被硬生腰折 */
+            table, pre, img, blockquote {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+        }
