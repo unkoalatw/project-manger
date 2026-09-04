@@ -24,7 +24,7 @@
     <!-- Mermaid.js 圖表流程圖即時視覺化渲染引擎 -->
     <script src="./libs/mermaid.min.js"></script>
     <!-- FlatSpec 核心模組化樣式表 -->
-  <script type="module" crossorigin src="./assets/index-CzsvJCRi.js"></script>
+  <script type="module" crossorigin src="./assets/index-DjW7spoi.js"></script>
   <link rel="stylesheet" crossorigin href="./assets/index-By33xTJP.css">
 
     <!-- FlatSpec Kotlin Native Android Bridge Integration -->
@@ -773,9 +773,17 @@
     <div id="newDocModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
         <div class="bg-white border-2 border-black p-6 w-full max-w-sm flat-shadow-lg">
             <h3 class="font-black text-lg uppercase mb-4 border-b-2 border-black pb-2">📄 新增文檔</h3>
-            <div>
-                <label class="block font-bold text-xs mb-1">文檔標題 *</label>
-                <input type="text" id="newDocTitle" class="flat-input w-full p-2 text-sm" placeholder="例如：資料庫結構設計">
+            <div class="space-y-3">
+                <div>
+                    <label class="block font-bold text-xs mb-1">所屬資料夾</label>
+                    <select id="newDocFolderSelect" class="flat-input w-full p-2 text-xs font-bold bg-zinc-50 cursor-pointer">
+                        <option value="">📁 根目錄 (無所屬資料夾)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-bold text-xs mb-1">文檔標題 *</label>
+                    <input type="text" id="newDocTitle" class="flat-input w-full p-2 text-sm" placeholder="例如：資料庫結構設計" onkeydown="if(event.key==='Enter') app.createNewDoc()">
+                </div>
             </div>
             <div class="flex justify-end gap-2 mt-6">
                 <button onclick="app.closeModals()" class="px-4 py-2 border-2 border-black font-bold text-sm bg-zinc-100 hover:bg-zinc-200">取消</button>

@@ -33,7 +33,9 @@
                 docFindMatches: [],
                 docFindCurrentIndex: -1,
                 docFindOptions: { matchCase: false, wholeWord: false },
-                isDocTocOpen: false
+                isDocTocOpen: false,
+                expandedFolders: new Set(),
+                draggedFolderId: null
             },
 
             // ================= 🎵 互動音效引擎 (Web Audio API 零依賴即時合成器) =================
@@ -220,14 +222,26 @@
                     p.wizard.tech = p.wizard.tech || '';
                 }
 
+                // 資料夾陣列
+                if (!Array.isArray(p.docFolders)) {
+                    p.docFolders = [];
+                } else {
+                    p.docFolders = p.docFolders.map((f, idx) => ({
+                        id: f.id || 'fld_' + (Date.now() + idx),
+                        name: f.name || '未命名資料夾',
+                        parentId: f.parentId || null
+                    }));
+                }
+
                 // 文檔陣列
                 if (!Array.isArray(p.docs) || p.docs.length === 0) {
-                    p.docs = [{ id: 'doc_' + Date.now(), title: '核心規格書', content: '# ' + p.title + '\n\n寫下您的規格...' }];
+                    p.docs = [{ id: 'doc_' + Date.now(), title: '核心規格書', content: '# ' + p.title + '\n\n寫下您的規格...', folderId: null }];
                 } else {
                     p.docs = p.docs.map((d, idx) => ({
                         id: d.id || 'doc_' + (Date.now() + idx),
                         title: d.title || '未命名文檔',
-                        content: d.content || ''
+                        content: d.content || '',
+                        folderId: d.folderId || null
                     }));
                 }
 
@@ -501,14 +515,22 @@
                                 mContent = lDoc.content || cDoc.content || '';
                             }
 
+                            const mFolderId = (lDoc && lDoc.folderId !== undefined) ? lDoc.folderId : (cDoc ? cDoc.folderId : null);
                             mergedDocs.push({
                                 id: docId,
                                 title: mTitle || '未命名文檔',
-                                content: mContent || ''
+                                content: mContent || '',
+                                folderId: mFolderId || null
                             });
                         }
                     });
                     mergedProj.docs = mergedDocs;
+
+                    // 資料夾細粒度合併
+                    const folderMap = new Map();
+                    (cNorm.docFolders || []).forEach(f => { if (f && f.id) folderMap.set(f.id, f); });
+                    (lNorm.docFolders || []).forEach(f => { if (f && f.id) folderMap.set(f.id, f); });
+                    mergedProj.docFolders = Array.from(folderMap.values());
 
                     // 任務細粒度合併
                     const allTaskIds = new Set([
@@ -807,6 +829,12 @@
                         this.state.hasUnsavedChanges = true;
                     }
                     this.state.lastSyncedProjects = JSON.parse(JSON.stringify(this.state.projects));
+                    try {
+                        const savedExp = localStorage.getItem('flatSpecExpandedFolders');
+                        if (savedExp) {
+                            this.state.expandedFolders = new Set(JSON.parse(savedExp));
+                        }
+                    } catch(e) {}
                     try {
                         const savedProjId = localStorage.getItem('flatSpecLastActiveProjectId');
                         if (savedProjId && this.state.projects.some(p => p.id === savedProjId)) {
@@ -1555,6 +1583,234 @@
                 else barEl.className = 'h-full bg-zinc-200';
             },
 
+            // ================= 資料夾與文檔樹狀管理 (Folder Tree System) =================
+            toggleFolder(folderId, event) {
+                if (event) event.stopPropagation();
+                if (this.state.expandedFolders.has(folderId)) {
+                    this.state.expandedFolders.delete(folderId);
+                } else {
+                    this.state.expandedFolders.add(folderId);
+                }
+                try {
+                    localStorage.setItem('flatSpecExpandedFolders', JSON.stringify(Array.from(this.state.expandedFolders)));
+                } catch(e) {}
+                this.renderSidebar();
+            },
+
+            createDocFolderPrompt(parentId = null, event) {
+                if (event) event.stopPropagation();
+                const p = this.getCurrentProject();
+                if (!p) return;
+
+                const name = prompt(parentId ? '請輸入子資料夾名稱：' : '請輸入新資料夾名稱：', '');
+                if (name === null) return;
+                const trimmed = name.trim();
+                if (!trimmed) {
+                    this.showToast('⚠️ 資料夾名稱不能為空', 'error');
+                    return;
+                }
+
+                if (!Array.isArray(p.docFolders)) p.docFolders = [];
+                const newFolder = {
+                    id: 'fld_' + Date.now() + Math.random().toString(36).substr(2, 4),
+                    name: trimmed,
+                    parentId: parentId || null
+                };
+                p.docFolders.push(newFolder);
+                p.updatedAt = new Date().toISOString();
+
+                // 自動展開此資料夾及其父資料夾
+                this.state.expandedFolders.add(newFolder.id);
+                if (parentId) this.state.expandedFolders.add(parentId);
+                try {
+                    localStorage.setItem('flatSpecExpandedFolders', JSON.stringify(Array.from(this.state.expandedFolders)));
+                } catch(e) {}
+
+                this.debouncedSaveAndSync();
+                this.renderSidebar();
+                this.showToast('📁 資料夾已建立！');
+            },
+
+            renameDocFolderPrompt(folderId, event) {
+                if (event) event.stopPropagation();
+                const p = this.getCurrentProject();
+                const folder = p?.docFolders?.find(f => f.id === folderId);
+                if (!folder) return;
+
+                const newName = prompt('請輸入新的資料夾名稱：', folder.name || '');
+                if (newName === null) return;
+                const trimmed = newName.trim();
+                if (!trimmed) {
+                    this.showToast('⚠️ 資料夾名稱不能為空', 'error');
+                    return;
+                }
+
+                folder.name = trimmed;
+                p.updatedAt = new Date().toISOString();
+                this.debouncedSaveAndSync();
+                this.renderSidebar();
+                this.showToast('✏️ 資料夾已重新命名！');
+            },
+
+            deleteDocFolderPrompt(folderId, event) {
+                if (event) event.stopPropagation();
+                const p = this.getCurrentProject();
+                if (!p || !p.docFolders) return;
+
+                const folder = p.docFolders.find(f => f.id === folderId);
+                if (!folder) return;
+
+                // 檢查此資料夾下是否有子資料夾或文檔
+                const childFolders = p.docFolders.filter(f => f.parentId === folderId);
+                const childDocs = (p.docs || []).filter(d => d.folderId === folderId);
+                const totalItems = childFolders.length + childDocs.length;
+
+                let msg = `確定要刪除資料夾「${folder.name}」嗎？`;
+                if (totalItems > 0) {
+                    msg += `\n此資料夾內包含 ${childDocs.length} 篇文檔與 ${childFolders.length} 個子資料夾。\n底下的文檔與子資料夾將會自動移至根目錄。`;
+                }
+
+                if (confirm(msg)) {
+                    // 將直屬文檔移至根目錄
+                    (p.docs || []).forEach(d => {
+                        if (d.folderId === folderId) d.folderId = null;
+                    });
+                    // 將子資料夾的 parentId 移至當前資料夾的 parentId (或根目錄)
+                    (p.docFolders || []).forEach(f => {
+                        if (f.parentId === folderId) f.parentId = folder.parentId || null;
+                    });
+
+                    p.docFolders = p.docFolders.filter(f => f.id !== folderId);
+                    this.state.expandedFolders.delete(folderId);
+                    try {
+                        localStorage.setItem('flatSpecExpandedFolders', JSON.stringify(Array.from(this.state.expandedFolders)));
+                    } catch(e) {}
+
+                    p.updatedAt = new Date().toISOString();
+                    this.debouncedSaveAndSync();
+                    this.renderSidebar();
+                    this.showToast('🗑️ 資料夾已刪除');
+                }
+            },
+
+            moveDocToFolder(docId, targetFolderId) {
+                const p = this.getCurrentProject();
+                const doc = p?.docs?.find(d => d.id === docId);
+                if (!doc) return;
+
+                doc.folderId = targetFolderId || null;
+                p.updatedAt = new Date().toISOString();
+
+                if (targetFolderId) {
+                    this.state.expandedFolders.add(targetFolderId);
+                    try {
+                        localStorage.setItem('flatSpecExpandedFolders', JSON.stringify(Array.from(this.state.expandedFolders)));
+                    } catch(e) {}
+                }
+
+                this.debouncedSaveAndSync();
+                this.renderSidebar();
+                this.showToast(targetFolderId ? '📁 文檔已移入資料夾' : '📁 文檔已移至根目錄');
+            },
+
+            // 渲染單篇文檔節點
+            renderSidebarDocItem(doc, isSearching, canMoveUp, canMoveDown) {
+                const isActive = doc.id === this.state.activeDocId;
+                return `
+                    <div class="group relative flex items-center justify-between p-1.5 sm:p-2 cursor-pointer text-xs sm:text-sm font-bold border-2 ${isActive ? 'bg-white border-black shadow-[2px_2px_0px_0px_#000] translate-x-1' : 'border-transparent hover:border-zinc-300 hover:bg-zinc-200'} transition-all select-none"
+                        draggable="${!isSearching}"
+                        data-doc-id="${this.escapeHtml(doc.id)}"
+                        ondragstart="app.handleDocDragStart(event, '${this.escapeHtml(doc.id)}')"
+                        ondragover="app.handleDocDragOver(event, '${this.escapeHtml(doc.id)}')"
+                        ondragleave="app.handleDocDragLeave(event)"
+                        ondragend="app.handleDocDragEnd(event)"
+                        ondrop="app.handleDocDrop(event, '${this.escapeHtml(doc.id)}')"
+                        onclick="app.openDoc('${this.escapeHtml(doc.id)}')">
+                        
+                        <div class="truncate flex items-center gap-1.5 flex-1 min-w-0">
+                            <span class="text-zinc-400 group-hover:text-black cursor-grab active:cursor-grabbing text-xs px-0.5 tracking-tighter shrink-0" title="${isSearching ? '搜尋時無法拖曳' : '拖曳以自訂排列順序或移入資料夾'}">⋮⋮</span>
+                            <span class="shrink-0">📄</span>
+                            <span class="truncate">${this.escapeHtml(doc.title || '未命名')}</span>
+                        </div>
+
+                        <div class="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 shrink-0 transition-opacity ml-1 bg-zinc-100 border border-zinc-300 px-1 py-0.5">
+                            <button onclick="app.renameDocPrompt('${this.escapeHtml(doc.id)}', event)" 
+                                class="text-[10px] px-1 hover:bg-zinc-300 cursor-pointer font-bold text-zinc-700 hover:text-black" 
+                                title="重新命名文檔">✏️</button>
+                            <button onclick="app.moveDoc('${this.escapeHtml(doc.id)}', -1, event)" 
+                                class="text-[10px] px-1 hover:bg-zinc-300 ${!canMoveUp ? 'opacity-20 cursor-not-allowed' : 'cursor-pointer'}" 
+                                title="向上移動" ${!canMoveUp ? 'disabled' : ''}>▲</button>
+                            <button onclick="app.moveDoc('${this.escapeHtml(doc.id)}', 1, event)" 
+                                class="text-[10px] px-1 hover:bg-zinc-300 ${!canMoveDown ? 'opacity-20 cursor-not-allowed' : 'cursor-pointer'}" 
+                                title="向下移動" ${!canMoveDown ? 'disabled' : ''}>▼</button>
+                        </div>
+                    </div>
+                `;
+            },
+
+            // 遞迴渲染資料夾與子資料夾樹
+            renderFolderTreeLevel(parentId, folders, docs, isSearching, depth = 0) {
+                let html = '';
+                const currentFolders = folders.filter(f => (f.parentId || null) === parentId);
+                const currentDocs = docs.filter(d => (d.folderId || null) === parentId);
+
+                currentFolders.forEach(folder => {
+                    const isExpanded = this.state.expandedFolders.has(folder.id) || isSearching;
+                    const subDocsCount = docs.filter(d => d.folderId === folder.id).length;
+                    const subFoldersCount = folders.filter(f => f.parentId === folder.id).length;
+
+                    html += `
+                        <div class="folder-group mb-1" data-folder-id="${this.escapeHtml(folder.id)}">
+                            <div class="group relative flex items-center justify-between p-1.5 px-2 cursor-pointer text-xs sm:text-sm font-bold border-2 border-transparent hover:border-black hover:bg-zinc-200 transition-colors select-none"
+                                ondragover="app.handleFolderDragOver(event, '${this.escapeHtml(folder.id)}')"
+                                ondragleave="app.handleFolderDragLeave(event)"
+                                ondrop="app.handleFolderDrop(event, '${this.escapeHtml(folder.id)}')"
+                                onclick="app.toggleFolder('${this.escapeHtml(folder.id)}', event)">
+                                
+                                <div class="truncate flex items-center gap-1.5 flex-1 min-w-0">
+                                    <span class="text-[10px] text-zinc-500 font-mono shrink-0">${isExpanded ? '▼' : '▶'}</span>
+                                    <span class="shrink-0">${isExpanded ? '📂' : '📁'}</span>
+                                    <span class="truncate font-black text-zinc-800">${this.escapeHtml(folder.name)}</span>
+                                    <span class="text-[10px] font-mono text-zinc-400 shrink-0">(${subDocsCount})</span>
+                                </div>
+
+                                <div class="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 shrink-0 transition-opacity ml-1 bg-zinc-100 border border-zinc-300 px-1 py-0.5" onclick="event.stopPropagation()">
+                                    <button onclick="app.openNewDocModal('${this.escapeHtml(folder.id)}')" 
+                                        class="text-[10px] px-1 hover:bg-zinc-300 cursor-pointer font-bold text-zinc-700 hover:text-black" 
+                                        title="在此資料夾建立新文檔">＋📄</button>
+                                    <button onclick="app.createDocFolderPrompt('${this.escapeHtml(folder.id)}', event)" 
+                                        class="text-[10px] px-1 hover:bg-zinc-300 cursor-pointer font-bold text-zinc-700 hover:text-black" 
+                                        title="建立子資料夾">＋📁</button>
+                                    <button onclick="app.renameDocFolderPrompt('${this.escapeHtml(folder.id)}', event)" 
+                                        class="text-[10px] px-1 hover:bg-zinc-300 cursor-pointer font-bold text-zinc-700 hover:text-black" 
+                                        title="重新命名資料夾">✏️</button>
+                                    <button onclick="app.deleteDocFolderPrompt('${this.escapeHtml(folder.id)}', event)" 
+                                        class="text-[10px] px-1 hover:bg-red-200 cursor-pointer font-bold text-red-600 hover:text-red-900" 
+                                        title="刪除資料夾">🗑️</button>
+                                </div>
+                            </div>
+
+                            <!-- 子容器 (縮排) -->
+                            <div class="${isExpanded ? 'block' : 'hidden'} pl-3 ml-2 border-l-2 border-zinc-300 space-y-1 mt-0.5">
+                                ${this.renderFolderTreeLevel(folder.id, folders, docs, isSearching, depth + 1)}
+                            </div>
+                        </div>
+                    `;
+                });
+
+                currentDocs.forEach((doc, idx) => {
+                    const canMoveUp = idx > 0 && !isSearching;
+                    const canMoveDown = idx < currentDocs.length - 1 && !isSearching;
+                    html += this.renderSidebarDocItem(doc, isSearching, canMoveUp, canMoveDown);
+                });
+
+                if (currentFolders.length === 0 && currentDocs.length === 0 && depth > 0) {
+                    html += `<div class="text-[11px] text-zinc-400 italic py-1 px-2 border border-dashed border-zinc-200">空資料夾</div>`;
+                }
+
+                return html;
+            },
+
             renderSidebar() {
                 const p = this.getCurrentProject();
                 const treeEl = document.getElementById('sidebarTree');
@@ -1573,58 +1829,49 @@
                 
                 // 文件庫分類
                 const docs = p.docs || [];
+                const folders = p.docFolders || [];
                 const isSearching = searchStr.length > 0;
-                const filteredDocs = docs.filter(d => (d.title || '').toLowerCase().includes(searchStr));
+                const filteredDocs = isSearching ? docs.filter(d => (d.title || '').toLowerCase().includes(searchStr)) : docs;
                 
                 html += `
                     <div class="mb-4">
-                        <div class="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 flex justify-between items-center">
-                            <span>📂 專案文檔 (${docs.length})</span>
-                            <button onclick="app.openNewDocModal()" class="hover:text-black font-bold text-sm" title="新增文檔">＋</button>
+                        <div class="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 flex justify-between items-center bg-zinc-200/60 p-1.5 border border-zinc-300">
+                            <span class="flex items-center gap-1 font-bold">
+                                <span>📚</span> <span>文檔清單 (${docs.length})</span>
+                            </span>
+                            <div class="flex items-center gap-1">
+                                <button onclick="app.createDocFolderPrompt(null, event)" class="p-1 px-1.5 bg-white hover:bg-zinc-100 border border-black font-bold text-xs flat-box flex items-center gap-0.5" title="新增資料夾">
+                                    <span>📁＋</span>
+                                </button>
+                                <button onclick="app.openNewDocModal()" class="p-1 px-1.5 bg-black text-white hover:bg-zinc-800 border border-black font-bold text-xs flat-box flex items-center gap-0.5" title="新增文檔">
+                                    <span>＋📄</span>
+                                </button>
+                            </div>
                         </div>
-                        <div class="space-y-1" id="sidebarDocList">
+
+                        <!-- 支援拖曳至根目錄的放置區 -->
+                        <div class="space-y-1" id="sidebarDocList"
+                            ondragover="app.handleRootFolderDragOver(event)"
+                            ondragleave="app.handleRootFolderDragLeave(event)"
+                            ondrop="app.handleRootFolderDrop(event)">
                 `;
                 
-                if (filteredDocs.length === 0) {
-                    html += `<div class="text-xs text-zinc-400 italic px-2">無符合文檔</div>`;
+                if (filteredDocs.length === 0 && folders.length === 0) {
+                    html += `<div class="text-xs text-zinc-400 italic px-2 py-3 border-2 border-dashed border-zinc-300 text-center">無任何文檔，點擊右上角「＋📄」新增</div>`;
+                } else if (isSearching) {
+                    // 搜尋模式下扁平展示所有符合文檔
+                    if (filteredDocs.length === 0) {
+                        html += `<div class="text-xs text-zinc-400 italic px-2">無符合文檔</div>`;
+                    } else {
+                        filteredDocs.forEach(doc => {
+                            html += this.renderSidebarDocItem(doc, true, false, false);
+                        });
+                    }
+                } else {
+                    // 階層樹狀渲染
+                    html += this.renderFolderTreeLevel(null, folders, docs, false, 0);
                 }
 
-                filteredDocs.forEach((doc, idx) => {
-                    const isActive = doc.id === this.state.activeDocId;
-                    const canMoveUp = idx > 0 && !isSearching;
-                    const canMoveDown = idx < filteredDocs.length - 1 && !isSearching;
-                    
-                    html += `
-                        <div class="group relative flex items-center justify-between p-2 cursor-pointer text-sm font-bold border-2 ${isActive ? 'bg-white border-black shadow-[2px_2px_0px_0px_#000] translate-x-1' : 'border-transparent hover:border-zinc-300 hover:bg-zinc-200'} transition-all select-none"
-                            draggable="${!isSearching}"
-                            data-doc-id="${this.escapeHtml(doc.id)}"
-                            ondragstart="app.handleDocDragStart(event, '${this.escapeHtml(doc.id)}')"
-                            ondragover="app.handleDocDragOver(event, '${this.escapeHtml(doc.id)}')"
-                            ondragleave="app.handleDocDragLeave(event)"
-                            ondragend="app.handleDocDragEnd(event)"
-                            ondrop="app.handleDocDrop(event, '${this.escapeHtml(doc.id)}')"
-                            onclick="app.openDoc('${this.escapeHtml(doc.id)}')">
-                            
-                            <div class="truncate flex items-center gap-1.5 flex-1 min-w-0">
-                                <span class="text-zinc-400 group-hover:text-black cursor-grab active:cursor-grabbing text-xs px-0.5 tracking-tighter" title="${isSearching ? '搜尋時無法拖曳' : '拖曳以自訂排列順序'}">⋮⋮</span>
-                                <span>📄</span>
-                                <span class="truncate">${this.escapeHtml(doc.title || '未命名')}</span>
-                            </div>
-
-                            <div class="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 shrink-0 transition-opacity ml-1 bg-zinc-100 border border-zinc-300 px-1 py-0.5">
-                                <button onclick="app.renameDocPrompt('${this.escapeHtml(doc.id)}', event)" 
-                                    class="text-[10px] px-1 hover:bg-zinc-300 cursor-pointer font-bold text-zinc-700 hover:text-black" 
-                                    title="重新命名文檔">✏️</button>
-                                <button onclick="app.moveDoc('${this.escapeHtml(doc.id)}', -1, event)" 
-                                    class="text-[10px] px-1 hover:bg-zinc-300 ${!canMoveUp ? 'opacity-20 cursor-not-allowed' : 'cursor-pointer'}" 
-                                    title="向上移動" ${!canMoveUp ? 'disabled' : ''}>▲</button>
-                                <button onclick="app.moveDoc('${this.escapeHtml(doc.id)}', 1, event)" 
-                                    class="text-[10px] px-1 hover:bg-zinc-300 ${!canMoveDown ? 'opacity-20 cursor-not-allowed' : 'cursor-pointer'}" 
-                                    title="向下移動" ${!canMoveDown ? 'disabled' : ''}>▼</button>
-                            </div>
-                        </div>
-                    `;
-                });
                 html += `</div></div>`;
 
                 // 任務摘要分類 (搜尋過濾顯示)
@@ -1933,22 +2180,60 @@
                 panelEl.innerHTML = html;
             },
 
+            openNewDocModal(defaultFolderId = null) {
+                const folderSelect = document.getElementById('newDocFolderSelect');
+                const titleEl = document.getElementById('newDocTitle');
+                if (titleEl) titleEl.value = '';
+
+                if (folderSelect) {
+                    const p = this.getCurrentProject();
+                    const folders = p?.docFolders || [];
+                    
+                    let opts = '<option value="">📁 根目錄 (無所屬資料夾)</option>';
+                    const buildFolderOpts = (parentId, depth = 0) => {
+                        const subs = folders.filter(f => (f.parentId || null) === parentId);
+                        subs.forEach(f => {
+                            const indent = '　'.repeat(depth) + (depth > 0 ? '↳ ' : '');
+                            const isSel = (f.id === defaultFolderId);
+                            opts += `<option value="${f.id}" ${isSel ? 'selected' : ''}>${indent}📁 ${this.escapeHtml(f.name)}</option>`;
+                            buildFolderOpts(f.id, depth + 1);
+                        });
+                    };
+                    buildFolderOpts(null, 0);
+                    folderSelect.innerHTML = opts;
+                }
+
+                document.getElementById('newDocModal')?.classList.remove('hidden');
+                setTimeout(() => document.getElementById('newDocTitle')?.focus(), 50);
+            },
+
             createNewDoc() {
                 const p = this.getCurrentProject();
                 const titleEl = document.getElementById('newDocTitle');
+                const folderEl = document.getElementById('newDocFolderSelect');
                 if (!p || !titleEl) return;
 
                 const title = titleEl.value.trim() || '未命名文檔';
+                const folderId = folderEl?.value || null;
+
                 const newDoc = {
                     id: 'doc_' + Date.now(),
                     title: title,
-                    content: `# ${title}\n\n開始撰寫...`
+                    content: `# ${title}\n\n開始撰寫...`,
+                    folderId: folderId
                 };
                 
                 if (!p.docs) p.docs = [];
                 p.docs.push(newDoc);
                 p.updatedAt = new Date().toISOString();
                 this.state.activeDocId = newDoc.id;
+
+                if (folderId) {
+                    this.state.expandedFolders.add(folderId);
+                    try {
+                        localStorage.setItem('flatSpecExpandedFolders', JSON.stringify(Array.from(this.state.expandedFolders)));
+                    } catch(e) {}
+                }
                 
                 titleEl.value = '';
                 this.closeModals();
@@ -2021,6 +2306,59 @@
                 items.forEach(item => {
                     item.classList.remove('opacity-40', 'border-dashed', 'border-t-4', 'border-t-black', 'border-b-4', 'border-b-black');
                 });
+                document.querySelectorAll('#sidebarTree [data-folder-id]').forEach(f => {
+                    f.classList.remove('bg-yellow-200', 'border-black');
+                });
+            },
+
+            handleFolderDragOver(e, folderId) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (e.dataTransfer) {
+                    e.dataTransfer.dropEffect = 'move';
+                }
+                const el = e.currentTarget;
+                if (el) {
+                    el.classList.add('bg-yellow-200', 'border-black');
+                }
+            },
+
+            handleFolderDragLeave(e) {
+                const el = e.currentTarget;
+                if (el) {
+                    el.classList.remove('bg-yellow-200', 'border-black');
+                }
+            },
+
+            handleFolderDrop(e, folderId) {
+                e.preventDefault();
+                e.stopPropagation();
+                const el = e.currentTarget;
+                if (el) el.classList.remove('bg-yellow-200', 'border-black');
+
+                const draggedDocId = this.state.draggedDocId || (e.dataTransfer ? e.dataTransfer.getData('text/plain') : null);
+                this.handleDocDragEnd(e);
+
+                if (!draggedDocId) return;
+                this.moveDocToFolder(draggedDocId, folderId);
+            },
+
+            handleRootFolderDragOver(e) {
+                e.preventDefault();
+                if (e.dataTransfer) e.dataTransfer.dropEffect = 'move';
+            },
+
+            handleRootFolderDragLeave(e) {},
+
+            handleRootFolderDrop(e) {
+                // 如果落在根目錄空白處
+                if (e.target.id === 'sidebarDocList') {
+                    e.preventDefault();
+                    const draggedDocId = this.state.draggedDocId || (e.dataTransfer ? e.dataTransfer.getData('text/plain') : null);
+                    this.handleDocDragEnd(e);
+                    if (!draggedDocId) return;
+                    this.moveDocToFolder(draggedDocId, null);
+                }
             },
 
             handleDocDrop(e, targetDocId) {
