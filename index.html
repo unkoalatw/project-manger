@@ -469,6 +469,9 @@
                         <button type="button" onclick="app.insertMarkdown('- [ ] ', '')" class="px-2 py-1 bg-white hover:bg-zinc-200 border-2 border-black font-bold text-xs shrink-0" title="待辦任務">☑ 任務</button>
                         <button type="button" onclick="app.insertMarkdown('`', '`')" class="px-2 py-1 bg-white hover:bg-zinc-200 border-2 border-black font-mono text-xs shrink-0" title="行內代碼">&lt;/&gt;</button>
                         <button type="button" onclick="app.insertMarkdown('> ', '')" class="px-2 py-1 bg-white hover:bg-zinc-200 border-2 border-black font-bold text-xs shrink-0" title="引言">&gt;</button>
+                        <button type="button" onclick="app.centerCurrentLineOrSelection()" class="px-2 py-1 bg-white hover:bg-zinc-200 border-2 border-black font-bold text-xs flex items-center gap-1 flat-box shrink-0" title="將當前行或選取文字置中 (語法 ->文字<-)">
+                            <span>≡</span> <span>置中</span>
+                        </button>
                         
                         <div class="h-4 w-px bg-zinc-400 mx-0.5"></div>
                         <button type="button" onclick="app.openInsertImageModal()" class="px-2 py-1 bg-white hover:bg-zinc-200 border-2 border-black font-bold text-xs flex items-center gap-1 flat-box text-blue-900 shrink-0" title="插入圖片">
@@ -3003,6 +3006,75 @@
                 editor.selectionEnd = start + prefix.length + selected.length;
 
                 this.updateDocContent(editor.value);
+            },
+
+            centerCurrentLineOrSelection() {
+                const editor = document.getElementById('docEditor');
+                if (!editor) return;
+
+                this.setUserTypingState();
+                this.playSound('click');
+
+                const start = editor.selectionStart;
+                const end = editor.selectionEnd;
+                const text = editor.value;
+
+                // 情況 1: 使用者反白選取了文字
+                if (start !== end) {
+                    const selected = text.substring(start, end);
+                    // 若已包在 ->...<- 則取消置中，否則加上 ->...<-
+                    let replacement = '';
+                    if (selected.startsWith('->') && selected.endsWith('<-')) {
+                        replacement = selected.slice(2, -2).trim();
+                    } else if (selected.startsWith('<center>') && selected.endsWith('</center>')) {
+                        replacement = selected.slice(8, -9).trim();
+                    } else {
+                        replacement = `-> ${selected} <-`;
+                    }
+                    editor.value = text.substring(0, start) + replacement + text.substring(end);
+                    editor.selectionStart = start;
+                    editor.selectionEnd = start + replacement.length;
+                } else {
+                    // 情況 2: 未選取文字，自動鎖定當前游標所在的「整行」
+                    const lineStart = text.lastIndexOf('\n', start - 1) + 1;
+                    let lineEnd = text.indexOf('\n', start);
+                    if (lineEnd === -1) lineEnd = text.length;
+
+                    const currentLine = text.substring(lineStart, lineEnd);
+                    const trimmedLine = currentLine.trim();
+                    let newLine = '';
+
+                    // 檢查當前行是否已經被置中語法包裹
+                    const arrowMatch = trimmedLine.match(/^->\s*([\s\S]+?)\s*<-$/);
+                    const centerMatch = trimmedLine.match(/^<center>\s*([\s\S]+?)\s*<\/center>$/i);
+
+                    if (arrowMatch) {
+                        // 取消置中
+                        newLine = arrowMatch[1];
+                    } else if (centerMatch) {
+                        // 取消置中
+                        newLine = centerMatch[1];
+                    } else if (trimmedLine.length > 0) {
+                        // 當前行有內容，為該行加上置中標記
+                        newLine = `-> ${trimmedLine} <-`;
+                    } else {
+                        // 當前行為空行，插入置中範本並將游標置於中
+                        newLine = `->  <-`;
+                    }
+
+                    editor.value = text.substring(0, lineStart) + newLine + text.substring(lineEnd);
+                    
+                    if (trimmedLine.length === 0) {
+                        // 游標置於 -> 與 <- 之間
+                        editor.selectionStart = editor.selectionEnd = lineStart + 3;
+                    } else {
+                        editor.selectionStart = editor.selectionEnd = lineStart + newLine.length;
+                    }
+                }
+
+                editor.focus();
+                this.updateDocContent(editor.value);
+                this.showToast('↔️ 該行已設定為置中排版');
             },
 
             renderDocLinksPanel(currentDoc) {
@@ -5952,6 +6024,14 @@ ${rawHtml}
                     `;
                 });
 
+                // 4.5 支援「該行置中」語法 ->文字<- 或 <center>文字</center>
+                html = html.replace(/(?:<p>)?-&gt;\s*([\s\S]+?)\s*&lt;-(?:<\/p>)?/g, (match, inner) => {
+                    return `<div class="text-center my-2.5">${inner}</div>`;
+                });
+                html = html.replace(/(?:<p>)?&lt;center&gt;\s*([\s\S]+?)\s*&lt;\/center&gt;(?:<\/p>)?/gi, (match, inner) => {
+                    return `<div class="text-center my-2.5">${inner}</div>`;
+                });
+
                 // 5. 還原數學公式 (Math Blocks)
                 mathBlocks.forEach((mb, idx) => {
                     html = html.replaceAll(`__MATH_BLOCK_${idx}__`, mb);
@@ -5985,6 +6065,8 @@ ${rawHtml}
                 });
 
                 html = html.replace(/^(#{1,4})\s+(.*$)/gim, '<h$1 class="font-black my-2">$2</h$1>')
+                           .replace(/->\s*(.+?)\s*<-/g, '<div class="text-center my-2">$1</div>')
+                           .replace(/<center>\s*(.+?)\s*<\/center>/gi, '<div class="text-center my-2">$1</div>')
                            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
                            .replace(/\*(.*?)\*/g, '<em>$1</em>')
                            .replace(/~~(.*?)~~/g, '<del class="text-zinc-400">$1</del>')
