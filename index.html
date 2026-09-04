@@ -133,6 +133,10 @@
                     <span class="text-sm">👥</span>
                     <span class="hidden lg:inline">團隊協作</span>
                 </button>
+                <button id="fontToggleBtn" onclick="app.openFontModal()" class="p-1.5 px-2 bg-zinc-100 hover:bg-zinc-200 border-2 border-black font-bold text-xs flat-box flex items-center gap-1 transition-colors shrink-0" title="自訂字體與排版設定">
+                    <span>🔤</span>
+                    <span class="hidden md:inline">字體</span>
+                </button>
                 <button id="soundToggleBtn" onclick="app.toggleSound()" class="p-1.5 px-2 bg-zinc-100 hover:bg-zinc-200 border-2 border-black font-bold text-xs flat-box flex items-center gap-1 transition-colors shrink-0" title="點擊切換音效開關">
                     <span>🔊</span>
                     <span class="hidden md:inline">音效</span>
@@ -1096,6 +1100,118 @@
             <div class="mt-3 p-2.5 bg-blue-50 border-2 border-blue-900 text-xs font-bold text-blue-950 flex items-center justify-between">
                 <span>📊 Google 試算表雲端版本記錄：可由試算表「檔案 ➔ 版本記錄」隨時倒帶</span>
                 <a href="javascript:void(0)" onclick="app.openGasUrlInBrowser()" class="underline text-blue-800">開啟試算表 ↗</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 自訂字體與排版管理 Modal -->
+    <div id="fontModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-3 md:p-6" onclick="app.closeFontModal()">
+        <div class="bg-white border-2 border-black p-5 md:p-6 max-w-lg w-full flat-shadow-lg flex flex-col max-h-[90vh]" onclick="event.stopPropagation()">
+            <div class="flex items-center justify-between border-b-2 border-black pb-3 mb-4 shrink-0">
+                <h3 class="font-black text-lg uppercase flex items-center gap-2">
+                    <span>🔤</span> 自訂字體與外觀 (Custom Fonts)
+                </h3>
+                <button onclick="app.closeFontModal()" class="text-xl font-bold hover:text-red-600 px-2">&times;</button>
+            </div>
+
+            <div class="flex-1 overflow-y-auto space-y-4 pr-1 no-scrollbar">
+                <!-- 套用範圍切換 -->
+                <div class="bg-zinc-50 border-2 border-black p-3 space-y-2">
+                    <label class="block text-xs font-black uppercase text-zinc-700">套用生效範圍</label>
+                    <div class="grid grid-cols-2 gap-2">
+                        <label class="flex items-center gap-2 cursor-pointer text-xs font-bold p-2 bg-white border border-black hover:bg-yellow-50">
+                            <input type="radio" name="fontTargetScope" value="all" id="fontTargetScopeAll" onchange="app.handleFontScopeChange(this.value)" class="accent-black" checked>
+                            <span>全域介面與文檔</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer text-xs font-bold p-2 bg-white border border-black hover:bg-yellow-50">
+                            <input type="radio" name="fontTargetScope" value="doc" id="fontTargetScopeDoc" onchange="app.handleFontScopeChange(this.value)" class="accent-black">
+                            <span>僅文檔閱讀/編輯區</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 方式一：上傳本機字體檔案 -->
+                <div class="bg-white border-2 border-black p-3 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <label class="text-xs font-black uppercase text-zinc-800 flex items-center gap-1">
+                            <span>📁</span> 方式一：匯入本機字體檔案
+                        </label>
+                        <span class="text-[10px] text-zinc-500 font-mono">.ttf / .otf / .woff / .woff2</span>
+                    </div>
+                    <p class="text-[11px] text-zinc-600 font-medium">
+                        上傳字體檔案後將自動轉存至本地離線快取，離線狀態與手機端亦能完美載入。
+                    </p>
+                    <div class="flex gap-2 items-center">
+                        <label class="flex-1 cursor-pointer bg-zinc-100 hover:bg-zinc-200 border-2 border-black py-2 px-3 text-xs font-bold text-center flat-box truncate">
+                            <span id="fontFileLabelText">📂 選擇字體檔案...</span>
+                            <input type="file" id="fontFileInput" accept=".ttf,.otf,.woff,.woff2" onchange="app.handleFontFileUpload(event)" class="hidden">
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 方式二：線上字體 / Google Fonts -->
+                <div class="bg-white border-2 border-black p-3 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <label class="text-xs font-black uppercase text-zinc-800 flex items-center gap-1">
+                            <span>🌐</span> 方式二：線上字體 (Google Fonts / CSS URL)
+                        </label>
+                    </div>
+                    <div class="space-y-1.5">
+                        <input type="text" id="fontOnlineUrlInput" placeholder="例如: https://fonts.googleapis.com/css2?family=Noto+Sans+TC&display=swap" class="flat-input w-full p-2 text-xs font-mono bg-zinc-50">
+                        <div class="flex gap-2">
+                            <input type="text" id="fontOnlineFamilyInput" placeholder="字體名稱 (例如: 'Noto Sans TC')" class="flat-input flex-1 p-2 text-xs bg-zinc-50">
+                            <button onclick="app.applyOnlineFontFromInput()" class="bg-black text-white hover:bg-zinc-800 text-xs font-bold px-3 border-2 border-black shrink-0">套用</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 方式三：快速常用字體切換 -->
+                <div class="bg-white border-2 border-black p-3 space-y-2">
+                    <label class="block text-xs font-black uppercase text-zinc-800 flex items-center gap-1">
+                        <span>⚡</span> 常用預設與系統字庫快速切換
+                    </label>
+                    <div class="grid grid-cols-2 gap-1.5 text-xs font-bold">
+                        <button type="button" onclick="app.setQuickFont('Inter, -apple-system, BlinkMacSystemFont, sans-serif', '現代幾何無襯線 (Inter 預設)')" class="p-2 text-left bg-zinc-50 hover:bg-yellow-200 border border-black truncate">
+                            Inter (預設黑體)
+                        </button>
+                        <button type="button" onclick="app.setQuickFont('&quot;Microsoft JhengHei&quot;, &quot;微軟正黑體&quot;, sans-serif', '微軟正黑體 (系統)')" class="p-2 text-left bg-zinc-50 hover:bg-yellow-200 border border-black truncate font-sans">
+                            微軟正黑體
+                        </button>
+                        <button type="button" onclick="app.loadPresetWebFont('Noto+Sans+TC', 'Noto Sans TC', '思源黑體 (Noto Sans TC)')" class="p-2 text-left bg-zinc-50 hover:bg-yellow-200 border border-black truncate">
+                            思源黑體 (繁體)
+                        </button>
+                        <button type="button" onclick="app.loadPresetWebFont('Noto+Serif+TC', 'Noto Serif TC', '思源宋體 (Noto Serif TC)')" class="p-2 text-left bg-zinc-50 hover:bg-yellow-200 border border-black truncate font-serif">
+                            思源宋體 (優雅明體)
+                        </button>
+                        <button type="button" onclick="app.loadPresetWebFont('LXGW+WenKai+TC', 'LXGW WenKai TC', '霞鶩文楷 (溫潤楷書)')" class="p-2 text-left bg-zinc-50 hover:bg-yellow-200 border border-black truncate">
+                            霞鶩文楷 (文青楷書)
+                        </button>
+                        <button type="button" onclick="app.setQuickFont('ui-monospace, Consolas, monospace', '等寬程式碼字體 (Monospace)')" class="p-2 text-left bg-zinc-50 hover:bg-yellow-200 border border-black truncate font-mono">
+                            等寬工整字體
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 當前套用狀態與預覽 -->
+                <div class="bg-yellow-50 border-2 border-black p-3 space-y-2">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-black uppercase text-zinc-800">當前套用字體</span>
+                        <span id="currentFontBadge" class="text-xs font-mono font-bold text-blue-900 bg-white px-2 py-0.5 border border-black truncate max-w-[200px]">Inter (系統預設)</span>
+                    </div>
+                    <div id="fontPreviewSample" class="p-3 bg-white border border-black text-sm font-medium leading-relaxed">
+                        FlatSpec Drive 敏捷專案管理：永不遺失靈感與進度。The quick brown fox jumps over the lazy dog. 1234567890
+                    </div>
+                </div>
+            </div>
+
+            <!-- 底部動作欄 -->
+            <div class="mt-4 pt-3 border-t-2 border-black flex justify-between items-center gap-2 shrink-0">
+                <button onclick="app.resetDefaultFont()" class="bg-zinc-100 hover:bg-zinc-200 text-red-600 border-2 border-black font-bold text-xs px-3 py-2 flat-box">
+                    🔄 恢復預設字體
+                </button>
+                <button onclick="app.closeFontModal()" class="bg-black hover:bg-zinc-800 text-white font-bold text-xs px-4 py-2 border-2 border-black">
+                    關閉
+                </button>
             </div>
         </div>
     </div>
