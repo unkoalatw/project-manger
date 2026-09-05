@@ -133,6 +133,11 @@
                     <span class="text-sm">👥</span>
                     <span class="hidden lg:inline">團隊協作</span>
                 </button>
+                <!-- AI 助手快捷按鈕 -->
+                <button onclick="app.toggleChatSidebar()" class="p-1.5 px-2 bg-purple-200 hover:bg-purple-300 text-purple-950 border-2 border-black font-black text-xs flat-box flex items-center gap-1 shadow-[2px_2px_0px_0px_#000]" title="開啟 AI 助手對話框">
+                    <span class="text-sm">🤖</span>
+                    <span class="hidden md:inline">AI 助手</span>
+                </button>
                 <button id="fontToggleBtn" onclick="app.openFontModal()" class="p-1.5 px-2 bg-zinc-100 hover:bg-zinc-200 border-2 border-black font-bold text-xs flat-box flex items-center gap-1 transition-colors shrink-0" title="自訂字體與排版設定">
                     <span>🔤</span>
                     <span class="hidden md:inline">字體</span>
@@ -140,6 +145,10 @@
                 <button id="soundToggleBtn" onclick="app.toggleSound()" class="p-1.5 px-2 bg-zinc-100 hover:bg-zinc-200 border-2 border-black font-bold text-xs flat-box flex items-center gap-1 transition-colors shrink-0" title="點擊切換音效開關">
                     <span>🔊</span>
                     <span class="hidden md:inline">音效</span>
+                </button>
+                <button onclick="app.openHistoryModal()" class="p-1.5 px-2 bg-zinc-100 hover:bg-zinc-200 border-2 border-black font-bold text-xs flat-box flex items-center gap-1 transition-colors shrink-0" title="歷史版本快照時光機">
+                    <span class="text-sm">🕒</span>
+                    <span class="hidden md:inline">時光機</span>
                 </button>
                 <button onclick="app.openSearchModal()" class="p-1.5 px-2 bg-zinc-100 hover:bg-yellow-200 border-2 border-black font-bold text-xs flat-box flex items-center gap-1 transition-colors shrink-0" title="快速全域搜尋 (Ctrl+K)">
                     <span class="text-sm">🔍</span>
@@ -322,6 +331,62 @@
                             </button>
                             <div id="docLinkDropdown" class="hidden absolute left-0 top-full mt-1 w-64 bg-white border-2 border-black shadow-[4px_4px_0px_0px_#000] z-30 max-h-56 overflow-y-auto no-scrollbar p-1">
                                 <!-- 動態注入文檔清單 -->
+                            </div>
+                        </div>
+
+                        <!-- 螢光筆/字體色彩/徽章選單按鈕 -->
+                        <div class="relative inline-block shrink-0" id="docColorPickerContainer">
+                            <button type="button" onclick="app.toggleDocColorDropdown(event)" class="px-2 py-1 bg-white hover:bg-yellow-200 border-2 border-black font-bold text-xs flex items-center gap-1 flat-box shrink-0" title="彩色標記、字體顏色與徽章標籤">
+                                <span>🎨</span>
+                                <span class="text-[9px]">▼</span>
+                            </button>
+                            <div id="docColorDropdown" class="hidden absolute left-0 top-full mt-1 w-52 bg-white border-2 border-black shadow-[4px_4px_0px_0px_#000] z-30 p-2 space-y-2 text-xs">
+                                <div>
+                                    <div class="font-black text-[10px] text-zinc-500 uppercase mb-1">🖍️ 螢光筆高亮</div>
+                                    <div class="grid grid-cols-4 gap-1">
+                                        <button type="button" onclick="app.applyHighlightColor('yellow')" class="h-6 bg-yellow-200 border border-black hover:scale-105 font-bold text-[10px]" title="黃色高亮">黃</button>
+                                        <button type="button" onclick="app.applyHighlightColor('red')" class="h-6 bg-red-200 border border-black hover:scale-105 font-bold text-[10px]" title="紅色高亮">紅</button>
+                                        <button type="button" onclick="app.applyHighlightColor('green')" class="h-6 bg-green-200 border border-black hover:scale-105 font-bold text-[10px]" title="綠色高亮">綠</button>
+                                        <button type="button" onclick="app.applyHighlightColor('blue')" class="h-6 bg-blue-200 border border-black hover:scale-105 font-bold text-[10px]" title="藍色高亮">藍</button>
+                                        <button type="button" onclick="app.applyHighlightColor('purple')" class="h-6 bg-purple-200 border border-black hover:scale-105 font-bold text-[10px]" title="紫色高亮">紫</button>
+                                        <button type="button" onclick="app.applyHighlightColor('orange')" class="h-6 bg-orange-200 border border-black hover:scale-105 font-bold text-[10px]" title="橙色高亮">橙</button>
+                                        <button type="button" onclick="app.applyHighlightColor('cyan')" class="h-6 bg-cyan-200 border border-black hover:scale-105 font-bold text-[10px]" title="青色高亮">青</button>
+                                        <button type="button" onclick="app.applyHighlightColor('pink')" class="h-6 bg-pink-200 border border-black hover:scale-105 font-bold text-[10px]" title="粉色高亮">粉</button>
+                                    </div>
+                                </div>
+                                <div class="border-t border-zinc-200 pt-1.5">
+                                    <div class="font-black text-[10px] text-zinc-500 uppercase mb-1">🔤 文字顏色</div>
+                                    <div class="grid grid-cols-4 gap-1">
+                                        <button type="button" onclick="app.applyTextColor('red')" class="h-6 bg-white text-red-600 border border-black hover:bg-red-50 font-bold text-[10px]" title="紅色文字">紅</button>
+                                        <button type="button" onclick="app.applyTextColor('green')" class="h-6 bg-white text-green-600 border border-black hover:bg-green-50 font-bold text-[10px]" title="綠色文字">綠</button>
+                                        <button type="button" onclick="app.applyTextColor('blue')" class="h-6 bg-white text-blue-600 border border-black hover:bg-blue-50 font-bold text-[10px]" title="藍色文字">藍</button>
+                                        <button type="button" onclick="app.applyTextColor('purple')" class="h-6 bg-white text-purple-600 border border-black hover:bg-purple-50 font-bold text-[10px]" title="紫色文字">紫</button>
+                                        <button type="button" onclick="app.applyTextColor('orange')" class="h-6 bg-white text-orange-600 border border-black hover:bg-orange-50 font-bold text-[10px]" title="橙色文字">橙</button>
+                                        <button type="button" onclick="app.applyTextColor('yellow')" class="h-6 bg-white text-yellow-600 border border-black hover:bg-yellow-50 font-bold text-[10px]" title="黃色文字">黃</button>
+                                        <button type="button" onclick="app.applyTextColor('pink')" class="h-6 bg-white text-pink-600 border border-black hover:bg-pink-50 font-bold text-[10px]" title="粉色文字">粉</button>
+                                        <button type="button" onclick="app.applyTextColor('cyan')" class="h-6 bg-white text-cyan-600 border border-black hover:bg-cyan-50 font-bold text-[10px]" title="青色文字">青</button>
+                                    </div>
+                                </div>
+                                <div class="border-t border-zinc-200 pt-1.5">
+                                    <div class="font-black text-[10px] text-zinc-500 uppercase mb-1">🏷️ 膠囊徽章</div>
+                                    <div class="grid grid-cols-4 gap-1">
+                                        <button type="button" onclick="app.insertBadgeSyntax('blue')" class="h-6 bg-blue-100 text-blue-900 border border-black hover:scale-105 font-bold text-[10px]">藍</button>
+                                        <button type="button" onclick="app.insertBadgeSyntax('green')" class="h-6 bg-green-100 text-green-900 border border-black hover:scale-105 font-bold text-[10px]">綠</button>
+                                        <button type="button" onclick="app.insertBadgeSyntax('red')" class="h-6 bg-red-100 text-red-900 border border-black hover:scale-105 font-bold text-[10px]">紅</button>
+                                        <button type="button" onclick="app.insertBadgeSyntax('purple')" class="h-6 bg-purple-100 text-purple-900 border border-black hover:scale-105 font-bold text-[10px]">紫</button>
+                                    </div>
+                                </div>
+                                <div class="border-t border-zinc-200 pt-1.5">
+                                    <div class="font-black text-[10px] text-zinc-500 uppercase mb-1">💬 GitHub 警示框</div>
+                                    <div class="grid grid-cols-3 gap-1">
+                                        <button type="button" onclick="app.insertCalloutSyntax('NOTE')" class="p-1 bg-blue-50 border border-blue-500 text-blue-900 font-bold text-[9px]">ℹ️ NOTE</button>
+                                        <button type="button" onclick="app.insertCalloutSyntax('TIP')" class="p-1 bg-emerald-50 border border-emerald-500 text-emerald-900 font-bold text-[9px]">💡 TIP</button>
+                                        <button type="button" onclick="app.insertCalloutSyntax('WARNING')" class="p-1 bg-amber-50 border border-amber-500 text-amber-900 font-bold text-[9px]">⚠️ WARN</button>
+                                        <button type="button" onclick="app.insertCalloutSyntax('IMPORTANT')" class="p-1 bg-violet-50 border border-violet-500 text-violet-900 font-bold text-[9px]">📌 IMP</button>
+                                        <button type="button" onclick="app.insertCalloutSyntax('CAUTION')" class="p-1 bg-red-50 border border-red-500 text-red-900 font-bold text-[9px]">🚨 CAUT</button>
+                                        <button type="button" onclick="app.insertCalloutSyntax('SUCCESS')" class="p-1 bg-green-50 border border-green-500 text-green-900 font-bold text-[9px]">✅ SUCC</button>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -1242,6 +1307,81 @@
             <div class="truncate text-xs font-black text-black" id="liveToastMsg">Alex 剛剛更新了文檔</div>
         </div>
     </div>
+
+    <!-- 歷史版本快照時光機 Modal -->
+    <div id="historyModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-3 md:p-6" onclick="app.closeHistoryModal()">
+        <div class="bg-white border-2 border-black p-5 md:p-6 max-w-xl w-full flat-shadow-lg flex flex-col max-h-[88vh]" onclick="event.stopPropagation()">
+            <div class="flex items-center justify-between border-b-2 border-black pb-3 mb-3 shrink-0">
+                <h3 class="font-black text-lg uppercase flex items-center gap-2">
+                    <span>🕒</span> 本機歷史版本時光機 (Snapshot Rollback)
+                </h3>
+                <button onclick="app.closeHistoryModal()" class="text-xl font-bold hover:text-red-600 px-2">&times;</button>
+            </div>
+
+            <p class="text-xs text-zinc-600 font-medium leading-relaxed mb-3">
+                系統每次同步或存檔時皆會自動留下時光機快照。若發現內容被覆蓋或遺失，可在此選取歷史時間點一鍵還原！
+            </p>
+
+            <div id="historySnapshotsList" class="flex-1 overflow-y-auto space-y-2 pr-1 no-scrollbar min-h-[220px]">
+                <!-- 動態注入歷史快照 -->
+            </div>
+
+            <!-- Google 試算表版本提示 -->
+            <div class="mt-3 p-2.5 bg-blue-50 border-2 border-blue-900 text-xs font-bold text-blue-950 flex items-center justify-between">
+                <span>📊 Google 試算表雲端版本記錄：可由試算表「檔案 ➔ 版本記錄」隨時倒帶</span>
+                <a href="javascript:void(0)" onclick="app.openGasUrlInBrowser()" class="underline text-blue-800">開啟試算表 ↗</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Chat Backdrop -->
+    <div id="chatBackdrop" class="hidden fixed inset-0 bg-black/30 z-40 md:hidden" onclick="app.closeChatSidebar()"></div>
+
+    <!-- AI Chat Right Sidebar -->
+    <aside id="rightSidebar" class="fixed top-0 right-0 h-full w-80 sm:w-96 bg-white border-l-2 border-black z-50 flex flex-col transform translate-x-full transition-transform duration-300 ease-in-out">
+        <!-- Header -->
+        <div class="h-14 border-b-2 border-black bg-purple-200 flex items-center justify-between px-3 shrink-0">
+            <div class="flex items-center gap-2">
+                <span class="text-lg">🤖</span>
+                <span class="font-black text-sm uppercase">AI 助手</span>
+                <span class="text-[10px] bg-white border border-black px-1 font-mono">Groq</span>
+            </div>
+            <div class="flex items-center gap-1">
+                <button type="button" onclick="app.clearChatMessages()" class="p-1 px-2 bg-white border-2 border-black font-bold text-xs flat-box" title="清除對話紀錄">🗑️ 清空</button>
+                <button onclick="app.closeChatSidebar()" class="p-1 px-2 bg-white border-2 border-black font-bold text-sm flat-box">✕</button>
+            </div>
+        </div>
+
+        <!-- Consent Banner -->
+        <div id="groqConsent" class="p-3 bg-yellow-100 border-b-2 border-black">
+            <p class="text-xs font-bold mb-2">⚡ 智慧操作權限</p>
+            <p class="text-xs mb-2">本功能使用 Groq LLM，AI 助手可協助管理專案、編輯文檔與切換視圖。產生的所有操作指令皆需經您<strong>確認</strong>後執行。</p>
+            <button onclick="app.acceptGroqConsent()" class="px-3 py-1.5 bg-green-300 hover:bg-green-400 border-2 border-black font-bold text-xs flat-box">✅ 同意並開始使用</button>
+        </div>
+
+        <!-- Chat Body (hidden until consent) -->
+        <div id="chatBody" class="hidden flex-1 flex flex-col min-h-0">
+            <!-- Messages -->
+            <div id="chatMessages" class="flex-1 overflow-y-auto p-3 space-y-2 no-scrollbar">
+                <div class="flex justify-start mb-2">
+                    <div class="max-w-[85%] px-3 py-2 bg-zinc-100 border-2 border-black text-xs leading-relaxed break-words">
+                        👋 你好！我是 AI 助手，已配置好 Groq 模型，可以幫你管理專案、切換視圖、編輯或自主命名建檔。有什麼需要嗎？
+                    </div>
+                </div>
+            </div>
+
+            <!-- Input -->
+            <div class="border-t-2 border-black p-2 bg-zinc-50 shrink-0">
+                <div class="flex gap-1">
+                    <input id="chatInput" type="text" placeholder="輸入指令... (例如：幫我撰寫登入系統規格書)" class="flex-1 px-2 py-1.5 border-2 border-black text-xs font-mono flat-input" onkeydown="app.handleChatKeydown(event)" autocomplete="off" />
+                    <button onclick="app.sendChatMessage()" class="px-3 py-1.5 bg-purple-300 hover:bg-purple-400 border-2 border-black font-bold text-xs flat-box shrink-0">送出</button>
+                </div>
+                <div class="text-[10px] text-zinc-500 mt-1 font-mono">
+                    Enter 送出 · groq/compound-mini
+                </div>
+            </div>
+        </div>
+    </aside>
 
     <script type="module" src="./src/app.js"></script>
 </body>

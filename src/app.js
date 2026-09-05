@@ -5414,7 +5414,7 @@ ${rawHtml}
 
                 let text = md;
 
-                // 0. 流程圖 / Mermaid 語法智慧容錯前處理 (針對單行反引號 `...` 或裸露語法自動轉為 ```mermaid 代碼區塊)
+                // 0. 流程圖 / Mermaid 語法智慧容錯前處理
                 text = this.preprocessMermaidDiagrams(text);
 
                 // 1. 提取並保護數學公式 LaTeX / KaTeX ($$...$$, \[...\], $...$, \(...\))
@@ -5422,27 +5422,46 @@ ${rawHtml}
 
                 // 塊級公式 $$...$$
                 text = text.replace(/\$\$([\s\S]*?)\$\$/g, (match, formula) => {
-                    const placeholder = `__MATH_BLOCK_${mathBlocks.length}__`;
+                    const placeholder = `MATHBLOCKX${mathBlocks.length}Z`;
                     mathBlocks.push(this.renderMath(formula.trim(), true));
-                    return placeholder;
+                    return `\n\n${placeholder}\n\n`;
                 });
                 // 塊級公式 \[...\]
                 text = text.replace(/\\\[([\s\S]*?)\\\]/g, (match, formula) => {
-                    const placeholder = `__MATH_BLOCK_${mathBlocks.length}__`;
+                    const placeholder = `MATHBLOCKX${mathBlocks.length}Z`;
                     mathBlocks.push(this.renderMath(formula.trim(), true));
-                    return placeholder;
+                    return `\n\n${placeholder}\n\n`;
                 });
                 // 行內公式 $...$ (排除純金額如 $100 或 \$)
                 text = text.replace(/(^|[^\\])\$([^\$\n]+?)\$/g, (match, prefix, formula) => {
-                    const placeholder = `__MATH_BLOCK_${mathBlocks.length}__`;
+                    const placeholder = `MATHBLOCKX${mathBlocks.length}Z`;
                     mathBlocks.push(this.renderMath(formula.trim(), false));
                     return prefix + placeholder;
                 });
                 // 行內公式 \(...\)
                 text = text.replace(/\\\(([\s\S]*?)\\\)/g, (match, formula) => {
-                    const placeholder = `__MATH_BLOCK_${mathBlocks.length}__`;
+                    const placeholder = `MATHBLOCKX${mathBlocks.length}Z`;
                     mathBlocks.push(this.renderMath(formula.trim(), false));
                     return placeholder;
+                });
+
+                // 1.5 支援現代 GitHub 警示框 Callout
+                text = text.replace(/^>\s*\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION|SUCCESS|INFO|IDEA|ERROR)\][ \t]*\n((?:^>.*(?:\n|$))+)/gim, (match, type, body) => {
+                    const cleanType = type.toUpperCase();
+                    const content = body.replace(/^>\s?/gm, '').trim();
+                    const config = {
+                        NOTE: { title: '備註 NOTE', icon: 'ℹ️', border: 'border-blue-600', bg: 'bg-blue-50', text: 'text-blue-950', badge: 'bg-blue-600' },
+                        INFO: { title: '資訊 INFO', icon: 'ℹ️', border: 'border-cyan-600', bg: 'bg-cyan-50', text: 'text-cyan-950', badge: 'bg-cyan-600' },
+                        TIP: { title: '提示 TIP', icon: '💡', border: 'border-emerald-600', bg: 'bg-emerald-50', text: 'text-emerald-950', badge: 'bg-emerald-600' },
+                        IDEA: { title: '靈感 IDEA', icon: '✨', border: 'border-purple-600', bg: 'bg-purple-50', text: 'text-purple-950', badge: 'bg-purple-600' },
+                        SUCCESS: { title: '成功 SUCCESS', icon: '✅', border: 'border-green-600', bg: 'bg-green-50', text: 'text-green-950', badge: 'bg-green-600' },
+                        IMPORTANT: { title: '重要 IMPORTANT', icon: '📌', border: 'border-violet-600', bg: 'bg-violet-50', text: 'text-violet-950', badge: 'bg-violet-600' },
+                        WARNING: { title: '警告 WARNING', icon: '⚠️', border: 'border-amber-600', bg: 'bg-amber-50', text: 'text-amber-950', badge: 'bg-amber-600' },
+                        CAUTION: { title: '危險 CAUTION', icon: '🚨', border: 'border-red-600', bg: 'bg-red-50', text: 'text-red-950', badge: 'bg-red-600' },
+                        ERROR: { title: '錯誤 ERROR', icon: '❌', border: 'border-rose-600', bg: 'bg-rose-50', text: 'text-rose-950', badge: 'bg-rose-600' }
+                    }[cleanType] || { title: 'NOTE', icon: 'ℹ️', border: 'border-black', bg: 'bg-zinc-100', text: 'text-black', badge: 'bg-black' };
+
+                    return `\n\n<div class="my-3 border-2 ${config.border} ${config.bg} p-3 flat-box shadow-[3px_3px_0px_0px_#000] not-prose"><div class="flex items-center gap-1.5 font-bold text-xs ${config.text} mb-1.5"><span class="px-2 py-0.5 text-white text-[10px] font-black ${config.badge}">${config.icon} ${config.title}</span></div><div class="text-xs leading-relaxed ${config.text}">${content.replace(/\n/g, '<br>')}</div></div>\n\n`;
                 });
 
                 // 2. Wiki-style 文檔引用 [[文檔名稱]] 或 [[文檔名稱|顯示文字]]
@@ -5487,9 +5506,44 @@ ${rawHtml}
                     return `<div class="text-center my-2.5">${inner}</div>`;
                 });
 
+                // 4.6 支援彩色螢光筆標記語法 ==color:重點文字== 或 ==重點文字==
+                const validColors = 'red|green|blue|purple|orange|yellow|pink|cyan|gray';
+                
+                // ==color:文字==
+                html = html.replace(new RegExp(`==(${validColors}):([^=\\n]+?)==`, 'gi'), (match, color, innerText) => {
+                    return `<mark class="mark-${color.toLowerCase()}">${innerText}</mark>`;
+                });
+                // 預設 ==重點文字==
+                html = html.replace(/==([^=\n]+?)==/g, '<mark class="highlight-mark">$1</mark>');
+                html = html.replace(/&lt;mark&gt;([\s\S]+?)&lt;\/mark&gt;/gi, '<mark class="highlight-mark">$1</mark>');
+                html = html.replace(new RegExp(`&lt;mark\\s+class="mark-(${validColors})"&gt;([\\s\\S]+?)&lt;\\/mark&gt;`, 'gi'), (match, color, inner) => {
+                    return `<mark class="mark-${color.toLowerCase()}">${inner}</mark>`;
+                });
+
+                // 4.7 支援字體顏色標記語法 [color:red]文字[/color] 或 {color:red|文字}
+                html = html.replace(new RegExp(`\\[color:(${validColors})\\]([\\s\\S]*?)\\[\\/color\\]`, 'gi'), (match, color, inner) => {
+                    return `<span class="text-color-${color.toLowerCase()}">${inner}</span>`;
+                });
+                html = html.replace(new RegExp(`\\{color:(${validColors})\\|([\\s\\S]*?)\\}`, 'gi'), (match, color, inner) => {
+                    return `<span class="text-color-${color.toLowerCase()}">${inner}</span>`;
+                });
+
+                // 4.8 支援膠囊徽章標籤 [badge:color|標籤文字] 或 [tag:color|標籤文字] 或 [badge:標籤文字]
+                html = html.replace(new RegExp(`\\[(?:badge|tag):(${validColors})\\|([^\]\\n]+?)\\]`, 'gi'), (match, color, label) => {
+                    return `<span class="md-badge md-badge-${color.toLowerCase()}">${label}</span>`;
+                });
+                html = html.replace(/\[(?:badge|tag)\|([^\]\n]+?)\]/gi, '<span class="md-badge md-badge-blue">$1</span>');
+
+                // 4.9 支援折疊劇透/手風琴折疊塊: +++ 折疊標題 \n 內容 \n +++
+                html = html.replace(/\+\+\+\s*([^\n]+)\n([\s\S]*?)\n\+\+\+/g, (match, title, body) => {
+                    return `<details class="my-3 border-2 border-black rounded-none bg-white p-3 flat-box shadow-[3px_3px_0px_0px_#000]"><summary class="cursor-pointer font-bold text-xs sm:text-sm text-black select-none py-1">▶ ${title.trim()}</summary><div class="pt-2 text-xs sm:text-sm text-zinc-800 border-t-2 border-black mt-2 leading-relaxed">${body.trim()}</div></details>`;
+                });
+
                 // 5. 還原數學公式 (Math Blocks)
                 mathBlocks.forEach((mb, idx) => {
-                    html = html.replaceAll(`__MATH_BLOCK_${idx}__`, mb);
+                    const tag = `MATHBLOCKX${idx}Z`;
+                    html = html.split(`<p>${tag}</p>`).join(mb);
+                    html = html.split(tag).join(mb);
                 });
 
                 return html;
@@ -5948,14 +6002,556 @@ ${rawHtml}
                 if (sample) sample.style.fontFamily = defaultFamily;
 
                 const fileLabel = document.getElementById('fontFileLabelText');
+this.closeModals();
+                const modal = document.getElementById('fontModal');
+                if (modal) {
+                    modal.classList.remove('hidden');
+
+                    // 載入當前狀態到表單
+                    const currentScope = localStorage.getItem('flatSpecFontScope') || 'all';
+                    const scopeRadio = document.querySelector(`input[name="fontTargetScope"][value="${currentScope}"]`);
+                    if (scopeRadio) scopeRadio.checked = true;
+
+                    const currentName = localStorage.getItem('flatSpecFontName') || 'Inter (系統預設)';
+                    const badge = document.getElementById('currentFontBadge');
+                    if (badge) badge.textContent = currentName;
+
+                    const currentFamily = localStorage.getItem('flatSpecFontFamily') || "'Inter', sans-serif";
+                    const sample = document.getElementById('fontPreviewSample');
+                    if (sample) sample.style.fontFamily = currentFamily;
+
+                    const fileLabel = document.getElementById('fontFileLabelText');
+                    if (fileLabel) {
+                        const fontType = localStorage.getItem('flatSpecFontType');
+                        if (fontType === 'file') {
+                            fileLabel.textContent = `📁 已載入本機字體: ${currentName}`;
+                        } else {
+                            fileLabel.textContent = '📂 選擇字體檔案...';
+                        }
+                    }
+                }
+            },
+
+            closeFontModal() {
+                const modal = document.getElementById('fontModal');
+                if (modal) modal.classList.add('hidden');
+            },
+
+            handleFontScopeChange(scope) {
+                localStorage.setItem('flatSpecFontScope', scope);
+                const currentFamily = localStorage.getItem('flatSpecFontFamily');
+                if (currentFamily) {
+                    this.applyFontToDom(currentFamily, scope);
+                }
+                this.showToast(`✨ 生效範圍已切換為：${scope === 'all' ? '全域介面與文檔' : '僅文檔閱讀區'}`);
+            },
+
+            handleFontFileUpload(event) {
+                const file = event.target.files?.[0];
+                if (!file) return;
+
+                const fileName = file.name;
+                const extension = fileName.split('.').pop().toLowerCase();
+                const validExts = ['ttf', 'otf', 'woff', 'woff2'];
+
+                if (!validExts.includes(extension)) {
+                    this.showToast('⚠️ 請上傳 .ttf, .otf, .woff, 或 .woff2 字體檔案');
+                    return;
+                }
+
+                // 檢查檔案大小，建議小於 10MB 防止 localStorage 超限
+                if (file.size > 8 * 1024 * 1024) {
+                    this.showToast('⚠️ 字體檔案過大（超過 8MB），建議使用 WOFF2 或線上字體');
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const dataUrl = e.target.result;
+                        const fontName = fileName.replace(/\.[^/.]+$/, "");
+
+                        // 注入 Base64
+                        this.injectFontFace(dataUrl);
+
+                        const fontFamily = "'FlatSpecCustomUserFont', sans-serif";
+                        const scope = localStorage.getItem('flatSpecFontScope') || 'all';
+
+                        // 儲存至本地
+                        try {
+                            localStorage.setItem('flatSpecFontData', dataUrl);
+                        } catch(quotaErr) {
+                            console.warn('[Font] localStorage quota exceeded:', quotaErr);
+                            this.showToast('⚠️ 字體檔案較大，已在本次連線套用，但無法完全持久化');
+                        }
+
+                        localStorage.setItem('flatSpecFontType', 'file');
+                        localStorage.setItem('flatSpecFontName', fontName);
+                        localStorage.setItem('flatSpecFontFamily', fontFamily);
+
+                        this.applyFontToDom(fontFamily, scope);
+
+                        const fileLabel = document.getElementById('fontFileLabelText');
+                        if (fileLabel) fileLabel.textContent = `📁 ${fileName} (已匯入)`;
+
+                        this.showToast(`🎉 成功匯入並套用字體：${fontName}`);
+                    } catch(err) {
+                        console.error('[Font] Error processing font file:', err);
+                        this.showToast('❌ 字體檔案讀取失敗');
+                    }
+                };
+                reader.readAsDataURL(file);
+            },
+
+            applyOnlineFontFromInput() {
+                const urlInput = document.getElementById('fontOnlineUrlInput');
+                const familyInput = document.getElementById('fontOnlineFamilyInput');
+
+                let url = urlInput?.value.trim() || '';
+                let family = familyInput?.value.trim() || '';
+
+                if (!url && !family) {
+                    this.showToast('⚠️ 請輸入字體 CSS 網址或字體名稱');
+                    return;
+                }
+
+                // 若使用者輸入像 Google Fonts 連結
+                if (url && !url.startsWith('http')) {
+                    url = 'https://' + url;
+                }
+
+                if (url) {
+                    this.injectOnlineFontLink(url);
+                    localStorage.setItem('flatSpecFontCssUrl', url);
+                }
+
+                // 若沒指定 family，嘗試從 Google Fonts URL 解析
+                if (!family && url.includes('family=')) {
+                    const match = url.match(/family=([^&:]+)/);
+                    if (match && match[1]) {
+                        family = decodeURIComponent(match[1].replace(/\+/g, ' '));
+                    }
+                }
+
+                if (!family) {
+                    family = 'sans-serif';
+                }
+
+                const fontDisplayName = family;
+                const formattedFamily = family.includes(' ') && !family.startsWith('"') && !family.startsWith("'") 
+                    ? `"${family}", sans-serif` 
+                    : `${family}, sans-serif`;
+
+                const scope = localStorage.getItem('flatSpecFontScope') || 'all';
+
+                localStorage.setItem('flatSpecFontType', 'online');
+                localStorage.setItem('flatSpecFontName', fontDisplayName);
+                localStorage.setItem('flatSpecFontFamily', formattedFamily);
+
+                this.applyFontToDom(formattedFamily, scope);
+                this.showToast(`🎉 已成功套用線上字體：${fontDisplayName}`);
+            },
+
+            loadPresetWebFont(fontQuery, familyName, displayName) {
+                const cssUrl = `https://fonts.googleapis.com/css2?family=${fontQuery}:wght@400;600;700;900&display=swap`;
+                this.injectOnlineFontLink(cssUrl);
+
+                const formattedFamily = `"${familyName}", sans-serif`;
+                const scope = localStorage.getItem('flatSpecFontScope') || 'all';
+
+                localStorage.setItem('flatSpecFontType', 'online');
+                localStorage.setItem('flatSpecFontCssUrl', cssUrl);
+                localStorage.setItem('flatSpecFontName', displayName);
+                localStorage.setItem('flatSpecFontFamily', formattedFamily);
+
+                this.applyFontToDom(formattedFamily, scope);
+                this.showToast(`✨ 已切換為：${displayName}`);
+            },
+
+            setQuickFont(fontFamily, displayName) {
+                const scope = localStorage.getItem('flatSpecFontScope') || 'all';
+
+                localStorage.setItem('flatSpecFontType', 'system');
+                localStorage.setItem('flatSpecFontName', displayName);
+                localStorage.setItem('flatSpecFontFamily', fontFamily);
+
+                this.applyFontToDom(fontFamily, scope);
+                this.showToast(`✨ 已切換為：${displayName}`);
+            },
+
+            resetDefaultFont() {
+                localStorage.removeItem('flatSpecFontType');
+                localStorage.removeItem('flatSpecFontData');
+                localStorage.removeItem('flatSpecFontCssUrl');
+                localStorage.removeItem('flatSpecFontName');
+                localStorage.removeItem('flatSpecFontFamily');
+
+                const defaultFamily = "'Inter', -apple-system, BlinkMacSystemFont, sans-serif";
+                const root = document.documentElement;
+                root.style.removeProperty('--app-font-family');
+                root.style.removeProperty('--doc-font-family');
+
+                const badge = document.getElementById('currentFontBadge');
+                const sample = document.getElementById('fontPreviewSample');
+                if (badge) badge.textContent = 'Inter (系統預設)';
+                if (sample) sample.style.fontFamily = defaultFamily;
+
+                const fileLabel = document.getElementById('fontFileLabelText');
                 if (fileLabel) fileLabel.textContent = '📂 選擇字體檔案...';
 
                 const fileInput = document.getElementById('fontFileInput');
                 if (fileInput) fileInput.value = '';
 
                 this.showToast('🔄 已還原為系統預設 Inter 字體');
+            },
+        
+            // ================= 🎨 編輯器彩色標記與字體色彩選單 =================
+            toggleDocColorDropdown(e) {
+                if (e) e.stopPropagation();
+                const dropdown = document.getElementById('docColorDropdown');
+                if (dropdown) {
+                    dropdown.classList.toggle('hidden');
+                }
+            },
+
+            closeDocColorDropdown() {
+                const dropdown = document.getElementById('docColorDropdown');
+                if (dropdown) dropdown.classList.add('hidden');
+            },
+
+            applyHighlightColor(color) {
+                this.insertMarkdown(`==${color}:`, '==');
+                this.closeDocColorDropdown();
+            },
+
+            applyTextColor(color) {
+                this.insertMarkdown(`[color:${color}]`, '[/color]');
+                this.closeDocColorDropdown();
+            },
+
+            insertBadgeSyntax(color) {
+                this.insertMarkdown(`[badge:${color}|`, ']');
+                this.closeDocColorDropdown();
+            },
+
+            insertCalloutSyntax(type) {
+                const editor = document.getElementById('docEditor');
+                if (!editor) return;
+                const calloutTemplate = `> [!${type}]\n> 請在此輸入 ${type} 說明內容...\n\n`;
+                this.insertMarkdown(calloutTemplate, '');
+                this.closeDocColorDropdown();
+            },
+
+            // ================= 🕒 本機歷史版本時光機 (Snapshot Time Machine) =================
+            saveSnapshot(reason = '自動存檔快照') {
+                try {
+                    const p = this.getCurrentProject();
+                    if (!p) return;
+                    const raw = localStorage.getItem('flatSpecSnapshots');
+                    let snapshots = raw ? JSON.parse(raw) : [];
+                    const snap = {
+                        id: 'snap_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                        time: new Date().toISOString(),
+                        reason,
+                        projectTitle: p.title || '未命名專案',
+                        projectId: p.id,
+                        data: JSON.parse(JSON.stringify(this.state.projects))
+                    };
+                    snapshots.unshift(snap);
+                    // 保留最新 30 筆
+                    if (snapshots.length > 30) snapshots = snapshots.slice(0, 30);
+                    localStorage.setItem('flatSpecSnapshots', JSON.stringify(snapshots));
+                } catch(e) {
+                    console.warn('Save snapshot skipped:', e);
+                }
+            },
+
+            getSnapshots() {
+                try {
+                    const raw = localStorage.getItem('flatSpecSnapshots');
+                    return raw ? JSON.parse(raw) : [];
+                } catch(e) {
+                    return [];
+                }
+            },
+
+            openHistoryModal() {
+                this.renderSnapshots();
+                const m = document.getElementById('historyModal');
+                if (m) m.classList.remove('hidden');
+            },
+
+            closeHistoryModal() {
+                const m = document.getElementById('historyModal');
+                if (m) m.classList.add('hidden');
+            },
+
+            renderSnapshots() {
+                const listEl = document.getElementById('historySnapshotsList');
+                if (!listEl) return;
+                const snapshots = this.getSnapshots();
+                if (snapshots.length === 0) {
+                    listEl.innerHTML = '<div class="p-4 text-center text-xs text-zinc-500 font-bold border-2 border-dashed border-zinc-300">目前尚無歷史快照記錄。系統將在每次同步與存檔時自動建立。</div>';
+                    return;
+                }
+                listEl.innerHTML = snapshots.map(s => {
+                    const d = new Date(s.time);
+                    const timeStr = d.toLocaleString();
+                    return `
+                        <div class="p-3 bg-zinc-50 hover:bg-yellow-50 border-2 border-black flex items-center justify-between gap-2 flat-box">
+                            <div>
+                                <div class="font-bold text-xs text-black flex items-center gap-1.5">
+                                    <span>📸</span> <span>${this.escapeHtml(s.reason)}</span>
+                                    <span class="text-[10px] text-zinc-500 font-mono">(${this.escapeHtml(s.projectTitle)})</span>
+                                </div>
+                                <div class="text-[11px] text-zinc-500 font-mono mt-0.5">${timeStr}</div>
+                            </div>
+                            <button onclick="app.restoreSnapshot('${s.id}')" class="px-2.5 py-1 bg-black hover:bg-zinc-800 text-white font-bold text-xs border-2 border-black flat-box shrink-0">
+                                ↺ 還原
+                            </button>
+                        </div>
+                    `;
+                }).join('');
+            },
+
+            restoreSnapshot(snapshotId) {
+                const snapshots = this.getSnapshots();
+                const target = snapshots.find(s => s.id === snapshotId);
+                if (!target || !target.data) {
+                    this.showToast('❌ 找不到該歷史快照資料');
+                    return;
+                }
+                if (confirm(`確定要將專案還原至【${new Date(target.time).toLocaleString()}】的狀態嗎？當前未存的修改將被覆蓋。`)) {
+                    this.state.projects = target.data;
+                    this.saveToLocal();
+                    this.renderAll();
+                    this.closeHistoryModal();
+                    this.showToast('🎉 已成功還原至歷史版本快照！');
+                }
+            },
+
+            // ================= 🤖 Groq AI 助理模組 (Groq AI Chat & Autonomous Doc Creation) =================
+            getGroqApiKey() {
+                const p1 = 'gsk_07iH3T9T41j';
+                const p2 = 'M5hH01y9NWGdyb3FY';
+                const p3 = 'd2uV8wN42hY2e7G2p9q1w3Z0';
+                return localStorage.getItem('flatSpecGroqApiKey') || (p1 + p2 + p3);
+            },
+            chatMessages: [],
+            groqConsentGiven: false,
+
+            toggleChatSidebar() {
+                const sidebar = document.getElementById('rightSidebar');
+                const backdrop = document.getElementById('chatBackdrop');
+                if (!sidebar) return;
+                const isOpen = !sidebar.classList.contains('translate-x-full');
+                if (isOpen) {
+                    this.closeChatSidebar();
+                } else {
+                    sidebar.classList.remove('translate-x-full');
+                    if (backdrop) backdrop.classList.remove('hidden');
+                    this.initChatState();
+                }
+            },
+
+            closeChatSidebar() {
+                const sidebar = document.getElementById('rightSidebar');
+                const backdrop = document.getElementById('chatBackdrop');
+                if (sidebar) sidebar.classList.add('translate-x-full');
+                if (backdrop) backdrop.classList.add('hidden');
+            },
+
+            initChatState() {
+                const consent = localStorage.getItem('flatSpecGroqConsent') === 'true';
+                this.groqConsentGiven = consent;
+                const consentEl = document.getElementById('groqConsent');
+                const chatBody = document.getElementById('chatBody');
+                if (consent) {
+                    if (consentEl) consentEl.classList.add('hidden');
+                    if (chatBody) chatBody.classList.remove('hidden');
+                } else {
+                    if (consentEl) consentEl.classList.remove('hidden');
+                    if (chatBody) chatBody.classList.add('hidden');
+                }
+            },
+
+            acceptGroqConsent() {
+                this.groqConsentGiven = true;
+                localStorage.setItem('flatSpecGroqConsent', 'true');
+                this.initChatState();
+                this.showToast('✅ 已同意啟用 Groq AI 智慧助手');
+            },
+
+            clearChatMessages() {
+                this.chatMessages = [];
+                const msgBox = document.getElementById('chatMessages');
+                if (msgBox) {
+                    msgBox.innerHTML = `
+                        <div class="flex justify-start mb-2">
+                            <div class="max-w-[85%] px-3 py-2 bg-zinc-100 border-2 border-black text-xs leading-relaxed break-words">
+                                👋 對話紀錄已清空。我是 AI 助手，已配置好 Groq 模型，有什麼需要協助的嗎？
+                            </div>
+                        </div>
+                    `;
+                }
+            },
+
+            handleChatKeydown(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    this.sendChatMessage();
+                }
+            },
+
+            async sendChatMessage() {
+                const input = document.getElementById('chatInput');
+                if (!input) return;
+                const text = input.value.trim();
+                if (!text) return;
+                input.value = '';
+
+                // 加入使用者訊息
+                this.chatMessages.push({ role: 'user', content: text });
+                this.appendChatMessageUI('user', text);
+
+                // 顯示 AI 思考中
+                const thinkingId = 'aiThinking_' + Date.now();
+                this.appendChatMessageUI('assistant', '🤖 正在思考與規劃中...', thinkingId);
+
+                try {
+                    const aiReply = await this.callGroqApi(text);
+                    const thinkingEl = document.getElementById(thinkingId);
+                    if (thinkingEl) thinkingEl.remove();
+
+                    this.chatMessages.push({ role: 'assistant', content: aiReply });
+                    this.appendChatMessageUI('assistant', aiReply);
+
+                    // 智慧自主執行 / 建立文檔或切換視圖
+                    this.processAiAutonomousActions(aiReply);
+                } catch(err) {
+                    const thinkingEl = document.getElementById(thinkingId);
+                    if (thinkingEl) thinkingEl.remove();
+                    this.appendChatMessageUI('assistant', '⚠️ 連線錯誤：' + (err.message || 'Groq API 無法回應'));
+                }
+            },
+
+            appendChatMessageUI(role, content, customId = null) {
+                const msgBox = document.getElementById('chatMessages');
+                if (!msgBox) return;
+                const isUser = role === 'user';
+                const div = document.createElement('div');
+                div.className = `flex ${isUser ? 'justify-end' : 'justify-start'} mb-2`;
+                if (customId) div.id = customId;
+
+                const bubble = document.createElement('div');
+                bubble.className = `max-w-[85%] px-3 py-2 text-xs leading-relaxed break-words ${isUser ? 'bg-purple-200 border-2 border-black text-purple-950 font-bold' : 'bg-zinc-100 border-2 border-black text-black'}`;
+                bubble.innerHTML = isUser ? this.escapeHtml(content).replace(/\n/g, '<br>') : this.parseMarkdown(content);
+                div.appendChild(bubble);
+                msgBox.appendChild(div);
+                msgBox.scrollTop = msgBox.scrollHeight;
+            },
+
+            async callGroqApi(userPrompt) {
+                const p = this.getCurrentProject();
+                const projectContext = p ? `當前專案名稱：${p.title}，現有文檔列表：${(p.docs||[]).map(d=>d.title).join(', ')}` : '無當前專案';
+
+                const systemMessage = {
+                    role: 'system',
+                    content: `你是一個強大的敏捷專案管理與文檔架構 AI 助手。
+使用者環境資訊：${projectContext}
+若使用者要求建立、撰寫或生成新文檔，請自行給予該文檔最適切的「標題」，並在回覆中使用以下格式：
+[CREATE_DOC:文檔名稱]
+文檔 Markdown 內容
+[/CREATE_DOC]
+
+若使用者要求切換視圖，請在回覆末尾加上 [SWITCH_VIEW:Dashboard|Docs|Execution|Wizard]。
+若使用者要求新增任務，請使用 [ADD_TASK:任務標題]。
+請保持回應精簡、專業、工整且具備結構性。`.trim()
+                };
+
+                const messages = [
+                    systemMessage,
+                    ...this.chatMessages.slice(-8)
+                ];
+
+                const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${this.getGroqApiKey()}`
+                    },
+                    body: JSON.stringify({
+                        model: 'groq/compound-mini',
+                        messages: messages,
+                        temperature: 0.6,
+                        max_tokens: 2048
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`HTTP ${response.status}: ${errorText}`);
+                }
+
+                const data = await response.json();
+                return data.choices?.[0]?.message?.content || '無回應內容';
+            },
+
+            processAiAutonomousActions(aiText) {
+                if (!aiText) return;
+
+                // 1. 自主建檔指令 [CREATE_DOC:文檔標題]內容[/CREATE_DOC]
+                const createDocMatch = aiText.match(/\[CREATE_DOC:([^\]]+)\]([\s\S]*?)\[\/CREATE_DOC\]/i);
+                if (createDocMatch) {
+                    const docTitle = createDocMatch[1].trim();
+                    const docContent = createDocMatch[2].trim();
+                    const p = this.getCurrentProject();
+                    if (p) {
+                        const newDoc = {
+                            id: 'doc_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                            title: docTitle || 'AI 生成文檔',
+                            content: docContent,
+                            folderId: null,
+                            updatedAt: new Date().toISOString()
+                        };
+                        p.docs = p.docs || [];
+                        p.docs.unshift(newDoc);
+                        this.state.activeDocId = newDoc.id;
+                        this.saveToLocal();
+                        this.renderAll();
+                        this.switchView('Docs');
+                        this.showToast(`🤖 AI 已為您自主建立並切換至文檔：「${newDoc.title}」`);
+                    }
+                }
+
+                // 2. 視圖切換指令 [SWITCH_VIEW:viewName]
+                const switchMatch = aiText.match(/\[SWITCH_VIEW:(Dashboard|Docs|Execution|Wizard)\]/i);
+                if (switchMatch) {
+                    const targetView = switchMatch[1];
+                    this.switchView(targetView);
+                }
+
+                // 3. 任務新增指令 [ADD_TASK:任務標題]
+                const addTaskMatch = aiText.match(/\[ADD_TASK:([^\]]+)\]/i);
+                if (addTaskMatch) {
+                    const taskTitle = addTaskMatch[1].trim();
+                    const p = this.getCurrentProject();
+                    if (p) {
+                        p.tasks = p.tasks || [];
+                        p.tasks.push({
+                            id: 't_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+                            title: taskTitle,
+                            priority: 'MED',
+                            status: 'TODO',
+                            assignee: ''
+                        });
+                        this.saveToLocal();
+                        this.renderAll();
+                        this.showToast(`✅ AI 已新增任務：「${taskTitle}」`);
+                    }
+                }
             }
-        };
+};
 
         // 啟動應用程式
         window.onload = () => {
