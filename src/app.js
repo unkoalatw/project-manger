@@ -6332,10 +6332,14 @@ this.closeModals();
 
             // ================= 🤖 Groq AI 助理模組 (Groq AI Chat & Autonomous Doc Creation) =================
             getGroqApiKey() {
-                const p1 = 'gsk_07iH3T9T41j';
-                const p2 = 'M5hH01y9NWGdyb3FY';
-                const p3 = 'd2uV8wN42hY2e7G2p9q1w3Z0';
-                return localStorage.getItem('flatSpecGroqApiKey') || (p1 + p2 + p3);
+                return localStorage.getItem('flatSpecGroqApiKey') || '';
+            },
+            setGroqApiKey(key) {
+                if (key) {
+                    localStorage.setItem('flatSpecGroqApiKey', key.trim());
+                } else {
+                    localStorage.removeItem('flatSpecGroqApiKey');
+                }
             },
             chatMessages: [],
             groqConsentGiven: false,
@@ -6473,6 +6477,16 @@ this.closeModals();
                     systemMessage,
                     ...this.chatMessages.slice(-8)
                 ];
+
+                const apiKey = this.getGroqApiKey();
+                if (!apiKey) {
+                    const enteredKey = prompt('請輸入您的 Groq API Key（例如：gsk_...）以啟用 AI 助手功能：');
+                    if (enteredKey && enteredKey.trim()) {
+                        this.setGroqApiKey(enteredKey.trim());
+                    } else {
+                        throw new Error('未設定 Groq API Key。請設定 API Key 後再試。');
+                    }
+                }
 
                 const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
                     method: 'POST',
