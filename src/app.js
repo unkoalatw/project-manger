@@ -235,13 +235,14 @@
 
                 // 文檔陣列
                 if (!Array.isArray(p.docs) || p.docs.length === 0) {
-                    p.docs = [{ id: 'doc_' + Date.now(), title: '核心規格書', content: '# ' + p.title + '\n\n寫下您的規格...', folderId: null }];
+                    p.docs = [{ id: 'doc_' + Date.now(), title: '核心規格書', content: '# ' + p.title + '\n\n寫下您的規格...', folderId: null, attachments: {} }];
                 } else {
                     p.docs = p.docs.map((d, idx) => ({
                         id: d.id || 'doc_' + (Date.now() + idx),
                         title: d.title || '未命名文檔',
                         content: d.content || '',
-                        folderId: d.folderId || null
+                        folderId: d.folderId || null,
+                        attachments: (d && typeof d.attachments === 'object' && d.attachments !== null) ? d.attachments : {}
                     }));
                 }
 
@@ -516,11 +517,16 @@
                             }
 
                             const mFolderId = (lDoc && lDoc.folderId !== undefined) ? lDoc.folderId : (cDoc ? cDoc.folderId : null);
+                            const mAttachments = {
+                                ...((cDoc && typeof cDoc.attachments === 'object') ? cDoc.attachments : {}),
+                                ...((lDoc && typeof lDoc.attachments === 'object') ? lDoc.attachments : {})
+                            };
                             mergedDocs.push({
                                 id: docId,
                                 title: mTitle || '未命名文檔',
                                 content: mContent || '',
-                                folderId: mFolderId || null
+                                folderId: mFolderId || null,
+                                attachments: mAttachments
                             });
                         }
                     });
@@ -5471,6 +5477,20 @@ ${rawHtml}
                     return `[${label}](doc:${cleanTarget})`;
                 });
 
+                // 2.5 解析文檔附件 attachment:img_xxx 直譯為 base64 (雙保險，防止 Marked 版本差異導致未經自訂 renderer)
+                const currentP = this.getCurrentProject();
+                const currentDoc = currentP?.docs?.find(d => d.id === this.state.activeDocId);
+                const docAttachments = currentDoc?.attachments || {};
+
+                text = text.replace(/!\[(.*?)\]\(attachment:([^\)]+)\)/g, (match, alt, imgId) => {
+                    const cleanImgId = imgId.trim();
+                    const imgObj = docAttachments[cleanImgId];
+                    if (imgObj && imgObj.data) {
+                        return `![${alt}](${imgObj.data})`;
+                    }
+                    return match;
+                });
+
                 // 3. 執行全規格 Marked.js 解析
                 let html = '';
                 if (typeof marked !== 'undefined') {
@@ -5574,6 +5594,9 @@ ${rawHtml}
                 });
 
                 html = html.replace(/^(#{1,4})\s+(.*$)/gim, '<h$1 class="font-black my-2">$2</h$1>')
+                           .replace(/!\[(.*?)\]\((.*?)\)/g, (match, alt, src) => {
+                               return `<div class="my-3 flex flex-col items-start"><img src="${src}" alt="${alt}" class="border-2 border-black max-w-full h-auto shadow-[3px_3px_0px_0px_#000] bg-white rounded-none inline-block max-h-[550px] object-contain cursor-zoom-in hover:opacity-95 transition-opacity" onclick="app.openImageViewer(this.src, '${alt}')" loading="lazy" />${alt ? '<div class="text-[11px] text-zinc-500 mt-1.5 font-mono flex items-center gap-1 font-bold"><span>📷</span> <span>' + alt + '</span></div>' : ''}</div>`;
+                           })
                            .replace(/->\s*(.+?)\s*<-/g, '<div class="text-center my-2">$1</div>')
                            .replace(/<center>\s*(.+?)\s*<\/center>/gi, '<div class="text-center my-2">$1</div>')
                            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
