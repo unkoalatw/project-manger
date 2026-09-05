@@ -1,8 +1,11 @@
-const fs = require('fs');
-const path = require('path');
-const { execSync } = require('child_process');
+import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { execSync } from 'child_process';
 
-const rootDir = path.resolve('c:/Users/timothy/Desktop/app files/project');
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+const rootDir = path.resolve(__dirname, '..');
 const distDir = path.join(rootDir, 'dist');
 const destDir = path.join(rootDir, 'android', 'app', 'src', 'main', 'assets', 'www');
 
