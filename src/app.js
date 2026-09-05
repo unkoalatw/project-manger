@@ -4376,36 +4376,99 @@
                 }
             },
 
-            compressImage(file, maxDimension = 1200, quality = 0.78) {
-                return new Promise((resolve, reject) => {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        const img = new Image();
-                        img.onload = () => {
-                            let width = img.width;
-                            let height = img.height;
+            resolveAttachment(imgId) {
+                if (!imgId) return null;
+                const cleanId = String(imgId).replace(/^attachment:/, '').trim();
+                if (!cleanId) return null;
 
-                            if (width > maxDimension || height > maxDimension) {
-                                if (width > height) {
-                                    height = Math.round((height * maxDimension) / width);
-                                    width = maxDimension;
-                                } else {
-                                    width = Math.round((width * maxDimension) / height);
-                                    height = maxDimension;
+                // 1. 優先搜尋當前使用中文檔
+                const p = this.getCurrentProject();
+                const activeDoc = p?.docs?.find(d => d.id === this.state.activeDocId);
+                if (activeDoc?.attachments?.[cleanId]?.data) {
+                    return activeDoc.attachments[cleanId];
+                }
+
+                // 2. 搜尋當前專案的所有文檔 (支援跨文檔複製貼上)
+                if (p?.docs && Array.isArray(p.docs)) {
+                    for (const doc of p.docs) {
+                        if (doc?.attachments?.[cleanId]?.data) {
+                            return doc.attachments[cleanId];
+                        }
+                    }
+                }
+
+                // 3. 搜尋記憶體內所有專案的所有文檔
+                if (Array.isArray(this.state.projects)) {
+                    for (const proj of this.state.projects) {
+                        if (proj?.docs && Array.isArray(proj.docs)) {
+                            for (const doc of proj.docs) {
+                                if (doc?.attachments?.[cleanId]?.data) {
+                                    return doc.attachments[cleanId];
                                 }
                             }
+                        }
+                    }
+                }
 
-                            const canvas = document.createElement('canvas');
-                            canvas.width = width;
-                            canvas.height = height;
-                            const ctx = canvas.getContext('2d');
-                            ctx.drawImage(img, 0, 0, width, height);
+                // 4. 搜尋本機全域附件持久化快照緩存
+                try {
+                    const cache = JSON.parse(localStorage.getItem('flatSpecAttachmentCache') || '{}');
+                    if (cache[cleanId]?.data) {
+                        return cache[cleanId];
+                    }
+                } catch(e) {}
 
-                            const dataUrl = canvas.toDataURL('image/jpeg', quality);
-                            resolve(dataUrl);
+                return null;
+            },
+
+            compressImage(file, maxDimension = 1200, quality = 0.78) {
+                return new Promise((resolve, reject) => {
+                    if (!file) {
+                        reject(new Error('未提供圖片檔案'));
+                        return;
+                    }
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        const result = e.target.result;
+                        if (typeof result !== 'string') {
+                            reject(new Error('圖片讀取格式無效'));
+                            return;
+                        }
+                        // 若為向量 SVG 或動態 GIF，直接保留完整 DataURL
+                        if (file.type === 'image/svg+xml' || file.type === 'image/gif') {
+                            resolve(result);
+                            return;
+                        }
+                        const img = new Image();
+                        img.onload = () => {
+                            try {
+                                let width = img.width;
+                                let height = img.height;
+
+                                if (width > maxDimension || height > maxDimension) {
+                                    if (width > height) {
+                                        height = Math.round((height * maxDimension) / width);
+                                        width = maxDimension;
+                                    } else {
+                                        width = Math.round((width * maxDimension) / height);
+                                        height = maxDimension;
+                                    }
+                                }
+
+                                const canvas = document.createElement('canvas');
+                                canvas.width = width;
+                                canvas.height = height;
+                                const ctx = canvas.getContext('2d');
+                                ctx.drawImage(img, 0, 0, width, height);
+
+                                const dataUrl = canvas.toDataURL('image/jpeg', quality);
+                                resolve(dataUrl);
+                            } catch(canvasErr) {
+                                resolve(result);
+                            }
                         };
-                        img.onerror = () => reject(new Error('圖片載入失敗'));
-                        img.src = e.target.result;
+                        img.onerror = () => resolve(result);
+                        img.src = result;
                     };
                     reader.onerror = () => reject(new Error('讀取檔案失敗'));
                     reader.readAsDataURL(file);
@@ -4415,22 +4478,37 @@
             saveAttachmentAndInsertTag(base64Data, altName = '圖片') {
                 const p = this.getCurrentProject();
                 const doc = p?.docs?.find(d => d.id === this.state.activeDocId);
+                const cleanAlt = (altName || '圖片').trim();
+
                 if (!doc) {
-                    this.insertAtCursor(`\n\n![${altName}](${base64Data})\n\n`);
+                    this.insertAtCursor(`\n\n![${cleanAlt}](${base64Data})\n\n`);
                     return;
                 }
 
                 if (!doc.attachments) doc.attachments = {};
                 const imgId = 'img_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
-                doc.attachments[imgId] = {
+                const item = {
                     data: base64Data,
-                    name: altName,
+                    name: cleanAlt,
                     time: new Date().toISOString()
                 };
+                doc.attachments[imgId] = item;
+
+                // 同步寫入全域附件持久化緩存 (上限 50 張)
+                try {
+                    const cache = JSON.parse(localStorage.getItem('flatSpecAttachmentCache') || '{}');
+                    cache[imgId] = item;
+                    const keys = Object.keys(cache);
+                    if (keys.length > 50) {
+                        keys.slice(0, keys.length - 50).forEach(k => delete cache[k]);
+                    }
+                    localStorage.setItem('flatSpecAttachmentCache', JSON.stringify(cache));
+                } catch(e) {}
 
                 // 編輯器中僅插入精簡短標籤，杜絕數十萬字長文字亂碼
-                this.insertAtCursor(`\n\n![${altName}](attachment:${imgId})\n\n`);
+                this.insertAtCursor(`\n\n![${cleanAlt}](attachment:${imgId})\n\n`);
                 this.renderDocAttachmentsBar(doc);
+                this.saveToLocal();
                 this.debouncedSaveAndSync();
             },
 
@@ -4488,6 +4566,7 @@
 
                 delete doc.attachments[imgId];
                 this.renderDocAttachmentsBar(doc);
+                this.saveToLocal();
                 this.debouncedSaveAndSync();
                 this.showToast('🗑️ 圖片附件已移除');
             },
@@ -4553,27 +4632,40 @@
                 const editor = document.getElementById('docEditor');
                 if (!editor) return;
 
-                // 剪貼簿直接貼上圖片
+                // 剪貼簿直接貼上圖片 (全面支援 clipboard items 與 files)
                 editor.addEventListener('paste', async (e) => {
                     const items = e.clipboardData?.items;
-                    if (!items) return;
+                    const files = e.clipboardData?.files;
+                    let targetFile = null;
 
-                    for (let i = 0; i < items.length; i++) {
-                        if (items[i].type.indexOf('image') !== -1) {
-                            const file = items[i].getAsFile();
-                            if (file) {
-                                e.preventDefault();
-                                app.showToast('⏳ 正在壓縮並加入貼上的圖片...');
-                                try {
-                                    const compressedDataUrl = await app.compressImage(file);
-                                    const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-                                    app.saveAttachmentAndInsertTag(compressedDataUrl, `貼上的圖片-${timeStr}`);
-                                    app.showToast('🖼️ 圖片已加入文檔（無冗長代碼塞爆）！');
-                                } catch (err) {
-                                    app.showToast('圖片處理失敗: ' + err.message, 'error');
-                                }
+                    if (items && items.length > 0) {
+                        for (let i = 0; i < items.length; i++) {
+                            if (items[i].type && items[i].type.startsWith('image/')) {
+                                targetFile = items[i].getAsFile();
+                                if (targetFile) break;
+                            }
+                        }
+                    }
+
+                    if (!targetFile && files && files.length > 0) {
+                        for (let i = 0; i < files.length; i++) {
+                            if (files[i].type && files[i].type.startsWith('image/')) {
+                                targetFile = files[i];
                                 break;
                             }
+                        }
+                    }
+
+                    if (targetFile) {
+                        e.preventDefault();
+                        app.showToast('⏳ 正在壓縮並加入貼上的圖片...');
+                        try {
+                            const compressedDataUrl = await app.compressImage(targetFile);
+                            const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                            app.saveAttachmentAndInsertTag(compressedDataUrl, `貼上的圖片-${timeStr}`);
+                            app.showToast('🖼️ 圖片已加入文檔（無冗長代碼塞爆）！');
+                        } catch (err) {
+                            app.showToast('圖片處理失敗: ' + err.message, 'error');
                         }
                     }
                 });
@@ -5134,25 +5226,38 @@ ${rawHtml}
                     return `<hr class="my-6 border-t-2 border-black" />`;
                 };
 
-                // 8. 圖片可點擊放大檢視 (支援 attachment:img_xxx 附件快速對應)
+                // 8. 圖片可點擊放大檢視 (支援 attachment:img_xxx 附件快速對應與全域搜尋)
                 renderer.image = function(token) {
-                    let href = token.href || '';
-                    const title = token.title || '';
-                    const alt = token.text || '圖片';
+                    let href = (typeof token === 'object' ? token?.href : arguments[0]) || '';
+                    const title = (typeof token === 'object' ? token?.title : arguments[1]) || '';
+                    const alt = (typeof token === 'object' ? token?.text : arguments[2]) || '圖片';
                     const cleanAlt = self.escapeHtml(alt);
 
                     if (href.startsWith('attachment:')) {
                         const imgId = href.replace(/^attachment:/, '').trim();
-                        const p = self.getCurrentProject();
-                        const doc = p?.docs?.find(d => d.id === self.state.activeDocId);
-                        if (doc?.attachments?.[imgId]?.data) {
-                            href = doc.attachments[imgId].data;
+                        const resolved = self.resolveAttachment(imgId);
+                        if (resolved && resolved.data) {
+                            href = resolved.data;
+                        } else {
+                            // 附件未找到時，渲染 Neo-Brutalist 友好警示卡片，絕不產生原生破圖
+                            return `
+                                <div class="my-3 p-3 bg-amber-50 border-2 border-black text-amber-950 flat-box shadow-[3px_3px_0px_0px_#000] not-prose flex flex-wrap items-center justify-between gap-2">
+                                    <div class="flex items-center gap-2">
+                                        <span class="text-lg">📷</span>
+                                        <div class="text-xs">
+                                            <span class="font-black text-black">${cleanAlt}</span>
+                                            <span class="text-[10px] text-zinc-500 block font-mono mt-0.5">附件 ID: #${imgId.split('_')[1]?.slice(-4) || imgId} (圖片附件未就緒或已清理)</span>
+                                        </div>
+                                    </div>
+                                    <button type="button" onclick="app.openImageModal()" class="px-2 py-1 bg-white hover:bg-zinc-100 text-black border border-black font-bold text-xs flat-box shadow-[1px_1px_0px_0px_#000]">重新上傳圖片</button>
+                                </div>
+                            `;
                         }
                     }
 
                     return `
                         <div class="my-3 flex flex-col items-start">
-                            <img src="${href}" alt="${cleanAlt}" class="border-2 border-black max-w-full h-auto shadow-[3px_3px_0px_0px_#000] bg-white rounded-none inline-block max-h-[550px] object-contain cursor-zoom-in hover:opacity-95 transition-opacity" onclick="app.openImageViewer(this.src, '${cleanAlt}')" loading="lazy" />
+                            <img src="${href}" alt="${cleanAlt}" class="border-2 border-black max-w-full h-auto shadow-[3px_3px_0px_0px_#000] bg-white rounded-none inline-block max-h-[550px] object-contain cursor-zoom-in hover:opacity-95 transition-opacity" onclick="app.openImageViewer(this.src, '${cleanAlt}')" loading="lazy" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\\'my-2 p-2 bg-zinc-100 border border-black text-xs font-mono font-bold text-zinc-600\\'>⚠️ 圖片無法載入 (${cleanAlt})</div>';" />
                             ${alt ? '<div class="text-[11px] text-zinc-500 mt-1.5 font-mono flex items-center gap-1 font-bold"><span>📷</span> <span>' + cleanAlt + '</span></div>' : ''}
                         </div>
                     `;
@@ -5478,15 +5583,11 @@ ${rawHtml}
                 });
 
                 // 2.5 解析文檔附件 attachment:img_xxx 直譯為 base64 (雙保險，防止 Marked 版本差異導致未經自訂 renderer)
-                const currentP = this.getCurrentProject();
-                const currentDoc = currentP?.docs?.find(d => d.id === this.state.activeDocId);
-                const docAttachments = currentDoc?.attachments || {};
-
-                text = text.replace(/!\[(.*?)\]\(attachment:([^\)]+)\)/g, (match, alt, imgId) => {
-                    const cleanImgId = imgId.trim();
-                    const imgObj = docAttachments[cleanImgId];
-                    if (imgObj && imgObj.data) {
-                        return `![${alt}](${imgObj.data})`;
+                text = text.replace(/!\[(.*?)\]\(attachment:([^\)]+)\)/g, (match, alt, rawImgId) => {
+                    const cleanImgId = rawImgId.trim();
+                    const resolved = this.resolveAttachment(cleanImgId);
+                    if (resolved && resolved.data) {
+                        return `![${alt}](${resolved.data})`;
                     }
                     return match;
                 });
@@ -5594,7 +5695,16 @@ ${rawHtml}
                 });
 
                 html = html.replace(/^(#{1,4})\s+(.*$)/gim, '<h$1 class="font-black my-2">$2</h$1>')
-                           .replace(/!\[(.*?)\]\((.*?)\)/g, (match, alt, src) => {
+                           .replace(/!\[(.*?)\]\((.*?)\)/g, (match, alt, rawSrc) => {
+                               let src = rawSrc;
+                               if (src.startsWith('attachment:')) {
+                                   const resolved = this.resolveAttachment(src);
+                                   if (resolved && resolved.data) {
+                                       src = resolved.data;
+                                   } else {
+                                       return `<div class="my-2 p-2 bg-amber-50 border-2 border-black text-xs font-bold text-amber-950">📷 ${alt} (附件未就緒)</div>`;
+                                   }
+                               }
                                return `<div class="my-3 flex flex-col items-start"><img src="${src}" alt="${alt}" class="border-2 border-black max-w-full h-auto shadow-[3px_3px_0px_0px_#000] bg-white rounded-none inline-block max-h-[550px] object-contain cursor-zoom-in hover:opacity-95 transition-opacity" onclick="app.openImageViewer(this.src, '${alt}')" loading="lazy" />${alt ? '<div class="text-[11px] text-zinc-500 mt-1.5 font-mono flex items-center gap-1 font-bold"><span>📷</span> <span>' + alt + '</span></div>' : ''}</div>`;
                            })
                            .replace(/->\s*(.+?)\s*<-/g, '<div class="text-center my-2">$1</div>')
