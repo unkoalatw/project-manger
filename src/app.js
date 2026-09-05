@@ -6322,11 +6322,18 @@ this.closeModals();
                     return;
                 }
                 if (confirm(`確定要將專案還原至【${new Date(target.time).toLocaleString()}】的狀態嗎？當前未存的修改將被覆蓋。`)) {
-                    this.state.projects = target.data;
+                    this.state.projects = JSON.parse(JSON.stringify(target.data));
+                    if (target.projectId && this.state.projects.some(p => p.id === target.projectId)) {
+                        this.state.activeProjectId = target.projectId;
+                    }
+                    this.ensureActivePointers();
                     this.saveToLocal();
                     this.renderAll();
                     this.closeHistoryModal();
-                    this.showToast('🎉 已成功還原至歷史版本快照！');
+                    this.state.hasUnsavedChanges = true;
+                    localStorage.setItem('flatSpecHasPendingChanges', 'true');
+                    this.debouncedSaveAndSync();
+                    this.showToast('🎉 已成功還原至歷史版本快照並排程同步！');
                 }
             },
 
