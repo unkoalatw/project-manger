@@ -144,30 +144,30 @@
     <main class="flex-1 flex flex-col min-w-0 bg-white relative pb-16 md:pb-0 h-full overflow-hidden">
         
         <!-- 頂部導覽列 (Header) -->
-        <header class="h-14 border-b-2 border-black bg-white flex items-center justify-between px-2 sm:px-4 shrink-0 shadow-sm z-10 gap-1.5">
-            <div class="flex items-center gap-1.5 sm:gap-3 min-w-0">
+        <header class="h-14 border-b-2 border-black bg-white flex items-center justify-between px-2 sm:px-4 shrink-0 shadow-sm z-10 gap-1 sm:gap-2">
+            <div class="flex items-center gap-1 sm:gap-3 min-w-0 shrink">
                 <button onclick="app.toggleSidebar()" class="md:hidden p-1.5 px-2 bg-zinc-100 border-2 border-black font-bold flat-box shrink-0 text-sm">
                     ☰
                 </button>
                 <!-- 專案進度迷你儀表 -->
-                <div class="flex flex-col min-w-0 max-w-[120px] sm:max-w-xs">
+                <div class="flex flex-col min-w-0 max-w-[90px] sm:max-w-[140px] md:max-w-xs">
                     <div class="text-xs font-black truncate uppercase" id="headerProjectName">未選擇專案</div>
-                    <div class="w-20 sm:w-32 h-1.5 sm:h-2 bg-zinc-200 border border-black mt-0.5 relative">
+                    <div class="w-16 sm:w-28 md:w-32 h-1.5 sm:h-2 bg-zinc-200 border border-black mt-0.5 relative">
                         <div id="headerProgressBar" class="h-full bg-green-400 border-r border-black" style="width: 0%"></div>
                     </div>
                 </div>
             </div>
 
             <!-- 視圖切換 Tabs (桌機版) -->
-            <div class="hidden md:flex gap-2 font-mono text-sm font-bold">
-                <button id="viewTabDashboard" onclick="app.switchView('Dashboard')" class="px-4 py-1 border-2 border-black bg-zinc-100 hover:bg-white transition-colors uppercase">📊 總覽</button>
-                <button id="viewTabDocs" onclick="app.switchView('Docs')" class="px-4 py-1 border-2 border-black bg-zinc-100 hover:bg-white transition-colors uppercase">📄 文檔</button>
-                <button id="viewTabExecution" onclick="app.switchView('Execution')" class="px-4 py-1 border-2 border-black bg-zinc-100 hover:bg-white transition-colors uppercase">✅ 任務</button>
-                <button id="viewTabWizard" onclick="app.switchView('Wizard')" class="px-4 py-1 border-2 border-black bg-violet-200 hover:bg-violet-100 transition-colors uppercase">✨ 精靈</button>
+            <div class="hidden lg:flex gap-1.5 xl:gap-2 font-mono text-xs xl:text-sm font-bold shrink-0">
+                <button id="viewTabDashboard" onclick="app.switchView('Dashboard')" class="px-3 xl:px-4 py-1 border-2 border-black bg-zinc-100 hover:bg-white transition-colors uppercase">📊 總覽</button>
+                <button id="viewTabDocs" onclick="app.switchView('Docs')" class="px-3 xl:px-4 py-1 border-2 border-black bg-zinc-100 hover:bg-white transition-colors uppercase">📄 文檔</button>
+                <button id="viewTabExecution" onclick="app.switchView('Execution')" class="px-3 xl:px-4 py-1 border-2 border-black bg-zinc-100 hover:bg-white transition-colors uppercase">✅ 任務</button>
+                <button id="viewTabWizard" onclick="app.switchView('Wizard')" class="px-3 xl:px-4 py-1 border-2 border-black bg-violet-200 hover:bg-violet-100 transition-colors uppercase">✨ 精靈</button>
             </div>
 
             <!-- 右側協作、搜尋與同步狀態燈 -->
-            <div class="flex items-center gap-1 sm:gap-2 shrink-0">
+            <div class="flex items-center gap-1 sm:gap-1.5 shrink-0 overflow-x-auto no-scrollbar py-1">
                 <!-- 即時在線成員呼吸燈 -->
                 <div id="headerPresenceBar" onclick="app.openTeamModal()" class="hidden sm:flex items-center gap-1 cursor-pointer bg-emerald-50 hover:bg-emerald-100 border-2 border-emerald-900 px-1.5 py-1 flat-box transition-colors shrink-0" title="點擊查看即時在線成員與活動">
                     <span class="relative flex h-2 w-2">
@@ -175,25 +175,25 @@
                         <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
                     </span>
                     <div id="presenceAvatarsList" class="flex -space-x-1 overflow-hidden"></div>
-                    <span id="presenceCountText" class="text-[10px] font-black text-emerald-950 ml-0.5 hidden md:inline font-mono">1人在線</span>
+                    <span id="presenceCountText" class="text-[10px] font-black text-emerald-950 ml-0.5 hidden xl:inline font-mono">1人在線</span>
                 </div>
 
-                <button onclick="app.openTeamModal()" class="hidden md:flex p-1.5 px-2 bg-violet-100 hover:bg-violet-200 border-2 border-black font-bold text-xs flat-box items-center gap-1 transition-colors text-violet-950" title="團隊成員管理與一鍵邀請">
+                <button onclick="app.openTeamModal()" class="hidden xl:flex p-1.5 px-2 bg-violet-100 hover:bg-violet-200 border-2 border-black font-bold text-xs flat-box items-center gap-1 transition-colors text-violet-950 shrink-0" title="團隊成員管理與一鍵邀請">
                     <span class="text-sm">👥</span>
-                    <span class="hidden lg:inline">團隊協作</span>
+                    <span class="hidden xl:inline">團隊協作</span>
                 </button>
                 <!-- AI 助手快捷按鈕 -->
-                <button onclick="app.toggleChatSidebar()" class="p-1.5 px-2 bg-purple-200 hover:bg-purple-300 text-purple-950 border-2 border-black font-black text-xs flat-box flex items-center gap-1 shadow-[2px_2px_0px_0px_#000]" title="開啟 AI 助手對話框">
+                <button onclick="app.toggleChatSidebar()" class="p-1.5 px-2 bg-purple-200 hover:bg-purple-300 text-purple-950 border-2 border-black font-black text-xs flat-box flex items-center gap-1 shadow-[2px_2px_0px_0px_#000] shrink-0" title="開啟 AI 助手對話框">
                     <span class="text-sm">🤖</span>
                     <span class="hidden md:inline">AI 助手</span>
                 </button>
-                <button id="fontToggleBtn" onclick="app.openFontModal()" class="p-1.5 px-2 bg-zinc-100 hover:bg-zinc-200 border-2 border-black font-bold text-xs flat-box flex items-center gap-1 transition-colors shrink-0" title="自訂字體與排版設定">
+                <button id="fontToggleBtn" onclick="app.openFontModal()" class="hidden sm:flex p-1.5 px-2 bg-zinc-100 hover:bg-zinc-200 border-2 border-black font-bold text-xs flat-box items-center gap-1 transition-colors shrink-0" title="自訂字體與排版設定">
                     <span>🔤</span>
-                    <span class="hidden md:inline">字體</span>
+                    <span class="hidden lg:inline">字體</span>
                 </button>
-                <button id="soundToggleBtn" onclick="app.toggleSound()" class="p-1.5 px-2 bg-zinc-100 hover:bg-zinc-200 border-2 border-black font-bold text-xs flat-box flex items-center gap-1 transition-colors shrink-0" title="點擊切換音效開關">
+                <button id="soundToggleBtn" onclick="app.toggleSound()" class="hidden sm:flex p-1.5 px-2 bg-zinc-100 hover:bg-zinc-200 border-2 border-black font-bold text-xs flat-box items-center gap-1 transition-colors shrink-0" title="點擊切換音效開關">
                     <span>🔊</span>
-                    <span class="hidden md:inline">音效</span>
+                    <span class="hidden lg:inline">音效</span>
                 </button>
                 <button onclick="app.openHistoryModal()" class="p-1.5 px-2 bg-zinc-100 hover:bg-zinc-200 border-2 border-black font-bold text-xs flat-box flex items-center gap-1 transition-colors shrink-0" title="歷史版本快照時光機">
                     <span class="text-sm">🕒</span>
@@ -209,7 +209,7 @@
                 </button>
                 <div id="syncStatusBadge" onclick="app.openGasModal()" class="cursor-pointer px-2 py-1.5 border-2 border-black font-bold text-[10px] md:text-xs flex items-center gap-1 bg-zinc-100 flat-shadow-sm hover:translate-y-px transition-transform shrink-0">
                     <span id="syncDot" class="w-2 h-2 rounded-full bg-zinc-400 border border-black shrink-0"></span>
-                    <span id="syncText" class="max-w-[70px] sm:max-w-none truncate">已連線</span>
+                    <span id="syncText" class="max-w-[50px] sm:max-w-[70px] md:max-w-none truncate">已連線</span>
                 </div>
             </div>
         </header>
