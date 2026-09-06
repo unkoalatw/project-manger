@@ -24,7 +24,7 @@
     <!-- Mermaid.js 圖表流程圖即時視覺化渲染引擎 -->
     <script src="./libs/mermaid.min.js"></script>
     <!-- FlatSpec 核心模組化樣式表 -->
-  <script type="module" crossorigin src="./assets/index-BE3G7d16.js"></script>
+  <script type="module" crossorigin src="./assets/index-B14ToqFN.js"></script>
   <link rel="stylesheet" crossorigin href="./assets/index-Ce4Wpc1q.css">
 
     <!-- FlatSpec Kotlin Native Android Bridge Integration -->
@@ -126,11 +126,7 @@
                 <span class="text-base">👥</span>
                 <span>團隊</span>
             </button>
-            <button onclick="app.openHistoryModal()" class="p-1 hover:bg-zinc-100 border-2 border-transparent hover:border-black font-bold text-[10px] flex flex-col items-center gap-0.5 transition-colors flat-box" title="歷史版本快照時光機">
-                <span class="text-base">🕒</span>
-                <span>時光機</span>
-            </button>
-            <button onclick="app.openBackupModal()" class="p-1 hover:bg-zinc-100 border-2 border-transparent hover:border-black font-bold text-[10px] flex flex-col items-center gap-0.5 transition-colors flat-box" title="本機檔案備份與還原">
+            <button onclick="app.openSettingsModal('backup')" class="p-1 hover:bg-zinc-100 border-2 border-transparent hover:border-black font-bold text-[10px] flex flex-col items-center gap-0.5 transition-colors flat-box" title="本機檔案備份與還原">
                 <span class="text-base">💾</span>
                 <span>備份</span>
             </button>
@@ -138,9 +134,13 @@
                 <span class="text-base">📦</span>
                 <span>匯出</span>
             </button>
-            <button onclick="app.openGasModal()" class="p-1 hover:bg-zinc-100 border-2 border-transparent hover:border-black font-bold text-[10px] flex flex-col items-center gap-0.5 transition-colors flat-box" title="GAS 雲端同步設定">
+            <button onclick="app.openSettingsModal('cloud')" class="p-1 hover:bg-zinc-100 border-2 border-transparent hover:border-black font-bold text-[10px] flex flex-col items-center gap-0.5 transition-colors flat-box" title="GAS 雲端同步設定">
                 <span class="text-base">☁️</span>
                 <span>雲端</span>
+            </button>
+            <button onclick="app.openSettingsModal('appearance')" class="p-1 hover:bg-zinc-100 border-2 border-transparent hover:border-black font-bold text-[10px] flex flex-col items-center gap-0.5 transition-colors flat-box" title="系統與專案設定 (外觀字體、音效、時光機、雲端等)">
+                <span class="text-base">⚙️</span>
+                <span>設定</span>
             </button>
         </div>
     </aside>
@@ -152,15 +152,15 @@
 
     <main class="flex-1 flex flex-col min-w-0 bg-white relative pb-16 md:pb-0 h-full overflow-hidden">
         
-        <!-- 頂部導覽列 (Header) -->
+        <!-- 頂部導覽列 (Header - 精簡俐落、收納設定) -->
         <header class="h-14 border-b-2 border-black bg-white flex items-center justify-between px-2 sm:px-4 shrink-0 shadow-sm z-10 gap-1 sm:gap-2">
             <div class="flex items-center gap-1 sm:gap-3 min-w-0 shrink">
-                <button onclick="app.toggleSidebar()" class="md:hidden p-1.5 px-2 bg-zinc-100 border-2 border-black font-bold flat-box shrink-0 text-sm">
+                <button onclick="app.toggleSidebar()" class="md:hidden p-1.5 px-2 bg-zinc-100 border-2 border-black font-bold flat-box shrink-0 text-sm" title="展開選單">
                     ☰
                 </button>
-                <!-- 專案進度迷你儀表 -->
-                <div class="flex flex-col min-w-0 max-w-[90px] sm:max-w-[140px] md:max-w-xs">
-                    <div class="text-xs font-black truncate uppercase" id="headerProjectName">未選擇專案</div>
+                <!-- 專案進度迷你儀表 (點擊可快速開啟專案設定) -->
+                <div class="flex flex-col min-w-0 max-w-[90px] sm:max-w-[140px] md:max-w-xs cursor-pointer group" onclick="app.openSettingsModal('project')" title="點擊開啟專案設定">
+                    <div class="text-xs font-black truncate uppercase group-hover:underline" id="headerProjectName">未選擇專案</div>
                     <div class="w-16 sm:w-28 md:w-32 h-1.5 sm:h-2 bg-zinc-200 border border-black mt-0.5 relative">
                         <div id="headerProgressBar" class="h-full bg-green-400 border-r border-black" style="width: 0%"></div>
                     </div>
@@ -175,10 +175,10 @@
                 <button id="viewTabWizard" onclick="app.switchView('Wizard')" class="px-3 xl:px-4 py-1 border-2 border-black bg-violet-200 hover:bg-violet-100 transition-colors uppercase">✨ 精靈</button>
             </div>
 
-            <!-- 右側協作、搜尋與同步狀態燈 -->
-            <div class="flex items-center gap-1 sm:gap-1.5 shrink-0 overflow-x-auto no-scrollbar py-1">
-                <!-- 即時在線成員呼吸燈 -->
-                <div id="headerPresenceBar" onclick="app.openTeamModal()" class="hidden sm:flex items-center gap-1 cursor-pointer bg-emerald-50 hover:bg-emerald-100 border-2 border-emerald-900 px-1.5 py-1 flat-box transition-colors shrink-0" title="點擊查看即時在線成員與活動">
+            <!-- 右側協作、搜尋與設定 -->
+            <div class="flex items-center gap-1 sm:gap-2 shrink-0">
+                <!-- 即時在線成員呼吸燈 / 團隊協作 -->
+                <div id="headerPresenceBar" onclick="app.openTeamModal()" class="flex items-center gap-1 cursor-pointer bg-emerald-50 hover:bg-emerald-100 border-2 border-emerald-900 px-1.5 py-1 flat-box transition-colors shrink-0" title="點擊查看即時在線成員與團隊協作">
                     <span class="relative flex h-2 w-2">
                         <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                         <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
@@ -187,38 +187,28 @@
                     <span id="presenceCountText" class="text-[10px] font-black text-emerald-950 ml-0.5 hidden xl:inline font-mono">1人在線</span>
                 </div>
 
-                <button onclick="app.openTeamModal()" class="hidden xl:flex p-1.5 px-2 bg-violet-100 hover:bg-violet-200 border-2 border-black font-bold text-xs flat-box items-center gap-1 transition-colors text-violet-950 shrink-0" title="團隊成員管理與一鍵邀請">
-                    <span class="text-sm">👥</span>
-                    <span class="hidden xl:inline">團隊協作</span>
-                </button>
                 <!-- AI 助手快捷按鈕 -->
                 <button onclick="app.toggleChatSidebar()" class="p-1.5 px-2 bg-purple-200 hover:bg-purple-300 text-purple-950 border-2 border-black font-black text-xs flat-box flex items-center gap-1 shadow-[2px_2px_0px_0px_#000] shrink-0" title="開啟 AI 助手對話框">
                     <span class="text-sm">🤖</span>
                     <span class="hidden md:inline">AI 助手</span>
                 </button>
-                <button id="fontToggleBtn" onclick="app.openFontModal()" class="hidden sm:flex p-1.5 px-2 bg-zinc-100 hover:bg-zinc-200 border-2 border-black font-bold text-xs flat-box items-center gap-1 transition-colors shrink-0" title="自訂字體與排版設定">
-                    <span>🔤</span>
-                    <span class="hidden lg:inline">字體</span>
-                </button>
-                <button id="soundToggleBtn" onclick="app.toggleSound()" class="hidden sm:flex p-1.5 px-2 bg-zinc-100 hover:bg-zinc-200 border-2 border-black font-bold text-xs flat-box items-center gap-1 transition-colors shrink-0" title="點擊切換音效開關">
-                    <span>🔊</span>
-                    <span class="hidden lg:inline">音效</span>
-                </button>
-                <button onclick="app.openHistoryModal()" class="p-1.5 px-2 bg-zinc-100 hover:bg-zinc-200 border-2 border-black font-bold text-xs flat-box flex items-center gap-1 transition-colors shrink-0" title="歷史版本快照時光機">
-                    <span class="text-sm">🕒</span>
-                    <span class="hidden md:inline">時光機</span>
-                </button>
+
+                <!-- 全域搜尋按鈕 (Ctrl+K) -->
                 <button onclick="app.openSearchModal()" class="p-1.5 px-2 bg-zinc-100 hover:bg-yellow-200 border-2 border-black font-bold text-xs flat-box flex items-center gap-1 transition-colors shrink-0" title="快速全域搜尋 (Ctrl+K)">
                     <span class="text-sm">🔍</span>
                     <span class="hidden md:inline text-zinc-800">搜尋</span>
                 </button>
-                <button onclick="app.pullFromCloud(true)" class="p-1.5 px-2 bg-zinc-100 hover:bg-zinc-200 border-2 border-black font-bold text-xs flat-box flex items-center gap-1 shrink-0" title="從 Google 試算表拉取最新資料">
-                    <span class="text-sm">🔄</span>
-                    <span class="hidden md:inline">重整</span>
+
+                <!-- ⚙️ 系統設定整合按鈕 (包含字體、音效、時光機、備份、雲端、專案等) -->
+                <button onclick="app.openSettingsModal()" class="p-1.5 px-2.5 bg-zinc-100 hover:bg-zinc-200 border-2 border-black font-bold text-xs flat-box flex items-center gap-1 transition-colors shrink-0" title="開啟系統與專案設定 (外觀字體、音效、備份、雲端、時光機)">
+                    <span class="text-sm">⚙️</span>
+                    <span class="hidden md:inline">設定</span>
                 </button>
-                <div id="syncStatusBadge" onclick="app.openGasModal()" class="cursor-pointer px-2 py-1.5 border-2 border-black font-bold text-[10px] md:text-xs flex items-center gap-1 bg-zinc-100 flat-shadow-sm hover:translate-y-px transition-transform shrink-0">
+
+                <!-- 雲端連線狀態燈 (點擊開啟雲端同步設定) -->
+                <div id="syncStatusBadge" onclick="app.openSettingsModal('cloud')" class="cursor-pointer px-2 py-1.5 border-2 border-black font-bold text-[10px] md:text-xs flex items-center gap-1 bg-zinc-100 flat-shadow-sm hover:translate-y-px transition-transform shrink-0" title="點擊開啟雲端同步設定">
                     <span id="syncDot" class="w-2 h-2 rounded-full bg-zinc-400 border border-black shrink-0"></span>
-                    <span id="syncText" class="max-w-[50px] sm:max-w-[70px] md:max-w-none truncate">已連線</span>
+                    <span id="syncText" class="max-w-[45px] sm:max-w-[65px] md:max-w-none truncate">已連線</span>
                 </div>
             </div>
         </header>
@@ -642,194 +632,361 @@
         </button>
     </nav>
 
-    <!-- Modal: GAS 設定 -->
-    <div id="gasModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-        <div class="bg-white border-2 border-black p-6 max-w-lg w-full flat-shadow-lg flex flex-col max-h-[90vh]">
-            <div class="flex items-center justify-between border-b-2 border-black pb-3 mb-4 shrink-0">
-                <h3 class="font-black text-lg uppercase flex items-center gap-2">☁️ GAS 雲端同步與 CORS 設定</h3>
-                <button onclick="app.closeGasModal()" class="text-xl font-bold hover:text-red-600 px-2">&times;</button>
-            </div>
-            
-            <div class="overflow-y-auto space-y-4 pr-1 no-scrollbar pb-4">
-                <div>
-                    <label class="block font-bold text-sm mb-1">Google Apps Script Web App URL</label>
-                    <input type="text" id="gasUrlInput" class="flat-input w-full p-2 text-sm font-mono bg-zinc-50" placeholder="https://script.google.com/macros/s/...">
-                    <p class="text-[11px] text-zinc-500 font-bold mt-1">系統每 15 秒背景無感輪詢，並在打字後 800ms 自動推送到此端點。</p>
-                </div>
-
-                <!-- CORS 與連線檢測診斷面板 -->
-                <div id="gasDiagResult" class="hidden p-3 bg-zinc-50 border-2 border-black space-y-1">
-                    <!-- 動態載入診斷結果 -->
-                </div>
-
-                <div class="p-3 bg-zinc-100 border-2 border-black flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+    <!-- Modal: 系統與專案設定中心 (Settings Hub) -->
+    <div id="settingsModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-3 md:p-6" onclick="app.closeSettingsModal()">
+        <div class="bg-white border-2 border-black w-full max-w-2xl flat-shadow-lg flex flex-col max-h-[90vh] overflow-hidden" onclick="event.stopPropagation()">
+            <!-- 標題欄 -->
+            <div class="p-3 md:p-4 border-b-2 border-black bg-zinc-100 flex items-center justify-between shrink-0">
+                <div class="flex items-center gap-2">
+                    <span class="text-2xl">⚙️</span>
                     <div>
-                        <p class="text-xs font-bold font-mono">📊 您的視覺化試算表資料庫</p>
-                        <p class="text-[10px] text-zinc-500 font-mono truncate max-w-[200px]">ID: 1WSViTq8yVVtOt...MZgmnU</p>
+                        <h3 class="font-black text-lg uppercase leading-tight">系統與專案設定中心</h3>
+                        <p class="text-[11px] font-bold text-zinc-500">自訂外觀字體、操作音效、時光機、本機備份、雲端同步與專案管理</p>
                     </div>
-                    <a href="https://docs.google.com/spreadsheets/d/1WSViTq8yVVtOt8ubh01l1441-HzgUWcJiiBD4MZgmnU/edit" target="_blank" class="w-full sm:w-auto px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white font-bold text-xs border-2 border-black flat-box text-center">
-                        🔗 開啟試算表
-                    </a>
                 </div>
+                <button onclick="app.closeSettingsModal()" class="text-xl font-bold hover:text-red-600 px-2">&times;</button>
+            </div>
 
-                <div class="flex flex-col sm:flex-row gap-2 pt-1">
-                    <button onclick="app.testGasConnection()" class="flex-1 bg-black text-white font-bold py-2 border-2 border-black flat-box text-sm flex items-center justify-center gap-1.5">
-                        <span>🧪</span> 測試連線與 CORS 雙向診斷
-                    </button>
-                </div>
+            <!-- Tab 導覽列 (支援手機端水平滾動) -->
+            <div class="flex border-b-2 border-black bg-zinc-200 p-1 shrink-0 gap-1 text-xs font-bold overflow-x-auto no-scrollbar">
+                <button type="button" id="tabSettings_appearance" onclick="app.switchSettingsTab('appearance')" class="px-3 py-1.5 bg-black text-white flat-box shrink-0 flex items-center gap-1">
+                    <span>🔤</span> <span>外觀字體</span>
+                </button>
+                <button type="button" id="tabSettings_preferences" onclick="app.switchSettingsTab('preferences')" class="px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 text-black flat-box shrink-0 flex items-center gap-1 transition-colors">
+                    <span>🔊</span> <span>音效偏好</span>
+                </button>
+                <button type="button" id="tabSettings_history" onclick="app.switchSettingsTab('history')" class="px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 text-black flat-box shrink-0 flex items-center gap-1 transition-colors">
+                    <span>🕒</span> <span>時光機</span>
+                </button>
+                <button type="button" id="tabSettings_backup" onclick="app.switchSettingsTab('backup')" class="px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 text-black flat-box shrink-0 flex items-center gap-1 transition-colors">
+                    <span>💾</span> <span>備份還原</span>
+                </button>
+                <button type="button" id="tabSettings_cloud" onclick="app.switchSettingsTab('cloud')" class="px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 text-black flat-box shrink-0 flex items-center gap-1 transition-colors">
+                    <span>☁️</span> <span>雲端同步</span>
+                </button>
+                <button type="button" id="tabSettings_project" onclick="app.switchSettingsTab('project')" class="px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 text-black flat-box shrink-0 flex items-center gap-1 transition-colors">
+                    <span>📁</span> <span>專案管理</span>
+                </button>
+            </div>
+
+            <!-- 內容面板區域 -->
+            <div class="flex-1 overflow-y-auto p-4 space-y-4">
                 
-                <div class="flex flex-col sm:flex-row gap-2 border-t-2 border-zinc-200 pt-3">
-                    <button onclick="app.pullFromCloud(true)" class="flex-1 bg-blue-100 text-blue-900 border-2 border-blue-900 font-bold py-2 flat-box text-sm flex items-center justify-center gap-1">
-                        <span>📥</span> 手動拉取最新雲端
+                <!-- Tab 1: 外觀與字體設定 (Appearance & Font) -->
+                <div id="panelSettings_appearance" class="space-y-4">
+                    <!-- 套用範圍切換 -->
+                    <div class="bg-zinc-50 border-2 border-black p-3 space-y-2">
+                        <label class="block text-xs font-black uppercase text-zinc-700">套用生效範圍</label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <label class="flex items-center gap-2 cursor-pointer text-xs font-bold p-2 bg-white border border-black hover:bg-yellow-50">
+                                <input type="radio" name="fontTargetScope" value="all" id="fontTargetScopeAll" onchange="app.handleFontScopeChange(this.value)" class="accent-black" checked>
+                                <span>全域介面與文檔</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer text-xs font-bold p-2 bg-white border border-black hover:bg-yellow-50">
+                                <input type="radio" name="fontTargetScope" value="doc" id="fontTargetScopeDoc" onchange="app.handleFontScopeChange(this.value)" class="accent-black">
+                                <span>僅文檔閱讀/編輯區</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- 方式一：匯入本機字體 -->
+                    <div class="bg-white border-2 border-black p-3 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <label class="text-xs font-black uppercase text-zinc-800 flex items-center gap-1">
+                                <span>📁</span> 方式一：匯入本機字體檔案
+                            </label>
+                            <span class="text-[10px] text-zinc-500 font-mono">.ttf / .otf / .woff / .woff2</span>
+                        </div>
+                        <p class="text-[11px] text-zinc-600 font-medium">
+                            上傳字體後將自動轉存至本地離線快取，離線狀態與手機端亦能完美載入。
+                        </p>
+                        <div class="flex gap-2 items-center">
+                            <label class="flex-1 cursor-pointer bg-zinc-100 hover:bg-zinc-200 border-2 border-black py-2 px-3 text-xs font-bold text-center flat-box truncate">
+                                <span id="fontFileLabelText">📂 選擇字體檔案...</span>
+                                <input type="file" id="fontFileInput" accept=".ttf,.otf,.woff,.woff2" onchange="app.handleFontFileUpload(event)" class="hidden">
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- 方式二：線上字體 / Google Fonts -->
+                    <div class="bg-white border-2 border-black p-3 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <label class="text-xs font-black uppercase text-zinc-800 flex items-center gap-1">
+                                <span>🌐</span> 方式二：線上字體 (Google Fonts / CSS URL)
+                            </label>
+                        </div>
+                        <div class="space-y-1.5">
+                            <input type="text" id="fontOnlineUrlInput" placeholder="例如: https://fonts.googleapis.com/css2?family=Noto+Sans+TC&display=swap" class="flat-input w-full p-2 text-xs font-mono bg-zinc-50">
+                            <div class="flex gap-2">
+                                <input type="text" id="fontOnlineFamilyInput" placeholder="字體名稱 (例如: 'Noto Sans TC')" class="flat-input flex-1 p-2 text-xs bg-zinc-50">
+                                <button onclick="app.applyOnlineFontFromInput()" class="bg-black text-white hover:bg-zinc-800 text-xs font-bold px-3 border-2 border-black shrink-0">套用</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 方式三：常用系統字庫切換 -->
+                    <div class="bg-white border-2 border-black p-3 space-y-2">
+                        <label class="block text-xs font-black uppercase text-zinc-800 flex items-center gap-1">
+                            <span>⚡</span> 常用預設與系統字庫快速切換
+                        </label>
+                        <div class="grid grid-cols-2 sm:grid-cols-3 gap-1.5 text-xs font-bold">
+                            <button type="button" onclick="app.setQuickFont('Inter, -apple-system, BlinkMacSystemFont, sans-serif', '現代幾何無襯線 (Inter 預設)')" class="p-2 text-left bg-zinc-50 hover:bg-yellow-200 border border-black truncate">
+                                Inter (預設黑體)
+                            </button>
+                            <button type="button" onclick="app.setQuickFont('&quot;Microsoft JhengHei&quot;, &quot;微軟正黑體&quot;, sans-serif', '微軟正黑體 (系統)')" class="p-2 text-left bg-zinc-50 hover:bg-yellow-200 border border-black truncate font-sans">
+                                微軟正黑體
+                            </button>
+                            <button type="button" onclick="app.loadPresetWebFont('Noto+Sans+TC', 'Noto Sans TC', '思源黑體 (Noto Sans TC)')" class="p-2 text-left bg-zinc-50 hover:bg-yellow-200 border border-black truncate">
+                                思源黑體 (繁體)
+                            </button>
+                            <button type="button" onclick="app.loadPresetWebFont('Noto+Serif+TC', 'Noto Serif TC', '思源宋體 (Noto Serif TC)')" class="p-2 text-left bg-zinc-50 hover:bg-yellow-200 border border-black truncate font-serif">
+                                思源宋體 (優雅明體)
+                            </button>
+                            <button type="button" onclick="app.loadPresetWebFont('LXGW+WenKai+TC', 'LXGW WenKai TC', '霞鶩文楷 (溫潤楷書)')" class="p-2 text-left bg-zinc-50 hover:bg-yellow-200 border border-black truncate">
+                                霞鶩文楷 (文青楷書)
+                            </button>
+                            <button type="button" onclick="app.setQuickFont('ui-monospace, Consolas, monospace', '等寬程式碼字體 (Monospace)')" class="p-2 text-left bg-zinc-50 hover:bg-yellow-200 border border-black truncate font-mono">
+                                等寬工整字體
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 當前套用狀態與預覽 -->
+                    <div class="bg-yellow-50 border-2 border-black p-3 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-black uppercase text-zinc-800">當前套用字體</span>
+                            <span id="currentFontBadge" class="text-xs font-mono font-bold text-blue-900 bg-white px-2 py-0.5 border border-black truncate max-w-[200px]">Inter (系統預設)</span>
+                        </div>
+                        <div id="fontPreviewSample" class="p-3 bg-white border border-black text-sm font-medium leading-relaxed">
+                            FlatSpec Drive 敏捷專案管理：永不遺失靈感與進度。The quick brown fox jumps over the lazy dog. 1234567890
+                        </div>
+                    </div>
+
+                    <button onclick="app.resetDefaultFont()" class="bg-zinc-100 hover:bg-zinc-200 text-red-600 border-2 border-black font-bold text-xs px-3 py-2 flat-box">
+                        🔄 恢復預設 Inter 字體
                     </button>
-                    <button onclick="app.pushToCloud(true)" class="flex-1 bg-amber-100 text-amber-900 border-2 border-amber-900 font-bold py-2 flat-box text-sm flex items-center justify-center gap-1">
-                        <span>📤</span> 手動覆蓋推送到雲端
-                    </button>
                 </div>
 
-                <!-- CORS 與權限排查引導 -->
-                <div class="p-3 border border-amber-600 bg-amber-50 text-xs text-amber-950 font-bold space-y-1.5">
-                    <p class="flex items-center gap-1"><span>💡</span> 解決 CORS 跨域 / 存取被拒 (Failed to fetch) 關鍵步驟：</p>
-                    <ol class="list-decimal pl-4 font-normal text-[11px] space-y-1 mt-1 leading-relaxed text-zinc-800">
-                        <li>在 Google Apps Script 編輯器點擊右上角<strong>「部署」➔「管理部署」</strong>。</li>
-                        <li>點擊鉛筆圖示編輯，將「版本 (Version)」切換為<strong>「新版本 (New version)」</strong>。</li>
-                        <li>務必將「誰可以存取 (Who has access)」設定為<strong>「所有人 (Anyone)」</strong>。</li>
-                        <li>確認部署網址以 <code>/exec</code> 結尾，複製貼入上方輸入框並點擊測試。</li>
-                    </ol>
-                </div>
-            </div>
-        </div>
-    </div>
+                <!-- Tab 2: 音效與操作偏好 (Preferences) -->
+                <div id="panelSettings_preferences" class="hidden space-y-4">
+                    <div class="bg-white border-2 border-black p-4 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h4 class="font-black text-sm uppercase flex items-center gap-1.5">
+                                    <span>🔊</span> 操作互動音效反饋
+                                </h4>
+                                <p class="text-xs text-zinc-600 mt-0.5">點擊按鈕、建立文檔、刪除任務或存檔時提供即時音效。</p>
+                            </div>
+                            <button type="button" id="settingsSoundToggleBtn" onclick="app.toggleSound()" class="px-3 py-1.5 font-bold text-xs border-2 border-black bg-black text-white flat-box">
+                                🔊 音效已開啟
+                            </button>
+                        </div>
 
-    <!-- Modal: 本機檔案備份與還原 -->
-    <div id="backupModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-        <div class="bg-white border-2 border-black p-6 max-w-lg w-full flat-shadow-lg flex flex-col max-h-[90vh]">
-            <div class="flex items-center justify-between border-b-2 border-black pb-3 mb-4 shrink-0">
-                <h3 class="font-black text-lg uppercase flex items-center gap-2">💾 本機檔案備份與還原</h3>
-                <button onclick="app.closeModals()" class="text-xl font-bold hover:text-red-600 px-2">&times;</button>
-            </div>
-            
-            <div class="overflow-y-auto space-y-4 pr-1 no-scrollbar pb-2">
-                <!-- 檔案匯出與匯入 (實體 JSON 檔案) -->
-                <div class="p-4 bg-zinc-100 border-2 border-black space-y-3">
-                    <h4 class="font-black text-sm uppercase flex items-center gap-1.5">
-                        <span>📁</span> 本地實體 JSON 檔案 (安全離線備份)
-                    </h4>
-                    <p class="text-xs text-zinc-600 font-medium leading-relaxed">
-                        一鍵將所有專案、文檔與任務完整下載至電腦本機磁碟，或選取先前的 <code>.json</code> 備份檔進行還原。
-                    </p>
-                    <div class="flex flex-col sm:flex-row gap-2 pt-1">
-                        <button onclick="app.exportLocalJson()" class="flex-1 bg-black text-white font-bold py-2.5 px-3 border-2 border-black flat-box text-xs flex items-center justify-center gap-1.5">
-                            <span>📥</span> 下載本機 JSON 備份檔
-                        </button>
-                        <button onclick="document.getElementById('importJsonInput').click()" class="flex-1 bg-white hover:bg-zinc-100 text-black font-bold py-2.5 px-3 border-2 border-black flat-box text-xs flex items-center justify-center gap-1.5">
-                            <span>📤</span> 選取 JSON 檔案還原
-                        </button>
-                        <input type="file" id="importJsonInput" accept=".json" class="hidden" onchange="app.importLocalJson(event)">
+                        <!-- 音效試聽體驗 -->
+                        <div class="border-t border-zinc-200 pt-3">
+                            <label class="block font-black text-xs uppercase text-zinc-600 mb-2">🎵 音效試聽</label>
+                            <div class="flex flex-wrap gap-2">
+                                <button type="button" onclick="app.playSound('click')" class="px-2.5 py-1 bg-zinc-100 hover:bg-zinc-200 border border-black text-xs font-bold">🔘 點擊音</button>
+                                <button type="button" onclick="app.playSound('create')" class="px-2.5 py-1 bg-green-100 hover:bg-green-200 text-green-900 border border-black text-xs font-bold">✨ 建立音</button>
+                                <button type="button" onclick="app.playSound('delete')" class="px-2.5 py-1 bg-red-100 hover:bg-red-200 text-red-900 border border-black text-xs font-bold">🗑️ 刪除音</button>
+                                <button type="button" onclick="app.playSound('success')" class="px-2.5 py-1 bg-yellow-100 hover:bg-yellow-200 text-yellow-900 border border-black text-xs font-bold">🎉 成功音</button>
+                                <button type="button" onclick="app.playSound('error')" class="px-2.5 py-1 bg-zinc-200 hover:bg-zinc-300 text-zinc-800 border border-black text-xs font-bold">⚠️ 警示音</button>
+                            </div>
+                        </div>
                     </div>
-                </div>
 
-                <!-- 瀏覽器 LocalStorage 診斷與手動強制寫入 -->
-                <div class="p-4 bg-amber-50 border-2 border-amber-900 space-y-3 text-amber-950">
-                    <div class="flex items-center justify-between">
-                        <span class="font-black text-sm uppercase flex items-center gap-1.5">⚡ 瀏覽器 LocalStorage 狀態</span>
-                        <span id="backupStorageSize" class="text-[11px] font-mono font-bold bg-amber-200 px-2 py-0.5 border border-amber-900">計算中...</span>
-                    </div>
-                    <div id="backupHealthInfo" class="text-xs font-mono space-y-1 bg-white p-2.5 border border-amber-800 text-zinc-800">
-                        <!-- 動態載入 -->
-                    </div>
-                    <div class="flex gap-2">
-                        <button onclick="app.forceSaveToLocalWithToast()" class="flex-1 bg-amber-200 hover:bg-amber-300 text-amber-950 font-bold py-2 border-2 border-amber-950 flat-box text-xs">
-                            💾 立即強制寫入 LocalStorage
-                        </button>
+                    <!-- 分頁標記開關 -->
+                    <div class="bg-white border-2 border-black p-4 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h4 class="font-black text-sm uppercase flex items-center gap-1.5">
+                                    <span>📄</span> 文檔分頁標記功能 (Page Breaks)
+                                </h4>
+                                <p class="text-xs text-zinc-600 mt-0.5">開啟時，文檔中的分頁符號會在預覽與列印時生效並自動換頁。</p>
+                            </div>
+                            <button type="button" id="settingsPageBreaksToggleBtn" onclick="app.togglePageBreaksState()" class="px-3 py-1.5 font-bold text-xs border-2 border-black bg-black text-white flat-box">
+                                已開啟
+                            </button>
+                        </div>
                     </div>
                 </div>
 
-                <!-- 過時與過期 LocalStorage 快取清理工具 -->
-                <div class="p-4 bg-red-50 border-2 border-red-900 space-y-3 text-red-950">
-                    <div class="flex items-center justify-between">
-                        <span class="font-black text-sm uppercase flex items-center gap-1.5">🧹 過時資料清理工具</span>
-                        <span class="text-[10px] font-mono bg-red-200 px-2 py-0.5 border border-red-900 font-bold">快取管理</span>
-                    </div>
-                    <p class="text-xs text-zinc-700 leading-relaxed font-medium">
-                        可安全清除過期的本地快取資料（例如歷史測試暫存），並保留合法的最新專案。
-                    </p>
-                    <div class="flex flex-col sm:flex-row gap-2 pt-1">
-                        <button onclick="app.purgeOutdatedLocalData('2026-08-27T14:00:00+08:00')" class="flex-1 bg-white hover:bg-red-100 text-red-900 font-bold py-2 px-2 border-2 border-red-900 flat-box text-xs flex items-center justify-center gap-1" title="清理 2026/8/27 14:00 以前的本地專案">
-                            <span>🧹</span> 清除 2026/8/27 14:00 以前資料
-                        </button>
-                        <button onclick="app.resetLocalStorageAndPull()" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-2 border-2 border-black flat-box text-xs flex items-center justify-center gap-1" title="徹底清空本機快取並從 Google 試算表載入">
-                            <span>🗑️</span> 重置本機並從雲端重新載入
+                <!-- Tab 3: 本機歷史快照時光機 (History) -->
+                <div id="panelSettings_history" class="hidden space-y-4">
+                    <div class="p-3 bg-zinc-50 border-2 border-black flex items-center justify-between">
+                        <div>
+                            <h4 class="font-black text-xs uppercase text-zinc-800">🕒 本機歷史快照時光機</h4>
+                            <p class="text-[11px] text-zinc-500 font-medium">系統每次存檔皆會自動記錄快照，可隨時倒帶回溯！</p>
+                        </div>
+                        <button onclick="app.saveSnapshot('手動建立快照'); app.renderHistorySnapshots(); app.showToast('💾 已建立最新歷史快照');" class="px-3 py-1.5 bg-black text-white font-bold text-xs flat-box hover:bg-zinc-800 shrink-0">
+                            ＋ 建立快照
                         </button>
                     </div>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <!-- Modal: 新建專案 -->
-    <div id="newProjectModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-        <div class="bg-white border-2 border-black p-6 w-full max-w-sm flat-shadow-lg">
-            <h3 class="font-black text-lg uppercase mb-4 border-b-2 border-black pb-2">📦 建立新專案</h3>
-            <div class="space-y-3">
-                <div>
-                    <label class="block font-bold text-xs mb-1">專案名稱 *</label>
-                    <input type="text" id="newProjectTitle" class="flat-input w-full p-2 text-sm" placeholder="例如：FlatSpec 開發計畫">
-                </div>
-                <div>
-                    <label class="block font-bold text-xs mb-1">分類標籤</label>
-                    <input type="text" id="newProjectCategory" class="flat-input w-full p-2 text-sm" placeholder="例如：Web App, 行銷...">
-                </div>
-            </div>
-            <div class="flex justify-end gap-2 mt-6">
-                <button onclick="app.closeModals()" class="px-4 py-2 border-2 border-black font-bold text-sm bg-zinc-100 hover:bg-zinc-200">取消</button>
-                <button onclick="app.createNewProject()" class="px-4 py-2 border-2 border-black font-bold text-sm bg-black text-white flat-box hover:bg-zinc-800">建立</button>
-            </div>
-        </div>
-    </div>
+                    <div id="historySnapshotsList" class="space-y-2 max-h-72 overflow-y-auto pr-1 no-scrollbar min-h-[160px]">
+                        <!-- 動態注入歷史快照 -->
+                    </div>
 
-    <!-- Modal: 專案設定與管理 -->
-    <div id="editProjectModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-        <div class="bg-white border-2 border-black p-6 w-full max-w-md flat-shadow-lg flex flex-col max-h-[90vh]">
-            <div class="flex items-center justify-between border-b-2 border-black pb-2 mb-4 shrink-0">
-                <h3 class="font-black text-lg uppercase flex items-center gap-1.5">⚙️ 專案設定與管理</h3>
-                <button onclick="app.closeModals()" class="text-xl font-bold hover:text-red-600 px-2">&times;</button>
-            </div>
-            <div class="overflow-y-auto space-y-4 pr-1 no-scrollbar pb-2">
-                <!-- 當前專案設定 -->
-                <div class="p-3 bg-zinc-50 border-2 border-black space-y-3">
-                    <h4 class="font-black text-xs uppercase text-zinc-700 flex items-center gap-1">
-                        <span>✏️</span> <span>編輯當前專案資訊</span>
-                    </h4>
-                    <div>
-                        <label class="block font-bold text-xs mb-1">專案名稱 *</label>
-                        <input type="text" id="editProjectTitle" class="flat-input w-full p-2 text-sm bg-white">
-                    </div>
-                    <div>
-                        <label class="block font-bold text-xs mb-1">分類標籤</label>
-                        <input type="text" id="editProjectCategory" class="flat-input w-full p-2 text-sm bg-white">
-                    </div>
-                    <div class="flex gap-2 pt-1">
-                        <button onclick="app.saveProjectSettings()" class="flex-1 py-2 bg-black text-white border-2 border-black font-bold text-xs flat-box hover:bg-zinc-800">
-                            💾 儲存專案設定
-                        </button>
-                        <button onclick="app.deleteCurrentProject()" class="py-2 px-3 bg-red-100 text-red-700 hover:bg-red-200 border-2 border-red-700 font-bold text-xs flat-box">
-                            🗑️ 刪除當前專案
-                        </button>
+                    <div class="p-2.5 bg-blue-50 border-2 border-blue-900 text-xs font-bold text-blue-950 flex items-center justify-between">
+                        <span>📊 Google 試算表雲端版本記錄：可由試算表「檔案 ➔ 版本記錄」隨時倒帶</span>
+                        <a href="javascript:void(0)" onclick="app.openGasUrlInBrowser()" class="underline text-blue-800">開啟試算表 ↗</a>
                     </div>
                 </div>
 
-                <!-- 專案清單總覽與快速清理 -->
-                <div class="space-y-2">
-                    <div class="flex items-center justify-between">
-                        <h4 class="font-black text-xs uppercase text-zinc-700 flex items-center gap-1">
-                            <span>📋</span> <span>所有專案列表管理 (<span id="editProjectTotalCount">0</span>)</span>
+                <!-- Tab 4: 本機檔案備份與還原 (Backup) -->
+                <div id="panelSettings_backup" class="hidden space-y-4">
+                    <!-- 檔案匯出與匯入 (實體 JSON 檔案) -->
+                    <div class="p-4 bg-zinc-100 border-2 border-black space-y-3">
+                        <h4 class="font-black text-sm uppercase flex items-center gap-1.5">
+                            <span>📁</span> 本地實體 JSON 檔案 (安全離線備份)
                         </h4>
+                        <p class="text-xs text-zinc-600 font-medium leading-relaxed">
+                            一鍵將所有專案、文檔與任務完整下載至電腦本機磁碟，或選取先前的 <code>.json</code> 備份檔進行還原。
+                        </p>
+                        <div class="flex flex-col sm:flex-row gap-2 pt-1">
+                            <button onclick="app.exportLocalJson()" class="flex-1 bg-black text-white font-bold py-2.5 px-3 border-2 border-black flat-box text-xs flex items-center justify-center gap-1.5">
+                                <span>📥</span> 下載本機 JSON 備份檔
+                            </button>
+                            <button onclick="document.getElementById('importJsonInput').click()" class="flex-1 bg-white hover:bg-zinc-100 text-black font-bold py-2.5 px-3 border-2 border-black flat-box text-xs flex items-center justify-center gap-1.5">
+                                <span>📤</span> 選取 JSON 檔案還原
+                            </button>
+                            <input type="file" id="importJsonInput" accept=".json" class="hidden" onchange="app.importLocalJson(event)">
+                        </div>
                     </div>
-                    <div id="editProjectModalList" class="space-y-1.5 max-h-52 overflow-y-auto border-2 border-black p-2 bg-zinc-100">
-                        <!-- 動態載入專案項目與快速刪除按鈕 -->
+
+                    <!-- 瀏覽器 LocalStorage 診斷與手動強制寫入 -->
+                    <div class="p-4 bg-amber-50 border-2 border-amber-900 space-y-3 text-amber-950">
+                        <div class="flex items-center justify-between">
+                            <span class="font-black text-sm uppercase flex items-center gap-1.5">⚡ 瀏覽器 LocalStorage 狀態</span>
+                            <span id="backupStorageSize" class="text-[11px] font-mono font-bold bg-amber-200 px-2 py-0.5 border border-amber-900">計算中...</span>
+                        </div>
+                        <div id="backupHealthInfo" class="text-xs font-mono space-y-1 bg-white p-2.5 border border-amber-800 text-zinc-800">
+                            <!-- 動態載入 -->
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="app.forceSaveToLocalWithToast()" class="flex-1 bg-amber-200 hover:bg-amber-300 text-amber-950 font-bold py-2 border-2 border-amber-950 flat-box text-xs">
+                                💾 立即強制寫入 LocalStorage
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 過時與過期 LocalStorage 快取清理工具 -->
+                    <div class="p-4 bg-red-50 border-2 border-red-900 space-y-3 text-red-950">
+                        <div class="flex items-center justify-between">
+                            <span class="font-black text-sm uppercase flex items-center gap-1.5">🧹 過時資料清理工具</span>
+                            <span class="text-[10px] font-mono bg-red-200 px-2 py-0.5 border border-red-900 font-bold">快取管理</span>
+                        </div>
+                        <p class="text-xs text-zinc-700 leading-relaxed font-medium">
+                            可安全清除過期的本地快取資料（例如歷史測試暫存），並保留合法的最新專案。
+                        </p>
+                        <div class="flex flex-col sm:flex-row gap-2 pt-1">
+                            <button onclick="app.purgeOutdatedLocalData('2026-08-27T14:00:00+08:00')" class="flex-1 bg-white hover:bg-red-100 text-red-900 font-bold py-2 px-2 border-2 border-red-900 flat-box text-xs flex items-center justify-center gap-1" title="清理 2026/8/27 14:00 以前的本地專案">
+                                <span>🧹</span> 清除 2026/8/27 14:00 以前資料
+                            </button>
+                            <button onclick="app.resetLocalStorageAndPull()" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-2 border-2 border-black flat-box text-xs flex items-center justify-center gap-1" title="徹底清空本機快取並從 Google 試算表載入">
+                                <span>🗑️</span> 重置本機並從雲端重新載入
+                            </button>
+                        </div>
                     </div>
                 </div>
+
+                <!-- Tab 5: 雲端同步與 GAS (Cloud) -->
+                <div id="panelSettings_cloud" class="hidden space-y-4">
+                    <div>
+                        <label class="block font-bold text-sm mb-1">Google Apps Script Web App URL</label>
+                        <input type="text" id="gasUrlInput" class="flat-input w-full p-2 text-sm font-mono bg-zinc-50" placeholder="https://script.google.com/macros/s/...">
+                        <p class="text-[11px] text-zinc-500 font-bold mt-1">系統每 15 秒背景無感輪詢，並在打字後 800ms 自動推送到此端點。</p>
+                    </div>
+
+                    <!-- CORS 與連線檢測診斷面板 -->
+                    <div id="gasDiagResult" class="hidden p-3 bg-zinc-50 border-2 border-black space-y-1">
+                        <!-- 動態載入診斷結果 -->
+                    </div>
+
+                    <div class="p-3 bg-zinc-100 border-2 border-black flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                        <div>
+                            <p class="text-xs font-bold font-mono">📊 您的視覺化試算表資料庫</p>
+                            <p class="text-[10px] text-zinc-500 font-mono truncate max-w-[200px]">ID: 1WSViTq8yVVtOt...MZgmnU</p>
+                        </div>
+                        <a href="https://docs.google.com/spreadsheets/d/1WSViTq8yVVtOt8ubh01l1441-HzgUWcJiiBD4MZgmnU/edit" target="_blank" class="w-full sm:w-auto px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white font-bold text-xs border-2 border-black flat-box text-center">
+                            🔗 開啟試算表
+                        </a>
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row gap-2 pt-1">
+                        <button onclick="app.testGasConnection()" class="flex-1 bg-black text-white font-bold py-2 border-2 border-black flat-box text-sm flex items-center justify-center gap-1.5">
+                            <span>🧪</span> 測試連線與 CORS 雙向診斷
+                        </button>
+                    </div>
+                    
+                    <div class="flex flex-col sm:flex-row gap-2 border-t-2 border-zinc-200 pt-3">
+                        <button onclick="app.pullFromCloud(true)" class="flex-1 bg-blue-100 text-blue-900 border-2 border-blue-900 font-bold py-2 flat-box text-sm flex items-center justify-center gap-1">
+                            <span>📥</span> 手動拉取最新雲端
+                        </button>
+                        <button onclick="app.pushToCloud(true)" class="flex-1 bg-amber-100 text-amber-900 border-2 border-amber-900 font-bold py-2 flat-box text-sm flex items-center justify-center gap-1">
+                            <span>📤</span> 手動覆蓋推送到雲端
+                        </button>
+                    </div>
+
+                    <!-- CORS 與權限排查引導 -->
+                    <div class="p-3 border border-amber-600 bg-amber-50 text-xs text-amber-950 font-bold space-y-1.5">
+                        <p class="flex items-center gap-1"><span>💡</span> 解決 CORS 跨域 / 存取被拒 (Failed to fetch) 關鍵步驟：</p>
+                        <ol class="list-decimal pl-4 font-normal text-[11px] space-y-1 mt-1 leading-relaxed text-zinc-800">
+                            <li>在 Google Apps Script 編輯器點擊右上角<strong>「部署」➔「管理部署」</strong>。</li>
+                            <li>點擊鉛筆圖示編輯，將「版本 (Version)」切換為<strong>「新版本 (New version)」</strong>。</li>
+                            <li>務必將「誰可以存取 (Who has access)」設定為<strong>「所有人 (Anyone)」</strong>。</li>
+                            <li>確認部署網址以 <code>/exec</code> 結尾，複製貼入上方輸入框並點擊測試。</li>
+                        </ol>
+                    </div>
+                </div>
+
+                <!-- Tab 6: 專案管理 (Project Settings) -->
+                <div id="panelSettings_project" class="hidden space-y-4">
+                    <!-- 當前專案設定 -->
+                    <div class="p-3 bg-zinc-50 border-2 border-black space-y-3">
+                        <h4 class="font-black text-xs uppercase text-zinc-700 flex items-center gap-1">
+                            <span>✏️</span> <span>編輯當前專案資訊</span>
+                        </h4>
+                        <div>
+                            <label class="block font-bold text-xs mb-1">專案名稱 *</label>
+                            <input type="text" id="editProjectTitle" class="flat-input w-full p-2 text-sm bg-white">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-xs mb-1">分類標籤</label>
+                            <input type="text" id="editProjectCategory" class="flat-input w-full p-2 text-sm bg-white">
+                        </div>
+                        <div class="flex gap-2 pt-1">
+                            <button onclick="app.saveProjectSettings()" class="flex-1 py-2 bg-black text-white border-2 border-black font-bold text-xs flat-box hover:bg-zinc-800">
+                                💾 儲存專案設定
+                            </button>
+                            <button onclick="app.deleteCurrentProject()" class="py-2 px-3 bg-red-100 text-red-700 hover:bg-red-200 border-2 border-red-700 font-bold text-xs flat-box">
+                                🗑️ 刪除當前專案
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 專案清單總覽與快速清理 -->
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between">
+                            <h4 class="font-black text-xs uppercase text-zinc-700 flex items-center gap-1">
+                                <span>📋</span> <span>所有專案列表管理 (<span id="editProjectTotalCount">0</span>)</span>
+                            </h4>
+                            <button onclick="app.openNewProjectModal()" class="text-xs font-bold bg-black text-white px-2.5 py-1">+ 新建專案</button>
+                        </div>
+                        <div id="editProjectModalList" class="space-y-1.5 max-h-52 overflow-y-auto border-2 border-black p-2 bg-zinc-100">
+                            <!-- 動態載入專案項目與快速刪除按鈕 -->
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- 底部按鈕欄 -->
+            <div class="p-3 border-t-2 border-black bg-zinc-100 flex justify-between items-center shrink-0">
+                <div class="text-[11px] font-mono text-zinc-500 font-bold hidden sm:block">
+                    FlatSpec Drive · 偏好設定自動儲存
+                </div>
+                <button onclick="app.closeSettingsModal()" class="px-5 py-2 border-2 border-black font-bold text-xs bg-black text-white flat-box hover:bg-zinc-800 ml-auto">完成關閉</button>
             </div>
         </div>
     </div>
@@ -1256,183 +1413,7 @@
         </div>
     </div>
 
-    <!-- 歷史版本快照時光機 Modal -->
-    <div id="historyModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-3 md:p-6" onclick="app.closeHistoryModal()">
-        <div class="bg-white border-2 border-black p-5 md:p-6 max-w-xl w-full flat-shadow-lg flex flex-col max-h-[88vh]" onclick="event.stopPropagation()">
-            <div class="flex items-center justify-between border-b-2 border-black pb-3 mb-3 shrink-0">
-                <h3 class="font-black text-lg uppercase flex items-center gap-2">
-                    <span>🕒</span> 本機歷史版本時光機 (Snapshot Rollback)
-                </h3>
-                <button onclick="app.closeHistoryModal()" class="text-xl font-bold hover:text-red-600 px-2">&times;</button>
-            </div>
 
-            <p class="text-xs text-zinc-600 font-medium leading-relaxed mb-3">
-                系統每次同步或存檔時皆會自動留下時光機快照。若發現內容被覆蓋或遺失，可在此選取歷史時間點一鍵還原！
-            </p>
-
-            <div id="historySnapshotsList" class="flex-1 overflow-y-auto space-y-2 pr-1 no-scrollbar min-h-[220px]">
-                <!-- 動態注入歷史快照 -->
-            </div>
-
-            <!-- Google 試算表版本提示 -->
-            <div class="mt-3 p-2.5 bg-blue-50 border-2 border-blue-900 text-xs font-bold text-blue-950 flex items-center justify-between">
-                <span>📊 Google 試算表雲端版本記錄：可由試算表「檔案 ➔ 版本記錄」隨時倒帶</span>
-                <a href="javascript:void(0)" onclick="app.openGasUrlInBrowser()" class="underline text-blue-800">開啟試算表 ↗</a>
-            </div>
-        </div>
-    </div>
-
-    <!-- 自訂字體與排版管理 Modal -->
-    <div id="fontModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-3 md:p-6" onclick="app.closeFontModal()">
-        <div class="bg-white border-2 border-black p-5 md:p-6 max-w-lg w-full flat-shadow-lg flex flex-col max-h-[90vh]" onclick="event.stopPropagation()">
-            <div class="flex items-center justify-between border-b-2 border-black pb-3 mb-4 shrink-0">
-                <h3 class="font-black text-lg uppercase flex items-center gap-2">
-                    <span>🔤</span> 自訂字體與外觀 (Custom Fonts)
-                </h3>
-                <button onclick="app.closeFontModal()" class="text-xl font-bold hover:text-red-600 px-2">&times;</button>
-            </div>
-
-            <div class="flex-1 overflow-y-auto space-y-4 pr-1 no-scrollbar">
-                <!-- 套用範圍切換 -->
-                <div class="bg-zinc-50 border-2 border-black p-3 space-y-2">
-                    <label class="block text-xs font-black uppercase text-zinc-700">套用生效範圍</label>
-                    <div class="grid grid-cols-2 gap-2">
-                        <label class="flex items-center gap-2 cursor-pointer text-xs font-bold p-2 bg-white border border-black hover:bg-yellow-50">
-                            <input type="radio" name="fontTargetScope" value="all" id="fontTargetScopeAll" onchange="app.handleFontScopeChange(this.value)" class="accent-black" checked>
-                            <span>全域介面與文檔</span>
-                        </label>
-                        <label class="flex items-center gap-2 cursor-pointer text-xs font-bold p-2 bg-white border border-black hover:bg-yellow-50">
-                            <input type="radio" name="fontTargetScope" value="doc" id="fontTargetScopeDoc" onchange="app.handleFontScopeChange(this.value)" class="accent-black">
-                            <span>僅文檔閱讀/編輯區</span>
-                        </label>
-                    </div>
-                </div>
-
-                <!-- 方式一：上傳本機字體檔案 -->
-                <div class="bg-white border-2 border-black p-3 space-y-2">
-                    <div class="flex items-center justify-between">
-                        <label class="text-xs font-black uppercase text-zinc-800 flex items-center gap-1">
-                            <span>📁</span> 方式一：匯入本機字體檔案
-                        </label>
-                        <span class="text-[10px] text-zinc-500 font-mono">.ttf / .otf / .woff / .woff2</span>
-                    </div>
-                    <p class="text-[11px] text-zinc-600 font-medium">
-                        上傳字體檔案後將自動轉存至本地離線快取，離線狀態與手機端亦能完美載入。
-                    </p>
-                    <div class="flex gap-2 items-center">
-                        <label class="flex-1 cursor-pointer bg-zinc-100 hover:bg-zinc-200 border-2 border-black py-2 px-3 text-xs font-bold text-center flat-box truncate">
-                            <span id="fontFileLabelText">📂 選擇字體檔案...</span>
-                            <input type="file" id="fontFileInput" accept=".ttf,.otf,.woff,.woff2" onchange="app.handleFontFileUpload(event)" class="hidden">
-                        </label>
-                    </div>
-                </div>
-
-                <!-- 方式二：線上字體 / Google Fonts -->
-                <div class="bg-white border-2 border-black p-3 space-y-2">
-                    <div class="flex items-center justify-between">
-                        <label class="text-xs font-black uppercase text-zinc-800 flex items-center gap-1">
-                            <span>🌐</span> 方式二：線上字體 (Google Fonts / CSS URL)
-                        </label>
-                    </div>
-                    <div class="space-y-1.5">
-                        <input type="text" id="fontOnlineUrlInput" placeholder="例如: https://fonts.googleapis.com/css2?family=Noto+Sans+TC&display=swap" class="flat-input w-full p-2 text-xs font-mono bg-zinc-50">
-                        <div class="flex gap-2">
-                            <input type="text" id="fontOnlineFamilyInput" placeholder="字體名稱 (例如: 'Noto Sans TC')" class="flat-input flex-1 p-2 text-xs bg-zinc-50">
-                            <button onclick="app.applyOnlineFontFromInput()" class="bg-black text-white hover:bg-zinc-800 text-xs font-bold px-3 border-2 border-black shrink-0">套用</button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 方式三：快速常用字體切換 -->
-                <div class="bg-white border-2 border-black p-3 space-y-2">
-                    <label class="block text-xs font-black uppercase text-zinc-800 flex items-center gap-1">
-                        <span>⚡</span> 常用預設與系統字庫快速切換
-                    </label>
-                    <div class="grid grid-cols-2 gap-1.5 text-xs font-bold">
-                        <button type="button" onclick="app.setQuickFont('Inter, -apple-system, BlinkMacSystemFont, sans-serif', '現代幾何無襯線 (Inter 預設)')" class="p-2 text-left bg-zinc-50 hover:bg-yellow-200 border border-black truncate">
-                            Inter (預設黑體)
-                        </button>
-                        <button type="button" onclick="app.setQuickFont('&quot;Microsoft JhengHei&quot;, &quot;微軟正黑體&quot;, sans-serif', '微軟正黑體 (系統)')" class="p-2 text-left bg-zinc-50 hover:bg-yellow-200 border border-black truncate font-sans">
-                            微軟正黑體
-                        </button>
-                        <button type="button" onclick="app.loadPresetWebFont('Noto+Sans+TC', 'Noto Sans TC', '思源黑體 (Noto Sans TC)')" class="p-2 text-left bg-zinc-50 hover:bg-yellow-200 border border-black truncate">
-                            思源黑體 (繁體)
-                        </button>
-                        <button type="button" onclick="app.loadPresetWebFont('Noto+Serif+TC', 'Noto Serif TC', '思源宋體 (Noto Serif TC)')" class="p-2 text-left bg-zinc-50 hover:bg-yellow-200 border border-black truncate font-serif">
-                            思源宋體 (優雅明體)
-                        </button>
-                        <button type="button" onclick="app.loadPresetWebFont('LXGW+WenKai+TC', 'LXGW WenKai TC', '霞鶩文楷 (溫潤楷書)')" class="p-2 text-left bg-zinc-50 hover:bg-yellow-200 border border-black truncate">
-                            霞鶩文楷 (文青楷書)
-                        </button>
-                        <button type="button" onclick="app.setQuickFont('ui-monospace, Consolas, monospace', '等寬程式碼字體 (Monospace)')" class="p-2 text-left bg-zinc-50 hover:bg-yellow-200 border border-black truncate font-mono">
-                            等寬工整字體
-                        </button>
-                    </div>
-                </div>
-
-                <!-- 當前套用狀態與預覽 -->
-                <div class="bg-yellow-50 border-2 border-black p-3 space-y-2">
-                    <div class="flex items-center justify-between">
-                        <span class="text-xs font-black uppercase text-zinc-800">當前套用字體</span>
-                        <span id="currentFontBadge" class="text-xs font-mono font-bold text-blue-900 bg-white px-2 py-0.5 border border-black truncate max-w-[200px]">Inter (系統預設)</span>
-                    </div>
-                    <div id="fontPreviewSample" class="p-3 bg-white border border-black text-sm font-medium leading-relaxed">
-                        FlatSpec Drive 敏捷專案管理：永不遺失靈感與進度。The quick brown fox jumps over the lazy dog. 1234567890
-                    </div>
-                </div>
-            </div>
-
-            <!-- 底部動作欄 -->
-            <div class="mt-4 pt-3 border-t-2 border-black flex justify-between items-center gap-2 shrink-0">
-                <button onclick="app.resetDefaultFont()" class="bg-zinc-100 hover:bg-zinc-200 text-red-600 border-2 border-black font-bold text-xs px-3 py-2 flat-box">
-                    🔄 恢復預設字體
-                </button>
-                <button onclick="app.closeFontModal()" class="bg-black hover:bg-zinc-800 text-white font-bold text-xs px-4 py-2 border-2 border-black">
-                    關閉
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- 系統訊息 Toast -->
-    <div id="toast" class="fixed top-4 left-1/2 transform -translate-x-1/2 bg-black text-white px-4 py-2 font-bold text-sm border-2 border-black shadow-[4px_4px_0px_0px_#cbd5e1] z-[100] transition-all duration-300 opacity-0 pointer-events-none translate-y-[-20px]">
-        訊息
-    </div>
-
-    <!-- 即時多人協作異動廣播 Toast -->
-    <div id="liveToast" class="fixed top-16 right-4 max-w-xs md:max-w-sm bg-yellow-300 text-black p-3 font-bold text-xs border-2 border-black shadow-[4px_4px_0px_0px_#000] z-[100] transition-all duration-300 opacity-0 pointer-events-none translate-x-[20px] flex items-center gap-2.5">
-        <span class="text-2xl shrink-0" id="liveToastIcon">🔔</span>
-        <div class="flex-1 min-w-0">
-            <div class="font-black text-[10px] uppercase text-zinc-700 tracking-wider font-mono" id="liveToastSub">隊友即時動態</div>
-            <div class="truncate text-xs font-black text-black" id="liveToastMsg">Alex 剛剛更新了文檔</div>
-        </div>
-    </div>
-
-    <!-- 歷史版本快照時光機 Modal -->
-    <div id="historyModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-3 md:p-6" onclick="app.closeHistoryModal()">
-        <div class="bg-white border-2 border-black p-5 md:p-6 max-w-xl w-full flat-shadow-lg flex flex-col max-h-[88vh]" onclick="event.stopPropagation()">
-            <div class="flex items-center justify-between border-b-2 border-black pb-3 mb-3 shrink-0">
-                <h3 class="font-black text-lg uppercase flex items-center gap-2">
-                    <span>🕒</span> 本機歷史版本時光機 (Snapshot Rollback)
-                </h3>
-                <button onclick="app.closeHistoryModal()" class="text-xl font-bold hover:text-red-600 px-2">&times;</button>
-            </div>
-
-            <p class="text-xs text-zinc-600 font-medium leading-relaxed mb-3">
-                系統每次同步或存檔時皆會自動留下時光機快照。若發現內容被覆蓋或遺失，可在此選取歷史時間點一鍵還原！
-            </p>
-
-            <div id="historySnapshotsList" class="flex-1 overflow-y-auto space-y-2 pr-1 no-scrollbar min-h-[220px]">
-                <!-- 動態注入歷史快照 -->
-            </div>
-
-            <!-- Google 試算表版本提示 -->
-            <div class="mt-3 p-2.5 bg-blue-50 border-2 border-blue-900 text-xs font-bold text-blue-950 flex items-center justify-between">
-                <span>📊 Google 試算表雲端版本記錄：可由試算表「檔案 ➔ 版本記錄」隨時倒帶</span>
-                <a href="javascript:void(0)" onclick="app.openGasUrlInBrowser()" class="underline text-blue-800">開啟試算表 ↗</a>
-            </div>
-        </div>
-    </div>
 
     <!-- AI Chat Backdrop -->
     <div id="chatBackdrop" class="hidden fixed inset-0 bg-black/30 z-40 md:hidden" onclick="app.closeChatSidebar()"></div>

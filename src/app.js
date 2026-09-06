@@ -87,6 +87,13 @@
                         ? 'p-1.5 px-2 bg-zinc-100 hover:bg-zinc-200 border-2 border-black font-bold text-xs flat-box flex items-center gap-1 transition-colors shrink-0'
                         : 'p-1.5 px-2 bg-zinc-200 hover:bg-zinc-300 border-2 border-zinc-500 text-zinc-500 font-bold text-xs flat-box flex items-center gap-1 transition-colors shrink-0';
                 }
+                const settingsBtn = document.getElementById('settingsSoundToggleBtn');
+                if (settingsBtn) {
+                    settingsBtn.innerText = this.soundEnabled ? '🔊 音效已開啟' : '🔇 音效已關閉';
+                    settingsBtn.className = this.soundEnabled 
+                        ? 'px-3 py-1.5 font-bold text-xs border-2 border-black bg-black text-white flat-box' 
+                        : 'px-3 py-1.5 font-bold text-xs border-2 border-zinc-500 bg-zinc-200 text-zinc-600 flat-box';
+                }
             },
 
             playSound(type) {
@@ -4038,13 +4045,133 @@
                     this.showToast('重置雲端拉取失敗: ' + e.message, 'error');
                 }
             },
+            // ================= ⚙️ 系統與專案設定中心 (Settings Hub Modal) =================
+            openSettingsModal(tab = 'appearance') {
+                this.closeModals();
+                const modal = document.getElementById('settingsModal');
+                if (modal) {
+                    modal.classList.remove('hidden');
+                    this.switchSettingsTab(tab);
+                }
+            },
+
+            closeSettingsModal() {
+                const modal = document.getElementById('settingsModal');
+                if (modal) modal.classList.add('hidden');
+            },
+
+            switchSettingsTab(tabId) {
+                const tabs = ['appearance', 'preferences', 'history', 'backup', 'cloud', 'project'];
+                tabs.forEach(t => {
+                    const tabBtn = document.getElementById(`tabSettings_${t}`);
+                    const panel = document.getElementById(`panelSettings_${t}`);
+                    if (tabBtn) {
+                        if (t === tabId) {
+                            tabBtn.className = 'px-3 py-1.5 bg-black text-white flat-box shrink-0 flex items-center gap-1 font-bold text-xs';
+                        } else {
+                            tabBtn.className = 'px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 text-black flat-box shrink-0 flex items-center gap-1 transition-colors font-bold text-xs';
+                        }
+                    }
+                    if (panel) {
+                        if (t === tabId) {
+                            panel.classList.remove('hidden');
+                        } else {
+                            panel.classList.add('hidden');
+                        }
+                    }
+                });
+
+                // Tab-specific data initialization
+                if (tabId === 'appearance') {
+                    const currentScope = localStorage.getItem('flatSpecFontScope') || 'all';
+                    const scopeRadio = document.querySelector(`input[name="fontTargetScope"][value="${currentScope}"]`);
+                    if (scopeRadio) scopeRadio.checked = true;
+
+                    const currentName = localStorage.getItem('flatSpecFontName') || 'Inter (系統預設)';
+                    const badge = document.getElementById('currentFontBadge');
+                    if (badge) badge.textContent = currentName;
+
+                    const currentFamily = localStorage.getItem('flatSpecFontFamily') || "'Inter', sans-serif";
+                    const sample = document.getElementById('fontPreviewSample');
+                    if (sample) sample.style.fontFamily = currentFamily;
+
+                    const fileLabel = document.getElementById('fontFileLabelText');
+                    if (fileLabel) {
+                        const fontType = localStorage.getItem('flatSpecFontType');
+                        if (fontType === 'file') {
+                            fileLabel.textContent = `📁 已載入本機字體: ${currentName}`;
+                        } else {
+                            fileLabel.textContent = '📂 選擇字體檔案...';
+                        }
+                    }
+                } else if (tabId === 'preferences') {
+                    this.updateSettingsPreferencesUI();
+                } else if (tabId === 'history') {
+                    this.renderSnapshots();
+                } else if (tabId === 'backup') {
+                    this.renderBackupModalInfo();
+                } else if (tabId === 'cloud') {
+                    const el = document.getElementById('gasUrlInput');
+                    if (el) el.value = this.state.gasUrl;
+                } else if (tabId === 'project') {
+                    const p = this.getCurrentProject();
+                    if (p) {
+                        const titleEl = document.getElementById('editProjectTitle');
+                        const catEl = document.getElementById('editProjectCategory');
+                        if (titleEl) titleEl.value = p.title || '';
+                        if (catEl) catEl.value = p.category || '';
+                    }
+                    this.renderEditProjectModalList();
+                }
+            },
+
+            updateSettingsPreferencesUI() {
+                const soundBtn = document.getElementById('settingsSoundToggleBtn');
+                if (soundBtn) {
+                    soundBtn.innerText = this.soundEnabled ? '🔊 音效已開啟' : '🔇 音效已關閉';
+                    soundBtn.className = this.soundEnabled 
+                        ? 'px-3 py-1.5 font-bold text-xs border-2 border-black bg-black text-white flat-box' 
+                        : 'px-3 py-1.5 font-bold text-xs border-2 border-zinc-500 bg-zinc-200 text-zinc-600 flat-box';
+                }
+                const pageBreaksBtn = document.getElementById('settingsPageBreaksToggleBtn');
+                const isBreaksEnabled = this.state.enablePageBreaks !== false;
+                if (pageBreaksBtn) {
+                    pageBreaksBtn.innerText = isBreaksEnabled ? '已開啟' : '已關閉';
+                    pageBreaksBtn.className = isBreaksEnabled
+                        ? 'px-3 py-1.5 font-bold text-xs border-2 border-black bg-black text-white flat-box'
+                        : 'px-3 py-1.5 font-bold text-xs border-2 border-zinc-500 bg-zinc-200 text-zinc-600 flat-box';
+                }
+            },
+
             openGasModal() {
-                const el = document.getElementById('gasUrlInput');
-                if(el) el.value = this.state.gasUrl;
-                document.getElementById('gasModal')?.classList.remove('hidden');
+                this.openSettingsModal('cloud');
             },
             closeGasModal() {
-                document.getElementById('gasModal')?.classList.add('hidden');
+                this.closeSettingsModal();
+            },
+            openFontModal() {
+                this.openSettingsModal('appearance');
+            },
+            closeFontModal() {
+                this.closeSettingsModal();
+            },
+            openBackupModal() {
+                this.openSettingsModal('backup');
+            },
+            closeBackupModal() {
+                this.closeSettingsModal();
+            },
+            openEditProjectModal() {
+                this.openSettingsModal('project');
+            },
+            closeEditProjectModal() {
+                this.closeSettingsModal();
+            },
+            openHistoryModal() {
+                this.openSettingsModal('history');
+            },
+            closeHistoryModal() {
+                this.closeSettingsModal();
             },
             openNewProjectModal() {
                 document.getElementById('newProjectModal')?.classList.remove('hidden');
@@ -4053,7 +4180,7 @@
                 document.getElementById('newDocModal')?.classList.remove('hidden');
             },
             closeModals() {
-                ['gasModal', 'newProjectModal', 'newDocModal', 'backupModal', 'editProjectModal', 'editTaskModal', 'insertImageModal', 'imageViewerModal', 'searchModal', 'teamModal', 'taskCommentsModal', 'fontModal'].forEach(id => {
+                ['settingsModal', 'gasModal', 'newProjectModal', 'newDocModal', 'backupModal', 'editProjectModal', 'editTaskModal', 'insertImageModal', 'imageViewerModal', 'searchModal', 'teamModal', 'taskCommentsModal', 'fontModal', 'historyModal'].forEach(id => {
                     const el = document.getElementById(id);
                     if(el) el.classList.add('hidden');
                 });
