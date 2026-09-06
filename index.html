@@ -72,11 +72,7 @@
         </div>
 
         <!-- 側邊欄底部快捷列 -->
-        <div class="p-2 border-t-2 border-black bg-zinc-300 grid grid-cols-5 gap-1">
-            <button onclick="app.openTeamModal()" class="p-1 hover:bg-zinc-100 border-2 border-transparent hover:border-black font-bold text-[10px] flex flex-col items-center gap-0.5 transition-colors flat-box" title="團隊成員與協作分享">
-                <span class="text-base">👥</span>
-                <span>團隊</span>
-            </button>
+        <div class="p-2 border-t-2 border-black bg-zinc-300 grid grid-cols-4 gap-1">
             <button onclick="app.openSettingsModal('backup')" class="p-1 hover:bg-zinc-100 border-2 border-transparent hover:border-black font-bold text-[10px] flex flex-col items-center gap-0.5 transition-colors flat-box" title="本機檔案備份與還原">
                 <span class="text-base">💾</span>
                 <span>備份</span>
@@ -128,8 +124,8 @@
 
             <!-- 右側協作、搜尋與設定 -->
             <div class="flex items-center gap-1 sm:gap-2 shrink-0">
-                <!-- 即時在線成員呼吸燈 / 團隊協作 -->
-                <div id="headerPresenceBar" onclick="app.openTeamModal()" class="flex items-center gap-1 cursor-pointer bg-emerald-50 hover:bg-emerald-100 border-2 border-emerald-900 px-1.5 py-1 flat-box transition-colors shrink-0" title="點擊查看即時在線成員與團隊協作">
+                <!-- 即時在線成員呼吸燈 -->
+                <div id="headerPresenceBar" class="flex items-center gap-1 bg-emerald-50 border-2 border-emerald-900 px-1.5 py-1 flat-box shrink-0" title="即時在線成員狀態">
                     <span class="relative flex h-2 w-2">
                         <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                         <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-600"></span>
@@ -1122,150 +1118,7 @@
         </div>
     </div>
 
-    <!-- Modal: 團隊協作中心 -->
-    <div id="teamModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-3 md:p-6" onclick="app.closeTeamModal()">
-        <div class="bg-white border-2 border-black w-full max-w-xl flat-shadow-lg flex flex-col max-h-[88vh] overflow-hidden" onclick="event.stopPropagation()">
-            <!-- 標題 -->
-            <div class="p-4 border-b-2 border-black bg-zinc-100 flex items-center justify-between shrink-0">
-                <div class="flex items-center gap-2">
-                    <span class="text-2xl">👥</span>
-                    <div>
-                        <h3 class="font-black text-lg uppercase leading-tight">團隊協作中心</h3>
-                        <p class="text-[11px] font-bold text-zinc-500">成員管理、任務指派與即時邀請連結</p>
-                    </div>
-                </div>
-                <button onclick="app.closeTeamModal()" class="text-xl font-bold hover:text-red-600 px-2">&times;</button>
-            </div>
 
-            <!-- Tab 切換 -->
-            <div class="flex border-b-2 border-black bg-zinc-200 p-1 shrink-0 gap-1 text-xs font-bold">
-                <button type="button" id="tabTeamMembers" onclick="app.switchTeamTab('members')" class="flex-1 py-1.5 bg-black text-white transition-colors">👥 成員名單 (<span id="teamMemberCountBadge">0</span>)</button>
-                <button type="button" id="tabTeamInvite" onclick="app.switchTeamTab('invite')" class="flex-1 py-1.5 bg-zinc-100 text-black hover:bg-zinc-200 transition-colors">🔗 邀請連結 / 掃碼</button>
-                <button type="button" id="tabTeamProfile" onclick="app.switchTeamTab('profile')" class="flex-1 py-1.5 bg-zinc-100 text-black hover:bg-zinc-200 transition-colors">👤 我的身分</button>
-                <button type="button" id="tabTeamActivity" onclick="app.switchTeamTab('activity')" class="flex-1 py-1.5 bg-zinc-100 text-black hover:bg-zinc-200 transition-colors">📜 協作日誌</button>
-            </div>
-
-            <!-- 內容區 -->
-            <div class="flex-1 overflow-y-auto p-4 space-y-4">
-                <!-- Tab 1: 成員管理 -->
-                <div id="panelTeamMembers" class="space-y-4">
-                    <!-- 新增成員輸入框 -->
-                    <div class="p-3 bg-zinc-100 border-2 border-black space-y-2">
-                        <label class="block font-black text-xs uppercase">＋ 新增團隊成員</label>
-                        <div class="flex flex-wrap gap-2">
-                            <select id="newMemberAvatar" class="flat-input p-2 text-base bg-white w-14 text-center cursor-pointer">
-                                <option value="👑">👑</option>
-                                <option value="🐱">🐱</option>
-                                <option value="🐶">🐶</option>
-                                <option value="🦊">🦊</option>
-                                <option value="🦁">🦁</option>
-                                <option value="🚀">🚀</option>
-                                <option value="💻">💻</option>
-                                <option value="🎨">🎨</option>
-                                <option value="⚡">⚡</option>
-                                <option value="🎯">🎯</option>
-                            </select>
-                            <input type="text" id="newMemberName" placeholder="姓名 / 暱稱 (例如: Alex)" class="flat-input p-2 text-sm flex-1 min-w-[110px] bg-white">
-                            <input type="text" id="newMemberRole" placeholder="角色 (例如: 前端工程師)" class="flat-input p-2 text-sm flex-1 min-w-[110px] bg-white">
-                            <button onclick="app.addTeamMember()" class="px-3.5 py-2 bg-black text-white font-bold text-xs flat-box hover:bg-zinc-800 shrink-0">加入團隊</button>
-                        </div>
-                    </div>
-
-                    <!-- 成員清單 -->
-                    <div class="space-y-2">
-                        <div class="text-xs font-black text-zinc-500 uppercase tracking-wider">目前專案成員清單</div>
-                        <div id="teamMemberList" class="space-y-2">
-                            <!-- 動態注入成員卡片 -->
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Tab 2: 邀請連結 -->
-                <div id="panelTeamInvite" class="hidden space-y-4">
-                    <div class="p-4 bg-yellow-50 border-2 border-black space-y-3">
-                        <h4 class="font-black text-sm uppercase flex items-center gap-1.5">
-                            <span>🚀</span> <span>一鍵協作邀請連結 (Share & Sync URL)</span>
-                        </h4>
-                        <p class="text-xs text-zinc-700 leading-relaxed font-medium">
-                            將下方專屬連結傳送給團隊夥伴，對方點開後即可<strong>自動載入此 Google 雲端試算表與專案資料庫</strong>，不需手動複製貼上複雜的 API 網址！
-                        </p>
-                        
-                        <div class="flex gap-2">
-                            <input type="text" id="teamInviteUrlInput" readonly class="flat-input w-full p-2.5 text-xs font-mono bg-white select-all border-2 border-black">
-                            <button onclick="app.copyInviteUrl()" class="px-4 py-2 bg-black text-white font-bold text-xs flat-box hover:bg-zinc-800 shrink-0 flex items-center gap-1">
-                                <span>📋</span> <span>複製連結</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- 手機掃描 QR Code 加入 -->
-                    <div class="p-4 bg-zinc-100 border-2 border-black flex flex-col items-center text-center space-y-2">
-                        <span class="font-black text-xs uppercase">📱 手機掃碼直接進入協作</span>
-                        <div id="inviteQrCodeContainer" class="p-2 bg-white border-2 border-black">
-                            <img id="inviteQrCodeImg" src="" alt="邀請 QR Code" class="w-36 h-36">
-                        </div>
-                        <p class="text-[11px] text-zinc-500 font-mono">使用手機相機掃描上方 QR 碼立即開啟專案</p>
-                    </div>
-                </div>
-
-                <!-- Tab 3: 我的身分設定 -->
-                <div id="panelTeamProfile" class="hidden space-y-4">
-                    <div class="p-4 bg-zinc-100 border-2 border-black space-y-3">
-                        <h4 class="font-black text-sm uppercase flex items-center gap-1.5">
-                            <span>👤</span> <span>設定我在這台裝置上的協作身分</span>
-                        </h4>
-                        <p class="text-xs text-zinc-600">設定後，您在任務中的留言、編輯或指派都會顯示您的頭像與暱稱。</p>
-                        
-                        <div class="space-y-3">
-                            <div>
-                                <label class="block font-bold text-xs mb-1">我的頭像 Emoji</label>
-                                <select id="myProfileAvatar" class="flat-input p-2 text-base bg-white w-24 text-center cursor-pointer">
-                                    <option value="👑">👑 國王</option>
-                                    <option value="🐱">🐱 貓咪</option>
-                                    <option value="🐶">🐶 狗狗</option>
-                                    <option value="🦊">🦊 狐狸</option>
-                                    <option value="🦁">🦁 獅子</option>
-                                    <option value="🚀">🚀 火箭</option>
-                                    <option value="💻">💻 工程師</option>
-                                    <option value="🎨">🎨 設計師</option>
-                                    <option value="⚡">⚡ 閃電</option>
-                                    <option value="🎯">🎯 射手</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block font-bold text-xs mb-1">我的暱稱 / 姓名 *</label>
-                                <input type="text" id="myProfileName" class="flat-input w-full p-2 text-sm bg-white" placeholder="例如：Alex">
-                            </div>
-                            <div>
-                                <label class="block font-bold text-xs mb-1">我的主要角色 / 職位</label>
-                                <input type="text" id="myProfileRole" class="flat-input w-full p-2 text-sm bg-white" placeholder="例如：前端負責人 / PM">
-                            </div>
-                        </div>
-
-                        <button onclick="app.saveMyProfile()" class="w-full mt-2 bg-black text-white py-2.5 font-bold text-xs border-2 border-black flat-box hover:bg-zinc-800">
-                            💾 儲存我的身分
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Tab 4: 協作動態日誌 -->
-                <div id="panelTeamActivity" class="hidden space-y-3">
-                    <div class="text-xs font-black text-zinc-500 uppercase tracking-wider flex justify-between items-center">
-                        <span>📜 團隊協作近期動態</span>
-                        <button onclick="app.clearActivityLog()" class="text-[10px] text-red-600 hover:underline">清空日誌</button>
-                    </div>
-                    <div id="teamActivityList" class="space-y-2 max-h-72 overflow-y-auto no-scrollbar">
-                        <!-- 動態載入活動紀錄 -->
-                    </div>
-                </div>
-            </div>
-
-            <!-- 底部按鈕 -->
-            <div class="p-3 border-t-2 border-black bg-zinc-100 flex justify-end shrink-0">
-                <button onclick="app.closeTeamModal()" class="px-5 py-2 border-2 border-black font-bold text-xs bg-black text-white flat-box hover:bg-zinc-800">完成關閉</button>
-            </div>
-        </div>
-    </div>
 
     <!-- Modal: 任務討論串與留言 -->
     <div id="taskCommentsModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-3 md:p-6" onclick="app.closeTaskCommentsModal()">
