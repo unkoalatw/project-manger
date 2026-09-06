@@ -279,3 +279,27 @@
                 size: auto;
             }
         }
+
+        /* 側邊欄拖曳手柄樣式 (Neo-Brutalist) */
+        .resizer-active, .resizer-active * {
+            user-select: none !important;
+            cursor: col-resize !important;
+        }
+
+        #sidebarResizer {
+            position: relative;
+            cursor: col-resize;
+            user-select: none;
+            touch-action: none;
+            z-index: 30;
+        }
+
+        #sidebarResizer::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            left: -4px;
+            right: -4px;
+            z-index: 1;
+        }

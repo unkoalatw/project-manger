@@ -611,6 +611,9 @@
                     // 初始化自訂字體設定
                     this.initCustomFont();
 
+                    // 初始化側邊欄自訂寬度與拖曳調整功能 (桌機版)
+                    this.initSidebarResizer();
+
                     // 0. 檢查是否有邀請連結參數 (?gasUrl=...&proj=...)
                     try {
                         const urlParams = new URLSearchParams(window.location.search);
@@ -779,6 +782,103 @@
                 // 5. 初始化編輯器圖片與選取範圍追蹤
                 this.setupEditorImageInteractions();
                 this.setupEditorSelectionTracking();
+            },
+
+            // ================= 側邊欄拖曳調整大小引擎 (桌機版) =================
+            initSidebarResizer() {
+                const sidebar = document.getElementById('sidebar');
+                const resizer = document.getElementById('sidebarResizer');
+                if (!sidebar || !resizer) return;
+
+                // 1. 載入並套用保存的側邊欄寬度
+                try {
+                    const savedWidth = localStorage.getItem('flatSpecSidebarWidth');
+                    if (savedWidth && window.innerWidth >= 768) {
+                        const parsed = parseInt(savedWidth, 10);
+                        if (!isNaN(parsed) && parsed >= 180 && parsed <= 800) {
+                            sidebar.style.width = `${parsed}px`;
+                        }
+                    }
+                } catch(e) {}
+
+                let isResizing = false;
+                let startX = 0;
+                let startWidth = 0;
+
+                const onPointerDown = (e) => {
+                    if (window.innerWidth < 768) return; // 手機端抽屜模式不支援拖曳
+                    if (e.button !== 0) return; // 僅回應左鍵
+
+                    isResizing = true;
+                    startX = e.clientX;
+                    startWidth = sidebar.getBoundingClientRect().width;
+
+                    document.body.classList.add('resizer-active');
+                    resizer.classList.add('bg-black/30');
+
+                    window.addEventListener('pointermove', onPointerMove, { passive: false });
+                    window.addEventListener('pointerup', onPointerUp);
+                    window.addEventListener('pointercancel', onPointerUp);
+
+                    e.preventDefault();
+                };
+
+                const onPointerMove = (e) => {
+                    if (!isResizing) return;
+                    const deltaX = e.clientX - startX;
+                    const rawWidth = startWidth + deltaX;
+                    const maxWidth = Math.min(window.innerWidth * 0.6, 750);
+                    const clampedWidth = Math.max(200, Math.min(rawWidth, maxWidth));
+                    
+                    sidebar.style.width = `${Math.round(clampedWidth)}px`;
+                    e.preventDefault();
+                };
+
+                const onPointerUp = () => {
+                    if (!isResizing) return;
+                    isResizing = false;
+                    document.body.classList.remove('resizer-active');
+                    resizer.classList.remove('bg-black/30');
+
+                    window.removeEventListener('pointermove', onPointerMove);
+                    window.removeEventListener('pointerup', onPointerUp);
+                    window.removeEventListener('pointercancel', onPointerUp);
+
+                    try {
+                        localStorage.setItem('flatSpecSidebarWidth', sidebar.style.width);
+                    } catch(e) {}
+                };
+
+                resizer.addEventListener('pointerdown', onPointerDown);
+
+                // 2. 連點兩下拖曳條重設為預設標準寬度 (288px)
+                resizer.addEventListener('dblclick', () => {
+                    sidebar.style.width = '288px';
+                    try {
+                        localStorage.setItem('flatSpecSidebarWidth', '288px');
+                    } catch(e) {}
+                    this.showToast('📏 側邊欄寬度已重設為預設值 (288px)');
+                });
+
+                // 3. 視窗大小改變感知 (響應式防爆框)
+                window.addEventListener('resize', () => {
+                    if (window.innerWidth < 768) {
+                        sidebar.style.width = '';
+                    } else {
+                        const savedWidth = localStorage.getItem('flatSpecSidebarWidth');
+                        if (savedWidth) {
+                            const parsed = parseInt(savedWidth, 10);
+                            const maxAllowed = Math.min(window.innerWidth * 0.6, 750);
+                            if (parsed > maxAllowed) {
+                                sidebar.style.width = `${Math.round(maxAllowed)}px`;
+                            } else {
+                                sidebar.style.width = `${parsed}px`;
+                            }
+                        } else {
+                            sidebar.style.width = '288px';
+                        }
+                    }
+                });
             },
 
             startAutoPull(intervalMs = 4000) {

@@ -96,6 +96,11 @@
         </div>
     </aside>
 
+    <!-- 側邊欄拖曳手柄 (僅在桌機版顯示，支援流暢拖曳調整寬度與連點兩下重設) -->
+    <div id="sidebarResizer" class="hidden md:flex items-center justify-center w-1.5 hover:w-2 bg-transparent hover:bg-black/25 active:bg-black cursor-col-resize select-none shrink-0 z-40 transition-colors group relative" title="按住拖曳可調整側邊欄寬度 (連點兩下重設寬度)">
+        <div class="w-0.5 h-7 bg-zinc-400 group-hover:bg-black group-active:bg-white rounded-full transition-colors pointer-events-none"></div>
+    </div>
+
     <main class="flex-1 flex flex-col min-w-0 bg-white relative pb-16 md:pb-0 h-full overflow-hidden">
         
         <!-- 頂部導覽列 (Header) -->
