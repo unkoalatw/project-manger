@@ -1036,28 +1036,57 @@
                     } catch(e) {}
                     if (!Array.isArray(history)) history = [];
 
+                    // 瘦身處理：歷史快照去除大型 base64 附件，防止迅速吃滿 LocalStorage 5MB 配額
+                    const leanProjects = projects.map(proj => {
+                        const clone = JSON.parse(JSON.stringify(proj));
+                        if (Array.isArray(clone.attachments)) {
+                            clone.attachments = clone.attachments.map(att => ({
+                                id: att.id,
+                                name: att.name,
+                                type: att.type,
+                                size: att.size,
+                                data: att.data && att.data.length > 300 ? '[Attachment]' : att.data
+                            }));
+                        }
+                        return clone;
+                    });
+
                     const now = new Date();
                     const entry = {
                         time: now.toISOString(),
                         label: label,
                         projectsCount: projects.length,
-                        data: JSON.parse(JSON.stringify(projects))
+                        data: leanProjects
                     };
 
                     // 避免連續無變更重複寫入相同快照
                     if (history.length > 0) {
                         const lastData = JSON.stringify(history[0].data);
-                        if (lastData === JSON.stringify(projects)) {
+                        if (lastData === JSON.stringify(leanProjects)) {
                             return;
                         }
                     }
 
-                    // 最多保留最近 20 份歷史快照
+                    // 保留最近 10 份歷史快照
                     history.unshift(entry);
-                    if (history.length > 20) history = history.slice(0, 20);
-                    localStorage.setItem('flatSpecHistory', JSON.stringify(history));
+                    if (history.length > 10) history = history.slice(0, 10);
+
+                    // 安全寫入嘗試 (若仍發生 QuotaExceededError 則自動逐層裁減)
+                    while (history.length > 0) {
+                        try {
+                            localStorage.setItem('flatSpecHistory', JSON.stringify(history));
+                            break;
+                        } catch(quotaErr) {
+                            if (history.length > 1) {
+                                history = history.slice(0, Math.floor(history.length / 2));
+                            } else {
+                                localStorage.removeItem('flatSpecHistory');
+                                break;
+                            }
+                        }
+                    }
                 } catch(e) {
-                    console.warn("Failed to record history snapshot:", e);
+                    // 靜默處理非致命的歷史快照配額異常
                 }
             },
 
@@ -5292,7 +5321,9 @@
                     try {
                         const rendered = window.katex.renderToString(cleanLatex, {
                             displayMode: isBlock,
-                            throwOnError: false
+                            throwOnError: false,
+                            strict: false,
+                            trust: true
                         });
                         if (isBlock) {
                             return `<div class="katex-display">${rendered}</div>`;
