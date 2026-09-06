@@ -35,7 +35,8 @@
                 docFindOptions: { matchCase: false, wholeWord: false },
                 isDocTocOpen: false,
                 expandedFolders: new Set(),
-                draggedFolderId: null
+                draggedFolderId: null,
+                enablePageBreaks: true
             },
 
             // ================= 🎵 互動音效引擎 (Web Audio API 零依賴即時合成器) =================
@@ -614,6 +615,13 @@
                     // 初始化側邊欄自訂寬度與拖曳調整功能 (桌機版)
                     this.initSidebarResizer();
 
+                    // 初始化分頁功能開關
+                    try {
+                        const savedPageBreaks = localStorage.getItem('flatSpecEnablePageBreaks');
+                        this.state.enablePageBreaks = savedPageBreaks !== '0';
+                        this.updatePageBreakButtonUI();
+                    } catch(e) {}
+
                     // 0. 檢查是否有邀請連結參數 (?gasUrl=...&proj=...)
                     try {
                         const urlParams = new URLSearchParams(window.location.search);
@@ -761,13 +769,15 @@
                     if (e.key === 'Escape') {
                         this.closeModals();
                         this.closeDocLinkDropdown();
+                        this.closeDocColorDropdown();
+                        this.closeDocPageBreakMenu();
                         this.closeSearchModal();
                         this.closeDocFindReplace();
                         this.toggleDocToc(false);
                     }
                 });
 
-                // 點擊外部關閉引用清單與色彩選單
+                // 點擊外部關閉引用清單、色彩選單與分頁選單
                 document.addEventListener('click', (e) => {
                     const linkContainer = document.getElementById('docLinkPickerContainer');
                     if (linkContainer && !linkContainer.contains(e.target)) {
@@ -776,6 +786,10 @@
                     const colorContainer = document.getElementById('docColorPickerContainer');
                     if (colorContainer && !colorContainer.contains(e.target)) {
                         this.closeDocColorDropdown();
+                    }
+                    const pageBreakContainer = document.getElementById('docPageBreakContainer');
+                    if (pageBreakContainer && !pageBreakContainer.contains(e.target)) {
+                        this.closeDocPageBreakMenu();
                     }
                 });
 
@@ -5828,6 +5842,15 @@ ${rawHtml}
                     return match;
                 });
 
+                // 2.8 分頁符號前處理 (Page Break - 支援 <!-- pagebreak -->, [pagebreak], [分頁], <div class="page-break"></div>, \pagebreak, \newpage, ---pagebreak---, ===pagebreak===)
+                const isPageBreakActive = this.state.enablePageBreaks !== false;
+                const pageBreakRegex = /(?:<!--\s*pagebreak\s*-->|\[pagebreak\]|\[分頁\]|<div[^>]*class=["'][^"']*page[-_]?break[^"']*["'][^>]*>[\s\S]*?<\/div>|\\pagebreak|\\newpage|---pagebreak---|===pagebreak===)/gi;
+                if (isPageBreakActive) {
+                    text = text.replace(pageBreakRegex, '\n\n<div class="doc-page-break not-prose"><div class="doc-page-break-indicator no-print my-6 py-2 px-3 bg-zinc-100 border-2 border-dashed border-zinc-400 text-zinc-600 font-bold text-xs flex items-center justify-between select-none"><span class="flex items-center gap-1.5 font-mono">✂️ 📄 ── 分頁標記 (由此移至下一頁) ──</span><span class="text-[10px] bg-white border border-black px-1.5 py-0.5">PAGE BREAK</span></div></div>\n\n');
+                } else {
+                    text = text.replace(pageBreakRegex, '\n\n<div class="doc-page-break-disabled not-prose no-print my-3 py-1.5 px-3 bg-zinc-50 border border-dashed border-zinc-300 text-zinc-400 font-bold text-xs flex items-center justify-between select-none"><span>🚫 📄 分頁已停用 (忽略換頁)</span></div>\n\n');
+                }
+
                 // 3. 執行全規格 Marked.js 解析
                 let html = '';
                 if (typeof marked !== 'undefined') {
@@ -6681,6 +6704,62 @@ this.closeModals();
                 const calloutTemplate = `> [!${type}]\n> 請在此輸入 ${type} 說明內容...\n\n`;
                 this.insertMarkdown(calloutTemplate, '');
                 this.closeDocColorDropdown();
+            },
+
+            // ================= 📄 編輯器分頁標記與換頁控制引擎 =================
+            toggleDocPageBreakMenu(e) {
+                if (e && e.stopPropagation) e.stopPropagation();
+                const dropdown = document.getElementById('docPageBreakDropdown');
+                if (dropdown) {
+                    dropdown.classList.toggle('hidden');
+                    this.updatePageBreakButtonUI();
+                }
+            },
+
+            closeDocPageBreakMenu() {
+                const dropdown = document.getElementById('docPageBreakDropdown');
+                if (dropdown) dropdown.classList.add('hidden');
+            },
+
+            insertPageBreak() {
+                const editor = document.getElementById('docEditor');
+                if (!editor) return;
+                this.insertMarkdown('\n\n<!-- pagebreak -->\n\n', '');
+                this.updateDocContent(editor.value);
+                this.showToast('📄 已插入分頁標記 (該段落將從新頁面開始)');
+            },
+
+            togglePageBreaksState() {
+                this.state.enablePageBreaks = !(this.state.enablePageBreaks !== false);
+                try {
+                    localStorage.setItem('flatSpecEnablePageBreaks', this.state.enablePageBreaks ? '1' : '0');
+                } catch(e) {}
+                this.updatePageBreakButtonUI();
+                const p = this.getCurrentProject();
+                const doc = p?.docs?.find(d => d.id === this.state.activeDocId);
+                const previewEl = document.getElementById('docPreview');
+                if (previewEl && this.state.docMode === 'preview' && doc) {
+                    this.updateDocPreview(doc.content, previewEl, true);
+                }
+                if (this.state.enablePageBreaks) {
+                    this.showToast('📄 分頁功能已開啟 (列印與預覽時生效)');
+                } else {
+                    this.showToast('📄 分頁功能已關閉 (列印與預覽時不換頁)');
+                }
+            },
+
+            updatePageBreakButtonUI() {
+                const btn = document.getElementById('btnTogglePageBreaks');
+                const isEnabled = this.state.enablePageBreaks !== false;
+                if (btn) {
+                    if (isEnabled) {
+                        btn.innerText = '已開啟';
+                        btn.className = 'px-2 py-0.5 font-black text-xs border border-black bg-black text-white';
+                    } else {
+                        btn.innerText = '已關閉';
+                        btn.className = 'px-2 py-0.5 font-black text-xs border border-black bg-zinc-200 text-zinc-700';
+                    }
+                }
             },
 
             // ================= 🕒 本機歷史版本時光機 (Snapshot Time Machine) =================

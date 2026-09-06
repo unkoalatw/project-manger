@@ -163,11 +163,11 @@
                 margin: 0 !important;
                 padding: 0 !important;
             }
-            /* 隱藏所有非列印元素 (導航列、底部Nav、側邊欄、工具列、文檔標題Header、Toast 提示、按鈕等) */
+            /* 隱藏所有非列印元素 (導航列、底部Nav、側邊欄、工具列、文檔標題Header、Toast 提示、按鈕、分頁提示等) */
             header, nav, aside, footer, #sidebar, #mobileBackdrop, #docModeSwitchBar, #docEditHeader, #docEditToolbar, 
             #docPreviewHeader, #docFindReplaceBar, #docTocDrawer, #docAttachmentsBar, #docLinksPanel, #docPreviewActions,
             #viewDashboard, #viewTasks, #viewWizard, #viewStats, #viewSettings, #docEditor,
-            #toast, #liveToast, .no-print, button, #sidebarResizer {
+            #toast, #liveToast, .no-print, button, #sidebarResizer, .doc-page-break-disabled, .doc-page-break-indicator {
                 display: none !important;
             }
             /* 展開文檔區域以供完整紙本列印 */
@@ -185,11 +185,25 @@
                 display: block !important;
                 border: none !important;
                 box-shadow: none !important;
-                padding: 0 !important;
+                padding: 1.8cm 1.5cm 1.5cm 1.5cm !important;
                 margin: 0 !important;
                 width: 100% !important;
                 min-height: auto !important;
                 background: transparent !important;
+            }
+            /* 分頁符號 (Page Break) 列印樣式：強制由此處分頁，並給予下一頁頂部 1.8cm 優雅留白 */
+            .doc-page-break {
+                display: block !important;
+                page-break-before: always !important;
+                break-before: page !important;
+                height: 0 !important;
+                padding-top: 1.8cm !important;
+                margin: 0 !important;
+                border: none !important;
+                visibility: hidden !important;
+            }
+            .doc-page-break-disabled {
+                display: none !important;
             }
             /* 表格列印最佳化：移除外部 wrapper 陰影、溢位與外框，避免跨頁被黑條切斷覆蓋 */
             .neo-brutalist-table-wrapper {
@@ -276,9 +290,9 @@
             .video-preview-card {
                 box-shadow: none !important;
             }
-            /* 優雅紙張邊界 (每頁均勻舒適間距，無多餘頂部壓迫) */
+            /* 強制設定 margin: 0 消除瀏覽器自帶的頁首頁尾浮水印 (網址、日期、頁碼、標題) */
             @page {
-                margin: 1.8cm 1.5cm;
+                margin: 0 !important;
                 size: auto;
             }
         }
@@ -314,13 +328,13 @@
             overflow: visible !important;
         }
 
-        #docLinkPickerContainer, #docColorPickerContainer {
+        #docLinkPickerContainer, #docColorPickerContainer, #docPageBreakContainer {
             position: relative !important;
             z-index: 50 !important;
             overflow: visible !important;
         }
 
-        #docColorDropdown, #docLinkDropdown {
+        #docColorDropdown, #docLinkDropdown, #docPageBreakDropdown {
             position: absolute !important;
             top: calc(100% + 4px) !important;
             left: 0 !important;

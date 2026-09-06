@@ -24,8 +24,8 @@
     <!-- Mermaid.js 圖表流程圖即時視覺化渲染引擎 -->
     <script src="./libs/mermaid.min.js"></script>
     <!-- FlatSpec 核心模組化樣式表 -->
-  <script type="module" crossorigin src="./assets/index-DsqXJzNx.js"></script>
-  <link rel="stylesheet" crossorigin href="./assets/index-u7aaP0-P.css">
+  <script type="module" crossorigin src="./assets/index-BE3G7d16.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-Ce4Wpc1q.css">
 
     <!-- FlatSpec Kotlin Native Android Bridge Integration -->
     <script>
@@ -460,6 +460,31 @@
                             <span>≡</span> <span>置中</span>
                         </button>
                         
+                        <!-- 插入分頁符號與切換開關 (Neo-Brutalist) -->
+                        <div class="relative inline-block shrink-0" id="docPageBreakContainer">
+                            <button type="button" onclick="app.toggleDocPageBreakMenu(event)" class="px-2 py-1 bg-white hover:bg-zinc-200 border-2 border-black font-bold text-xs flex items-center gap-1 flat-box shrink-0" title="在游標或選取處插入分頁符號，可設定段落移至下一頁">
+                                <span>📄 分頁</span>
+                                <span class="text-[9px]">▼</span>
+                            </button>
+                            <div id="docPageBreakDropdown" class="hidden absolute left-0 top-full mt-1 w-60 bg-white border-2 border-black shadow-[4px_4px_0px_0px_#000] z-50 p-2 space-y-2 text-xs">
+                                <div>
+                                    <div class="font-black text-[10px] text-zinc-500 uppercase mb-1">📄 換頁控制 (Page Break)</div>
+                                    <button type="button" onclick="app.insertPageBreak(); app.closeDocPageBreakMenu();" class="w-full text-left px-2 py-1.5 bg-zinc-50 hover:bg-yellow-100 font-bold flex items-center gap-1.5 border border-black mb-1.5" title="將當前段落或選取內容移至新頁面">
+                                        <span>✂️</span> <span>在游標/選取處插入分頁</span>
+                                    </button>
+                                </div>
+                                <div class="border-t border-zinc-200 pt-1.5 flex items-center justify-between">
+                                    <span class="font-bold text-zinc-700">啟用分頁功能</span>
+                                    <button type="button" id="btnTogglePageBreaks" onclick="app.togglePageBreaksState()" class="px-2 py-0.5 font-black text-xs border border-black bg-black text-white">
+                                        已開啟
+                                    </button>
+                                </div>
+                                <div class="text-[10px] text-zinc-500 font-normal leading-tight">
+                                    開啟後列印或預覽時將自動在此處換頁；關閉時則連續顯示。
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="h-4 w-px bg-zinc-400 mx-0.5"></div>
                         <button type="button" onclick="app.openInsertImageModal()" class="px-2 py-1 bg-white hover:bg-zinc-200 border-2 border-black font-bold text-xs flex items-center gap-1 flat-box text-blue-900 shrink-0" title="插入圖片">
                             <span>🖼️</span> <span class="hidden sm:inline">圖片</span>
