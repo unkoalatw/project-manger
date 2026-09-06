@@ -631,7 +631,8 @@
 
                     // 1. 載入本地快取（快速渲染，杜絕白屏）
                     this.loadLocalData();
-                    if (this.state.projects.length === 0) {
+                    // 若無任何 GAS URL 且本機完全沒有專案，才需要建立初始空白專案
+                    if (this.state.projects.length === 0 && !this.state.gasUrl) {
                         this.createInitialDefaultProject();
                     }
                     this.ensureActivePointers();
@@ -980,7 +981,16 @@
                             const mergedProjects = this.mergeProjects(normalizedCloud, this.state.projects);
 
                             // 檢查本地是否含有雲端完全沒有的新建專案 (例如斷網時在本地新建的專案)
-                            const localOnlyProjects = this.state.projects.filter(lp => !normalizedCloud.some(cp => cp.id === lp.id));
+                            // ⚠️ 重要防禦：過濾掉未被使用者編輯過的純預設「新專案」，防止初始預設專案回推污染雲端
+                            const localOnlyProjects = this.state.projects.filter(lp => {
+                                if (normalizedCloud.some(cp => cp.id === lp.id)) return false;
+                                // 檢查是否為未編輯的預設空白新專案
+                                const isUntouchedDefault = (lp.title === '新專案' || lp.title === '未命名專案') &&
+                                    (!lp.docs || lp.docs.length <= 1) &&
+                                    (!lp.tasks || lp.tasks.length === 0) &&
+                                    (!lp.wizard?.vision && !lp.wizard?.features && !lp.wizard?.tech);
+                                return !isUntouchedDefault;
+                            });
                             const hasNewLocalProjects = localOnlyProjects.length > 0;
 
                             this.state.projects = mergedProjects;
@@ -1396,7 +1406,87 @@
                 const catEl = document.getElementById('editProjectCategory');
                 if (titleEl) titleEl.value = p.title || '';
                 if (catEl) catEl.value = p.category || '';
+                
+                this.renderEditProjectModalList();
                 document.getElementById('editProjectModal')?.classList.remove('hidden');
+            },
+
+            renderEditProjectModalList() {
+                const listEl = document.getElementById('editProjectModalList');
+                const countEl = document.getElementById('editProjectTotalCount');
+                if (!listEl) return;
+
+                if (countEl) countEl.innerText = this.state.projects.length;
+
+                if (this.state.projects.length === 0) {
+                    listEl.innerHTML = '<div class="text-xs text-zinc-500 text-center py-2 font-bold">目前無任何專案</div>';
+                    return;
+                }
+
+                listEl.innerHTML = this.state.projects.map(proj => {
+                    const isCurrent = proj.id === this.state.activeProjectId;
+                    const docCount = proj.docs?.length || 0;
+                    const taskCount = proj.tasks?.length || 0;
+                    const safeTitle = this.escapeHtml(proj.title || '未命名專案');
+                    const safeId = this.escapeHtml(proj.id);
+                    
+                    return `
+                        <div class="flex items-center justify-between p-2 ${isCurrent ? 'bg-black text-white' : 'bg-white text-black hover:bg-zinc-50'} border-2 border-black flat-box transition-colors text-xs">
+                            <div class="min-w-0 flex-1 pr-2 cursor-pointer" onclick="app.switchProject('${safeId}'); app.openEditProjectModal();">
+                                <div class="font-bold flex items-center gap-1.5 truncate">
+                                    <span>${isCurrent ? '⭐' : '📁'}</span>
+                                    <span class="truncate">${safeTitle}</span>
+                                    ${isCurrent ? '<span class="text-[10px] bg-white text-black px-1 font-black shrink-0">當前</span>' : ''}
+                                </div>
+                                <div class="text-[10px] ${isCurrent ? 'text-zinc-300' : 'text-zinc-500'} font-mono mt-0.5">
+                                    ${docCount} 份文檔 · ${taskCount} 項任務
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-1 shrink-0">
+                                ${this.state.projects.length > 1 ? `
+                                    <button onclick="app.deleteProjectById('${safeId}', event)" class="p-1 px-2 ${isCurrent ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-red-100 text-red-700 hover:bg-red-200'} border border-black font-bold text-xs flat-box" title="直接刪除此專案">
+                                        🗑️
+                                    </button>
+                                ` : `
+                                    <span class="text-[10px] ${isCurrent ? 'text-zinc-400' : 'text-zinc-400'} px-1">保留</span>
+                                `}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            },
+
+            deleteProjectById(targetId, event) {
+                if (event) event.stopPropagation();
+                const targetProj = this.state.projects.find(p => p.id === targetId);
+                if (!targetProj) return;
+
+                if (this.state.projects.length <= 1) {
+                    this.showToast('系統至少需要保留一個專案！', 'error');
+                    return;
+                }
+
+                if (confirm(`確定要直接刪除「${targetProj.title}」專案嗎？\n此操作將刪除該專案底下的所有文檔與任務！`)) {
+                    const wasActive = this.state.activeProjectId === targetId;
+                    this.state.projects = this.state.projects.filter(p => p.id !== targetId);
+                    
+                    if (wasActive) {
+                        this.state.activeProjectId = this.state.projects[0].id;
+                        this.state.activeDocId = this.state.projects[0].docs?.[0]?.id || null;
+                    }
+
+                    this.debouncedSaveAndSync();
+                    this.renderAll();
+                    this.renderEditProjectModalList();
+
+                    const currentP = this.getCurrentProject();
+                    const titleEl = document.getElementById('editProjectTitle');
+                    const catEl = document.getElementById('editProjectCategory');
+                    if (titleEl && currentP) titleEl.value = currentP.title || '';
+                    if (catEl && currentP) catEl.value = currentP.category || '';
+
+                    this.showToast(`🗑️ 專案「${targetProj.title}」已成功刪除`);
+                }
             },
 
             saveProjectSettings() {
@@ -1423,23 +1513,7 @@
             deleteCurrentProject() {
                 const p = this.getCurrentProject();
                 if (!p) return;
-                
-                if (this.state.projects.length <= 1) {
-                    this.showToast('系統至少需要保留一個專案！', 'error');
-                    return;
-                }
-
-                if (confirm(`確定要刪除「${p.title}」專案嗎？\n此操作將刪除該專案底下的所有文檔與任務！`)) {
-                    this.state.projects = this.state.projects.filter(proj => proj.id !== p.id);
-                    this.state.activeProjectId = this.state.projects[0].id;
-                    this.state.activeDocId = this.state.projects[0].docs?.[0]?.id || null;
-                    
-                    this.closeModals();
-                    this.debouncedSaveAndSync();
-                    this.renderAll();
-                    this.switchView('Dashboard');
-                    this.showToast('🗑️ 專案已成功刪除');
-                }
+                this.deleteProjectById(p.id);
             },
 
             switchProject(id) {
