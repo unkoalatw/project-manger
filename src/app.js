@@ -1355,9 +1355,9 @@
             },
 
             async testGasConnection() {
-                const inputUrl = (document.getElementById('gasUrlInput')?.value || '').trim();
+                const inputUrl = (document.getElementById('gasUrlInput')?.value || this.state.gasUrl || '').trim();
                 if (!inputUrl) {
-                    this.showToast('請先輸入 GAS URL', 'error');
+                    this.showToast('尚未配置 GAS URL', 'error');
                     return;
                 }
 

@@ -24,7 +24,7 @@
     <!-- Mermaid.js 圖表流程圖即時視覺化渲染引擎 -->
     <script src="./libs/mermaid.min.js"></script>
     <!-- FlatSpec 核心模組化樣式表 -->
-  <script type="module" crossorigin src="./assets/index-SQECKRER.js"></script>
+  <script type="module" crossorigin src="./assets/index-D7gn0i05.js"></script>
   <link rel="stylesheet" crossorigin href="./assets/index-e569Hp9C.css">
 
     <!-- FlatSpec Kotlin Native Android Bridge Integration -->
@@ -902,13 +902,13 @@
 
                 <!-- Tab 5: 雲端同步與 GAS (Cloud) -->
                 <div id="panelSettings_cloud" class="hidden space-y-4">
-                    <div>
-                        <label class="block font-bold text-sm mb-1">Google Apps Script Web App URL</label>
-                        <div class="relative flex items-center">
-                            <input type="password" id="gasUrlInput" class="flat-input w-full p-2 pr-10 text-sm font-mono bg-zinc-50" placeholder="https://script.google.com/macros/s/...">
-                            <button type="button" onclick="const input = document.getElementById('gasUrlInput'); const isPwd = input.type === 'password'; input.type = isPwd ? 'text' : 'password'; this.innerText = isPwd ? '🙈' : '👁️';" class="absolute right-2 p-1 text-xs hover:bg-zinc-200 border border-black font-bold bg-white" title="切換顯示/隱藏網址">👁️</button>
+                    <input type="hidden" id="gasUrlInput">
+                    <div class="p-3 bg-blue-50 border-2 border-blue-900 text-xs font-bold text-blue-950 flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <span>☁️</span>
+                            <span>Google Apps Script 雲端同步端點已內建配置就緒</span>
                         </div>
-                        <p class="text-[11px] text-zinc-500 font-bold mt-1">系統每 15 秒背景無感輪詢，並在打字後 800ms 自動推送到此端點（網址已安全隱藏遮罩）。</p>
+                        <span class="text-[10px] bg-blue-200 text-blue-900 px-2 py-0.5 border border-blue-900 font-mono">自動同步</span>
                     </div>
 
                     <!-- CORS 與連線檢測診斷面板 -->
