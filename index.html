@@ -311,16 +311,16 @@
                     </div>
                 </div>
 
-                <!-- 編輯工具列 (僅在編輯模式顯示，手機端與桌機端皆能正常彈出選單不被截斷) -->
-                <div id="docEditToolbar" class="flex items-center justify-between gap-1.5 p-1.5 sm:p-2 bg-zinc-100 border-2 border-black overflow-visible relative flex-wrap z-20">
-                    <div class="flex items-center gap-1 sm:gap-1.5 shrink-0">
+                <!-- 編輯工具列 (僅在編輯模式顯示，手機端與桌機端皆能自動換行不超出工具列) -->
+                <div id="docEditToolbar" class="flex flex-wrap items-center justify-between gap-1.5 p-1.5 sm:p-2 bg-zinc-100 border-2 border-black overflow-visible relative z-20">
+                    <div class="flex flex-wrap items-center gap-1 sm:gap-1.5 w-full">
                         <!-- 引用文檔下拉選單 -->
                         <div class="relative inline-block shrink-0" id="docLinkPickerContainer">
                             <button type="button" onclick="app.toggleDocLinkDropdown(event)" class="px-2 py-1 bg-white hover:bg-zinc-200 border-2 border-black font-bold text-xs flex items-center gap-1 flat-box shrink-0" title="在游標處引用專案內其他文檔">
                                 <span>🔗 引用</span>
                                 <span class="text-[9px]">▼</span>
                             </button>
-                            <div id="docLinkDropdown" class="hidden absolute left-0 top-full mt-1 w-64 bg-white border-2 border-black shadow-[4px_4px_0px_0px_#000] z-50 max-h-56 overflow-y-auto no-scrollbar p-1">
+                            <div id="docLinkDropdown" class="hidden absolute left-0 top-full mt-1 w-64 max-w-[calc(100vw-2rem)] bg-white border-2 border-black shadow-[4px_4px_0px_0px_#000] z-50 max-h-56 overflow-y-auto no-scrollbar p-1">
                                 <!-- 動態注入文檔清單 -->
                             </div>
                         </div>
@@ -331,7 +331,7 @@
                                 <span>🎨</span>
                                 <span class="text-[9px]">▼</span>
                             </button>
-                            <div id="docColorDropdown" class="hidden absolute left-0 top-full mt-1 w-56 bg-white border-2 border-black shadow-[4px_4px_0px_0px_#000] z-50 p-2 space-y-2 text-xs">
+                            <div id="docColorDropdown" class="hidden absolute left-0 top-full mt-1 w-56 max-w-[calc(100vw-2rem)] bg-white border-2 border-black shadow-[4px_4px_0px_0px_#000] z-50 p-2 space-y-2 text-xs">
                                 <div>
                                     <div class="font-black text-[10px] text-zinc-500 uppercase mb-1">🖍️ 螢光筆高亮</div>
                                     <div class="grid grid-cols-4 gap-1">
@@ -381,7 +381,7 @@
                             </div>
                         </div>
 
-                        <div class="h-4 w-px bg-zinc-400 mx-0.5"></div>
+                        <div class="h-4 w-px bg-zinc-400 mx-0.5 hidden sm:block"></div>
 
                         <button type="button" onclick="app.insertMarkdown('**', '**')" class="px-2 py-1 bg-white hover:bg-zinc-200 border-2 border-black font-black text-xs shrink-0" title="粗體">B</button>
                         <button type="button" onclick="app.insertMarkdown('## ', '')" class="px-2 py-1 bg-white hover:bg-zinc-200 border-2 border-black font-bold text-xs shrink-0" title="標題 H2">H2</button>
@@ -399,7 +399,7 @@
                                 <span>📄 分頁</span>
                                 <span class="text-[9px]">▼</span>
                             </button>
-                            <div id="docPageBreakDropdown" class="hidden absolute left-0 top-full mt-1 w-60 bg-white border-2 border-black shadow-[4px_4px_0px_0px_#000] z-50 p-2 space-y-2 text-xs">
+                            <div id="docPageBreakDropdown" class="hidden absolute left-0 top-full mt-1 w-60 max-w-[calc(100vw-2rem)] bg-white border-2 border-black shadow-[4px_4px_0px_0px_#000] z-50 p-2 space-y-2 text-xs">
                                 <div>
                                     <div class="font-black text-[10px] text-zinc-500 uppercase mb-1">📄 換頁控制 (Page Break)</div>
                                     <button type="button" onclick="app.insertPageBreak(); app.closeDocPageBreakMenu();" class="w-full text-left px-2 py-1.5 bg-zinc-50 hover:bg-yellow-100 font-bold flex items-center gap-1.5 border border-black mb-1.5" title="將當前段落或選取內容移至新頁面">
@@ -418,7 +418,7 @@
                             </div>
                         </div>
 
-                        <div class="h-4 w-px bg-zinc-400 mx-0.5"></div>
+                        <div class="h-4 w-px bg-zinc-400 mx-0.5 hidden sm:block"></div>
                         <button type="button" onclick="app.openInsertImageModal()" class="px-2 py-1 bg-white hover:bg-zinc-200 border-2 border-black font-bold text-xs flex items-center gap-1 flat-box text-blue-900 shrink-0" title="插入圖片">
                             <span>🖼️</span> <span class="hidden sm:inline">圖片</span>
                         </button>

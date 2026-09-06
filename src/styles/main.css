@@ -419,6 +419,7 @@
             position: absolute !important;
             top: calc(100% + 4px) !important;
             left: 0 !important;
+            max-width: calc(100vw - 24px) !important;
             z-index: 9999 !important;
             background-color: #ffffff !important;
             box-shadow: 4px 4px 0px 0px #000000 !important;

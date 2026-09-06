@@ -76,6 +76,11 @@ class AndroidBridge(
     }
 
     @JavascriptInterface
+    fun printDocument(title: String) {
+        activity.printDocument(title)
+    }
+
+    @JavascriptInterface
     fun onAppLoaded() {
         android.util.Log.d("FlatSpec", "FlatSpec WebApp fully loaded inside Kotlin Native Container.")
     }

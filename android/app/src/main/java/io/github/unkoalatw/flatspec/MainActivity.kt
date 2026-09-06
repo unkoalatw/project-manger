@@ -254,6 +254,30 @@ class MainActivity : AppCompatActivity() {
         importDocumentLauncher.launch(arrayOf("application/json", "text/*", "*/*"))
     }
 
+    fun printDocument(title: String) {
+        runOnUiThread {
+            try {
+                val printManager = getSystemService(android.content.Context.PRINT_SERVICE) as? android.print.PrintManager
+                if (printManager != null) {
+                    val safeTitle = if (title.isBlank()) "FlatSpec_Document" else title.trim().replace(Regex("[^a-zA-Z0-9_\\u4e00-\\u9fa5]"), "_")
+                    val printAdapter = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                        webView.createPrintDocumentAdapter(safeTitle)
+                    } else {
+                        @Suppress("DEPRECATION")
+                        webView.createPrintDocumentAdapter()
+                    }
+                    val jobName = "FlatSpec - $safeTitle"
+                    printManager.print(jobName, printAdapter, android.print.PrintAttributes.Builder().build())
+                } else {
+                    Toast.makeText(this, "⚠️ 本裝置不支援系統列印服務", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+                Toast.makeText(this, "列印服務啟動失敗: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         offlineSyncManager.stopListening()
