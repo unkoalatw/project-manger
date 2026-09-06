@@ -16,7 +16,7 @@
                 currentView: 'Dashboard', // Dashboard, Docs, Wizard, Execution
                 execViewMode: 'list', // list, kanban
                 docMode: 'edit', // edit, preview (mobile only)
-                gasUrl: 'https://script.google.com/macros/s/AKfycbyKQNxw0NiU87rx9pxgb0r1XN74A2WLVAYeVLimNBZYYiY-07G1tK-pi1EXLhYn1nSyFw/exec',
+                gasUrl: 'https://script.google.com/macros/s/AKfycbxPoko2kbUAQas0LtRI-Vs2piyK-5Huj62iiQBK0HgULCZhcFUEjRU7-OgnQOpAo3pu/exec',
                 syncTimeout: null,
                 autoPullInterval: null,
                 isCloudLoaded: false,      // 是否已成功從雲端取得最新資料
@@ -944,7 +944,7 @@
 
             // ================= 本機儲存 (離線快取層) =================
             loadLocalData() {
-                const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbyKQNxw0NiU87rx9pxgb0r1XN74A2WLVAYeVLimNBZYYiY-07G1tK-pi1EXLhYn1nSyFw/exec';
+                const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbxPoko2kbUAQas0LtRI-Vs2piyK-5Huj62iiQBK0HgULCZhcFUEjRU7-OgnQOpAo3pu/exec';
                 const CUTOFF_TIME = new Date('2026-08-27T14:00:00+08:00').getTime();
 
                 try {
