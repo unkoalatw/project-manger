@@ -5815,12 +5815,7 @@ ${rawHtml}
                         }
                     }
 
-                    return `
-                        <div class="my-3 flex flex-col items-start not-prose">
-                            <img src="${href}" alt="${cleanAlt}" class="max-w-full h-auto rounded-none inline-block max-h-[550px] object-contain cursor-zoom-in hover:opacity-90 transition-opacity" onclick="app.openImageViewer(this.src, '${cleanAlt}')" loading="lazy" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\\'my-2 p-2 bg-zinc-100 border border-black text-xs font-mono font-bold text-zinc-600\\'>⚠️ 圖片無法載入 (${cleanAlt})</div>';" />
-                            ${alt && alt !== '圖片' ? '<div class="text-[11px] text-zinc-500 mt-1 font-mono flex items-center gap-1 font-bold"><span>📷</span> <span>' + cleanAlt + '</span></div>' : ''}
-                        </div>
-                    `;
+                    return `<img src="${href}" alt="${cleanAlt}" class="doc-inline-img max-w-full h-auto rounded-none inline align-middle max-h-[550px] object-contain cursor-zoom-in hover:opacity-85 transition-opacity my-0.5 mx-1" onclick="app.openImageViewer(this.src, '${cleanAlt}')" loading="lazy" onerror="this.onerror=null; this.outerHTML='<span class=\\'inline-block px-1 bg-zinc-100 border border-black text-xs font-mono text-zinc-600\\'>⚠️ 圖片無法載入 (${cleanAlt})</span>';" />`;
                 };
 
                 // 9. 連結自訂（支援 doc: 內部跳轉、影片嵌入播放器、外部豐富預覽卡片）
@@ -6351,7 +6346,7 @@ ${rawHtml}
                                        return `<div class="my-2 p-2 bg-amber-50 border-2 border-black text-xs font-bold text-amber-950">📷 ${alt} (附件未就緒)</div>`;
                                    }
                                }
-                               return `<div class="my-3 flex flex-col items-start not-prose"><img src="${src}" alt="${alt}" class="max-w-full h-auto rounded-none inline-block max-h-[550px] object-contain cursor-zoom-in hover:opacity-90 transition-opacity" onclick="app.openImageViewer(this.src, '${alt}')" loading="lazy" />${alt && alt !== '圖片' ? '<div class="text-[11px] text-zinc-500 mt-1 font-mono flex items-center gap-1 font-bold"><span>📷</span> <span>' + alt + '</span></div>' : ''}</div>`;
+                               return `<img src="${src}" alt="${alt}" class="doc-inline-img max-w-full h-auto rounded-none inline align-middle max-h-[550px] object-contain cursor-zoom-in hover:opacity-85 transition-opacity my-0.5 mx-1" onclick="app.openImageViewer(this.src, '${alt}')" loading="lazy" />`;
                            })
                            .replace(/->\s*(.+?)\s*<-/g, '<div class="text-center my-2">$1</div>')
                            .replace(/<center>\s*(.+?)\s*<\/center>/gi, '<div class="text-center my-2">$1</div>')
