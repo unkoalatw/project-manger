@@ -763,16 +763,21 @@
                     }
                 });
 
-                // 點擊外部關閉引用清單
+                // 點擊外部關閉引用清單與色彩選單
                 document.addEventListener('click', (e) => {
-                    const container = document.getElementById('docLinkPickerContainer');
-                    if (container && !container.contains(e.target)) {
+                    const linkContainer = document.getElementById('docLinkPickerContainer');
+                    if (linkContainer && !linkContainer.contains(e.target)) {
                         this.closeDocLinkDropdown();
+                    }
+                    const colorContainer = document.getElementById('docColorPickerContainer');
+                    if (colorContainer && !colorContainer.contains(e.target)) {
+                        this.closeDocColorDropdown();
                     }
                 });
 
-                // 5. 初始化編輯器圖片互動 (剪貼簿直接貼上截圖、拖曳檔案丟入)
+                // 5. 初始化編輯器圖片與選取範圍追蹤
                 this.setupEditorImageInteractions();
+                this.setupEditorSelectionTracking();
             },
 
             startAutoPull(intervalMs = 4000) {
@@ -2026,13 +2031,45 @@
                 this.closeDocLinkDropdown();
             },
 
+            setupEditorSelectionTracking() {
+                const editor = document.getElementById('docEditor');
+                if (!editor) return;
+
+                const saveSel = () => {
+                    this._lastEditorSelection = {
+                        start: editor.selectionStart,
+                        end: editor.selectionEnd
+                    };
+                };
+
+                editor.addEventListener('select', saveSel);
+                editor.addEventListener('keyup', saveSel);
+                editor.addEventListener('mouseup', saveSel);
+                editor.addEventListener('touchend', saveSel);
+                editor.addEventListener('blur', saveSel);
+            },
+
             insertMarkdown(prefix, suffix = '') {
                 const editor = document.getElementById('docEditor');
                 if (!editor) return;
 
-                const start = editor.selectionStart;
-                const end = editor.selectionEnd;
-                const text = editor.value;
+                let start = (this._lastEditorSelection && typeof this._lastEditorSelection.start === 'number')
+                    ? this._lastEditorSelection.start
+                    : (editor.selectionStart ?? 0);
+                let end = (this._lastEditorSelection && typeof this._lastEditorSelection.end === 'number')
+                    ? this._lastEditorSelection.end
+                    : (editor.selectionEnd ?? 0);
+
+                if (document.activeElement === editor) {
+                    start = editor.selectionStart;
+                    end = editor.selectionEnd;
+                }
+
+                const text = editor.value || '';
+                if (start > text.length) start = text.length;
+                if (end > text.length) end = text.length;
+                if (start > end) [start, end] = [end, start];
+
                 const selected = text.substring(start, end);
                 const replacement = prefix + selected + suffix;
 
@@ -2040,6 +2077,11 @@
                 editor.focus();
                 editor.selectionStart = start + prefix.length;
                 editor.selectionEnd = start + prefix.length + selected.length;
+
+                this._lastEditorSelection = {
+                    start: editor.selectionStart,
+                    end: editor.selectionEnd
+                };
 
                 this.updateDocContent(editor.value);
             },
@@ -5556,20 +5598,29 @@ ${rawHtml}
                     return placeholder;
                 });
 
-                // 1.5 支援現代 GitHub 警示框 Callout
-                text = text.replace(/^>\s*\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION|SUCCESS|INFO|IDEA|ERROR)\][ \t]*\n((?:^>.*(?:\n|$))+)/gim, (match, type, body) => {
-                    const cleanType = type.toUpperCase();
+                // 1.5 支援現代 GitHub 警示框 Callout (中英文全相容)
+                text = text.replace(/^>\s*\[!(NOTE|TIP|IMPORTANT|WARNING|CAUTION|SUCCESS|INFO|IDEA|ERROR|備註|提示|重要|警告|危險|成功|資訊|靈感|錯誤)\][ \t]*\n((?:^>.*(?:\n|$))+)/gim, (match, type, body) => {
+                    const cleanType = type.toUpperCase().trim();
                     const content = body.replace(/^>\s?/gm, '').trim();
                     const config = {
                         NOTE: { title: '備註 NOTE', icon: 'ℹ️', border: 'border-blue-600', bg: 'bg-blue-50', text: 'text-blue-950', badge: 'bg-blue-600' },
+                        '備註': { title: '備註 NOTE', icon: 'ℹ️', border: 'border-blue-600', bg: 'bg-blue-50', text: 'text-blue-950', badge: 'bg-blue-600' },
                         INFO: { title: '資訊 INFO', icon: 'ℹ️', border: 'border-cyan-600', bg: 'bg-cyan-50', text: 'text-cyan-950', badge: 'bg-cyan-600' },
+                        '資訊': { title: '資訊 INFO', icon: 'ℹ️', border: 'border-cyan-600', bg: 'bg-cyan-50', text: 'text-cyan-950', badge: 'bg-cyan-600' },
                         TIP: { title: '提示 TIP', icon: '💡', border: 'border-emerald-600', bg: 'bg-emerald-50', text: 'text-emerald-950', badge: 'bg-emerald-600' },
+                        '提示': { title: '提示 TIP', icon: '💡', border: 'border-emerald-600', bg: 'bg-emerald-50', text: 'text-emerald-950', badge: 'bg-emerald-600' },
                         IDEA: { title: '靈感 IDEA', icon: '✨', border: 'border-purple-600', bg: 'bg-purple-50', text: 'text-purple-950', badge: 'bg-purple-600' },
+                        '靈感': { title: '靈感 IDEA', icon: '✨', border: 'border-purple-600', bg: 'bg-purple-50', text: 'text-purple-950', badge: 'bg-purple-600' },
                         SUCCESS: { title: '成功 SUCCESS', icon: '✅', border: 'border-green-600', bg: 'bg-green-50', text: 'text-green-950', badge: 'bg-green-600' },
+                        '成功': { title: '成功 SUCCESS', icon: '✅', border: 'border-green-600', bg: 'bg-green-50', text: 'text-green-950', badge: 'bg-green-600' },
                         IMPORTANT: { title: '重要 IMPORTANT', icon: '📌', border: 'border-violet-600', bg: 'bg-violet-50', text: 'text-violet-950', badge: 'bg-violet-600' },
+                        '重要': { title: '重要 IMPORTANT', icon: '📌', border: 'border-violet-600', bg: 'bg-violet-50', text: 'text-violet-950', badge: 'bg-violet-600' },
                         WARNING: { title: '警告 WARNING', icon: '⚠️', border: 'border-amber-600', bg: 'bg-amber-50', text: 'text-amber-950', badge: 'bg-amber-600' },
+                        '警告': { title: '警告 WARNING', icon: '⚠️', border: 'border-amber-600', bg: 'bg-amber-50', text: 'text-amber-950', badge: 'bg-amber-600' },
                         CAUTION: { title: '危險 CAUTION', icon: '🚨', border: 'border-red-600', bg: 'bg-red-50', text: 'text-red-950', badge: 'bg-red-600' },
-                        ERROR: { title: '錯誤 ERROR', icon: '❌', border: 'border-rose-600', bg: 'bg-rose-50', text: 'text-rose-950', badge: 'bg-rose-600' }
+                        '危險': { title: '危險 CAUTION', icon: '🚨', border: 'border-red-600', bg: 'bg-red-50', text: 'text-red-950', badge: 'bg-red-600' },
+                        ERROR: { title: '錯誤 ERROR', icon: '❌', border: 'border-rose-600', bg: 'bg-rose-50', text: 'text-rose-950', badge: 'bg-rose-600' },
+                        '錯誤': { title: '錯誤 ERROR', icon: '❌', border: 'border-rose-600', bg: 'bg-rose-50', text: 'text-rose-950', badge: 'bg-rose-600' }
                     }[cleanType] || { title: 'NOTE', icon: 'ℹ️', border: 'border-black', bg: 'bg-zinc-100', text: 'text-black', badge: 'bg-black' };
 
                     return `\n\n<div class="my-3 border-2 ${config.border} ${config.bg} p-3 flat-box shadow-[3px_3px_0px_0px_#000] not-prose"><div class="flex items-center gap-1.5 font-bold text-xs ${config.text} mb-1.5"><span class="px-2 py-0.5 text-white text-[10px] font-black ${config.badge}">${config.icon} ${config.title}</span></div><div class="text-xs leading-relaxed ${config.text}">${content.replace(/\n/g, '<br>')}</div></div>\n\n`;
@@ -5627,33 +5678,8 @@ ${rawHtml}
                     return `<div class="text-center my-2.5">${inner}</div>`;
                 });
 
-                // 4.6 支援彩色螢光筆標記語法 ==color:重點文字== 或 ==重點文字==
-                const validColors = 'red|green|blue|purple|orange|yellow|pink|cyan|gray';
-                
-                // ==color:文字==
-                html = html.replace(new RegExp(`==(${validColors}):([^=\\n]+?)==`, 'gi'), (match, color, innerText) => {
-                    return `<mark class="mark-${color.toLowerCase()}">${innerText}</mark>`;
-                });
-                // 預設 ==重點文字==
-                html = html.replace(/==([^=\n]+?)==/g, '<mark class="highlight-mark">$1</mark>');
-                html = html.replace(/&lt;mark&gt;([\s\S]+?)&lt;\/mark&gt;/gi, '<mark class="highlight-mark">$1</mark>');
-                html = html.replace(new RegExp(`&lt;mark\\s+class="mark-(${validColors})"&gt;([\\s\\S]+?)&lt;\\/mark&gt;`, 'gi'), (match, color, inner) => {
-                    return `<mark class="mark-${color.toLowerCase()}">${inner}</mark>`;
-                });
-
-                // 4.7 支援字體顏色標記語法 [color:red]文字[/color] 或 {color:red|文字}
-                html = html.replace(new RegExp(`\\[color:(${validColors})\\]([\\s\\S]*?)\\[\\/color\\]`, 'gi'), (match, color, inner) => {
-                    return `<span class="text-color-${color.toLowerCase()}">${inner}</span>`;
-                });
-                html = html.replace(new RegExp(`\\{color:(${validColors})\\|([\\s\\S]*?)\\}`, 'gi'), (match, color, inner) => {
-                    return `<span class="text-color-${color.toLowerCase()}">${inner}</span>`;
-                });
-
-                // 4.8 支援膠囊徽章標籤 [badge:color|標籤文字] 或 [tag:color|標籤文字] 或 [badge:標籤文字]
-                html = html.replace(new RegExp(`\\[(?:badge|tag):(${validColors})\\|([^\]\\n]+?)\\]`, 'gi'), (match, color, label) => {
-                    return `<span class="md-badge md-badge-${color.toLowerCase()}">${label}</span>`;
-                });
-                html = html.replace(/\[(?:badge|tag)\|([^\]\n]+?)\]/gi, '<span class="md-badge md-badge-blue">$1</span>');
+                // 4.6 支援全功能色彩系統 (螢光筆高亮、文字顏色、膠囊徽章)
+                html = this.parseColorTags(html);
 
                 // 4.9 支援折疊劇透/手風琴折疊塊: +++ 折疊標題 \n 內容 \n +++
                 html = html.replace(/\+\+\+\s*([^\n]+)\n([\s\S]*?)\n\+\+\+/g, (match, title, body) => {
@@ -5666,6 +5692,99 @@ ${rawHtml}
                     html = html.split(`<p>${tag}</p>`).join(mb);
                     html = html.split(tag).join(mb);
                 });
+
+                return html;
+            },
+
+            // ================= 🎨 全方位色彩標籤解析引擎 (螢光筆、字體色、膠囊徽章) =================
+            parseColorTags(html) {
+                if (!html || typeof html !== 'string') return html || '';
+
+                const COLOR_MAP = {
+                    yellow: { bg: '#fef08a', text: '#ca8a04', markText: '#000000', badgeBg: '#facc15' },
+                    red:    { bg: '#fecaca', text: '#dc2626', markText: '#991b1b', badgeBg: '#f87171' },
+                    green:  { bg: '#bbf7d0', text: '#16a34a', markText: '#166534', badgeBg: '#4ade80' },
+                    blue:   { bg: '#bfdbfe', text: '#2563eb', markText: '#1e40af', badgeBg: '#60a5fa' },
+                    purple: { bg: '#e9d5ff', text: '#9333ea', markText: '#6b21a8', badgeBg: '#c084fc' },
+                    orange: { bg: '#fed7aa', text: '#ea580c', markText: '#9a3412', badgeBg: '#fb923c' },
+                    pink:   { bg: '#fbcfe8', text: '#db2777', markText: '#9d174d', badgeBg: '#f472b6' },
+                    cyan:   { bg: '#a5f3fc', text: '#0891b2', markText: '#155e75', badgeBg: '#22d3ee' },
+                    gray:   { bg: '#e4e4e7', text: '#52525b', markText: '#27272a', badgeBg: '#d4d4d8' },
+                    black:  { bg: '#000000', text: '#000000', markText: '#ffffff', badgeBg: '#000000' },
+                    white:  { bg: '#ffffff', text: '#ffffff', markText: '#000000', badgeBg: '#ffffff' }
+                };
+
+                const COLOR_ALIASES = {
+                    '黃': 'yellow', '黃色': 'yellow', '金': 'yellow', '金色': 'yellow',
+                    '紅': 'red', '紅色': 'red',
+                    '綠': 'green', '綠色': 'green',
+                    '藍': 'blue', '藍色': 'blue',
+                    '紫': 'purple', '紫色': 'purple',
+                    '橙': 'orange', '橙色': 'orange', '橘': 'orange', '橘色': 'orange',
+                    '粉': 'pink', '粉色': 'pink', '粉紅': 'pink', '粉紅色': 'pink',
+                    '青': 'cyan', '青色': 'cyan', '水藍': 'cyan', '青綠': 'cyan',
+                    '灰': 'gray', '灰色': 'gray', 'grey': 'gray',
+                    '黑': 'black', '黑色': 'black',
+                    '白': 'white', '白色': 'white'
+                };
+
+                const resolveColor = (raw) => {
+                    if (!raw) return null;
+                    const clean = raw.trim().toLowerCase();
+                    if (COLOR_ALIASES[clean]) return { key: COLOR_ALIASES[clean], ...COLOR_MAP[COLOR_ALIASES[clean]] };
+                    if (COLOR_MAP[clean]) return { key: clean, ...COLOR_MAP[clean] };
+                    // If hex color code (#rgb or #rrggbb) or rgb()
+                    if (/^#(?:[0-9a-f]{3}|[0-9a-f]{6}|[0-9a-f]{8})$/i.test(clean) || /^rgba?\(.+\)$/i.test(clean)) {
+                        return { key: 'custom', bg: clean, text: clean, markText: '#000000', badgeBg: clean, isCustom: true };
+                    }
+                    return null;
+                };
+
+                // 1. ==color:文字== 或 ==#hex:文字==
+                html = html.replace(/==([^:\n]+?):([^=\n]+?)==/g, (match, rawColor, inner) => {
+                    const c = resolveColor(rawColor);
+                    if (c) {
+                        return `<mark class="highlight-mark ${c.key !== 'custom' ? 'mark-' + c.key : ''}" style="background-color: ${c.bg} !important; color: ${c.markText} !important; padding: 0.1em 0.35em !important; font-weight: 700 !important; border-radius: 2px !important; border: 1.5px solid rgba(0,0,0,0.18) !important; display: inline !important; text-decoration: none !important;">${inner}</mark>`;
+                    }
+                    return `<mark class="highlight-mark mark-yellow" style="background-color: #fef08a !important; color: #000000 !important; padding: 0.1em 0.35em !important; font-weight: 700 !important; border-radius: 2px !important; border: 1.5px solid rgba(0,0,0,0.18) !important; display: inline !important; text-decoration: none !important;">${rawColor}:${inner}</mark>`;
+                });
+
+                // 預設 ==重點文字==
+                html = html.replace(/==([^=\n]+?)==/g, '<mark class="highlight-mark mark-yellow" style="background-color: #fef08a !important; color: #000000 !important; padding: 0.1em 0.35em !important; font-weight: 700 !important; border-radius: 2px !important; border: 1.5px solid rgba(0,0,0,0.18) !important; display: inline !important; text-decoration: none !important;">$1</mark>');
+                html = html.replace(/&lt;mark&gt;([\s\S]+?)&lt;\/mark&gt;/gi, '<mark class="highlight-mark mark-yellow" style="background-color: #fef08a !important; color: #000000 !important; padding: 0.1em 0.35em !important; font-weight: 700 !important; border-radius: 2px !important; border: 1.5px solid rgba(0,0,0,0.18) !important; display: inline !important; text-decoration: none !important;">$1</mark>');
+
+                // 2. [color:red]文字[/color] 或 [color=red]文字[/color] 或 {color:red|文字}
+                html = html.replace(/\[color[:=]([^\]\n]+?)\]([\s\S]*?)\[\/color\]/gi, (match, rawColor, inner) => {
+                    const c = resolveColor(rawColor);
+                    const colorVal = c ? c.text : rawColor.trim();
+                    return `<span class="text-color-${c?.key || 'custom'}" style="color: ${colorVal} !important; font-weight: 700 !important;">${inner}</span>`;
+                });
+                html = html.replace(/\{color:([^|}\n]+?)\|([\s\S]*?)\}/gi, (match, rawColor, inner) => {
+                    const c = resolveColor(rawColor);
+                    const colorVal = c ? c.text : rawColor.trim();
+                    return `<span class="text-color-${c?.key || 'custom'}" style="color: ${colorVal} !important; font-weight: 700 !important;">${inner}</span>`;
+                });
+
+                // HTML <font color="...">...</font>
+                html = html.replace(/&lt;font\s+color=["']?([^"'>\s]+)["']?&gt;([\s\S]*?)&lt;\/font&gt;/gi, (match, rawColor, inner) => {
+                    const c = resolveColor(rawColor);
+                    const colorVal = c ? c.text : rawColor.trim();
+                    return `<span style="color: ${colorVal} !important; font-weight: 700 !important;">${inner}</span>`;
+                });
+                html = html.replace(/<font\s+color=["']?([^"'>\s]+)["']?>([\s\S]*?)<\/font>/gi, (match, rawColor, inner) => {
+                    const c = resolveColor(rawColor);
+                    const colorVal = c ? c.text : rawColor.trim();
+                    return `<span style="color: ${colorVal} !important; font-weight: 700 !important;">${inner}</span>`;
+                });
+
+                // 3. [badge:color|標籤文字] 或 [tag:color|標籤文字] 或 [badge|標籤文字]
+                html = html.replace(/\[(?:badge|tag):([^\]|\n]+?)\|([^\]\n]+?)\]/gi, (match, rawColor, label) => {
+                    const c = resolveColor(rawColor);
+                    const bgVal = c ? (c.badgeBg || c.bg) : '#60a5fa';
+                    const textVal = (c && c.key === 'white') ? '#000000' : '#000000';
+                    return `<span class="md-badge md-badge-${c?.key || 'custom'}" style="background-color: ${bgVal} !important; color: ${textVal} !important; border: 1.5px solid #000 !important; box-shadow: 1.5px 1.5px 0px 0px #000 !important; font-weight: 800 !important; padding: 0.15rem 0.5rem !important; display: inline-flex !important; align-items: center !important; font-size: 0.75rem !important; text-transform: uppercase !important; margin: 0 0.2rem !important; vertical-align: middle !important;">${label}</span>`;
+                });
+                html = html.replace(/\[(?:badge|tag)\|([^\]\n]+?)\]/gi, '<span class="md-badge md-badge-blue" style="background-color: #60a5fa !important; color: #000000 !important; border: 1.5px solid #000 !important; box-shadow: 1.5px 1.5px 0px 0px #000 !important; font-weight: 800 !important; padding: 0.15rem 0.5rem !important; display: inline-flex !important; align-items: center !important; font-size: 0.75rem !important; text-transform: uppercase !important; margin: 0 0.2rem !important; vertical-align: middle !important;">$1</span>');
 
                 return html;
             },
@@ -5711,8 +5830,12 @@ ${rawHtml}
                            .replace(/<center>\s*(.+?)\s*<\/center>/gi, '<div class="text-center my-2">$1</div>')
                            .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
                            .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                           .replace(/~~(.*?)~~/g, '<del class="text-zinc-400">$1</del>')
-                           .replace(/\n/g, '<br>');
+                           .replace(/~~(.*?)~~/g, '<del class="text-zinc-400">$1</del>');
+
+                // 色彩標籤解析
+                html = this.parseColorTags(html);
+
+                html = html.replace(/\n/g, '<br>');
                 return html;
             },
 
