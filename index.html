@@ -52,11 +52,15 @@
             </div>
         </div>
 
-        <!-- 搜尋列 -->
-        <div class="p-3 border-b-2 border-black bg-zinc-100">
-            <div onclick="app.openSearchModal()" class="flat-input w-full p-2 text-sm bg-white cursor-pointer flex items-center justify-between hover:bg-yellow-50 text-zinc-600 font-bold border-2 border-black flat-box shadow-xs transition-colors" title="開啟全域搜尋 (Ctrl+K)">
+        <!-- 搜尋列與文檔過濾 -->
+        <div class="p-3 border-b-2 border-black bg-zinc-100 space-y-2">
+            <div class="relative">
+                <input id="searchInput" type="text" oninput="app.renderSidebar()" placeholder="過濾文檔標題..." class="flat-input w-full p-1.5 pl-7 text-xs bg-white font-bold border-2 border-black flat-box shadow-xs" />
+                <span class="absolute left-2 top-2 text-xs pointer-events-none">🔍</span>
+            </div>
+            <div onclick="app.openSearchModal()" class="flat-input w-full p-1.5 text-xs bg-white cursor-pointer flex items-center justify-between hover:bg-yellow-50 text-zinc-600 font-bold border-2 border-black flat-box shadow-xs transition-colors" title="開啟全域搜尋 (Ctrl+K)">
                 <span class="flex items-center gap-1.5 truncate">
-                    <span>🔍</span> <span class="text-zinc-700">全域搜尋...</span>
+                    <span>⚡</span> <span class="text-zinc-700">全域全文搜尋...</span>
                 </span>
                 <kbd class="hidden sm:inline-block bg-zinc-100 border border-zinc-400 px-1 text-[9px] font-mono text-zinc-600">Ctrl+K</kbd>
             </div>
