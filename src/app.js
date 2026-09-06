@@ -5816,9 +5816,9 @@ ${rawHtml}
                     }
 
                     return `
-                        <div class="my-3 flex flex-col items-start">
-                            <img src="${href}" alt="${cleanAlt}" class="border-2 border-black max-w-full h-auto shadow-[3px_3px_0px_0px_#000] bg-white rounded-none inline-block max-h-[550px] object-contain cursor-zoom-in hover:opacity-95 transition-opacity" onclick="app.openImageViewer(this.src, '${cleanAlt}')" loading="lazy" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\\'my-2 p-2 bg-zinc-100 border border-black text-xs font-mono font-bold text-zinc-600\\'>⚠️ 圖片無法載入 (${cleanAlt})</div>';" />
-                            ${alt ? '<div class="text-[11px] text-zinc-500 mt-1.5 font-mono flex items-center gap-1 font-bold"><span>📷</span> <span>' + cleanAlt + '</span></div>' : ''}
+                        <div class="my-3 flex flex-col items-start not-prose">
+                            <img src="${href}" alt="${cleanAlt}" class="max-w-full h-auto rounded-none inline-block max-h-[550px] object-contain cursor-zoom-in hover:opacity-90 transition-opacity" onclick="app.openImageViewer(this.src, '${cleanAlt}')" loading="lazy" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\\'my-2 p-2 bg-zinc-100 border border-black text-xs font-mono font-bold text-zinc-600\\'>⚠️ 圖片無法載入 (${cleanAlt})</div>';" />
+                            ${alt && alt !== '圖片' ? '<div class="text-[11px] text-zinc-500 mt-1 font-mono flex items-center gap-1 font-bold"><span>📷</span> <span>' + cleanAlt + '</span></div>' : ''}
                         </div>
                     `;
                 };
@@ -6351,7 +6351,7 @@ ${rawHtml}
                                        return `<div class="my-2 p-2 bg-amber-50 border-2 border-black text-xs font-bold text-amber-950">📷 ${alt} (附件未就緒)</div>`;
                                    }
                                }
-                               return `<div class="my-3 flex flex-col items-start"><img src="${src}" alt="${alt}" class="border-2 border-black max-w-full h-auto shadow-[3px_3px_0px_0px_#000] bg-white rounded-none inline-block max-h-[550px] object-contain cursor-zoom-in hover:opacity-95 transition-opacity" onclick="app.openImageViewer(this.src, '${alt}')" loading="lazy" />${alt ? '<div class="text-[11px] text-zinc-500 mt-1.5 font-mono flex items-center gap-1 font-bold"><span>📷</span> <span>' + alt + '</span></div>' : ''}</div>`;
+                               return `<div class="my-3 flex flex-col items-start not-prose"><img src="${src}" alt="${alt}" class="max-w-full h-auto rounded-none inline-block max-h-[550px] object-contain cursor-zoom-in hover:opacity-90 transition-opacity" onclick="app.openImageViewer(this.src, '${alt}')" loading="lazy" />${alt && alt !== '圖片' ? '<div class="text-[11px] text-zinc-500 mt-1 font-mono flex items-center gap-1 font-bold"><span>📷</span> <span>' + alt + '</span></div>' : ''}</div>`;
                            })
                            .replace(/->\s*(.+?)\s*<-/g, '<div class="text-center my-2">$1</div>')
                            .replace(/<center>\s*(.+?)\s*<\/center>/gi, '<div class="text-center my-2">$1</div>')

@@ -217,6 +217,13 @@
             line-height: inherit;
         }
 
+        /* Markdown 文檔圖片自然無邊框呈現 */
+        #docPreview img, .markdown-body img {
+            border: none !important;
+            box-shadow: none !important;
+            background-color: transparent !important;
+        }
+
         /* 列印預覽專屬樣式 (@media print) */
         @media print {
             *, *::before, *::after {
