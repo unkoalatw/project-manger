@@ -161,13 +161,13 @@
                 height: auto !important;
                 overflow: visible !important;
                 margin: 0 !important;
-                padding: 1.5cm 1.2cm !important;
+                padding: 0 !important;
             }
-            /* 隱藏所有非列印元素 (導航列、側邊欄、工具列、文檔標題Header、Toast 提示、按鈕等) */
-            header, aside, #sidebar, #mobileBackdrop, #docModeSwitchBar, #docEditHeader, #docEditToolbar, 
-            #docPreviewHeader, #docFindReplaceBar, #docTocDrawer, #docLinksPanel, #docPreviewActions,
+            /* 隱藏所有非列印元素 (導航列、底部Nav、側邊欄、工具列、文檔標題Header、Toast 提示、按鈕等) */
+            header, nav, aside, footer, #sidebar, #mobileBackdrop, #docModeSwitchBar, #docEditHeader, #docEditToolbar, 
+            #docPreviewHeader, #docFindReplaceBar, #docTocDrawer, #docAttachmentsBar, #docLinksPanel, #docPreviewActions,
             #viewDashboard, #viewTasks, #viewWizard, #viewStats, #viewSettings, #docEditor,
-            #toast, #liveToast, .no-print, button {
+            #toast, #liveToast, .no-print, button, #sidebarResizer {
                 display: none !important;
             }
             /* 展開文檔區域以供完整紙本列印 */
@@ -244,11 +244,11 @@
                 overflow: visible !important;
             }
             .mermaid-diagram-card .mermaid {
-                display: block !important;
-                width: 100% !important;
                 text-align: center !important;
-                overflow: visible !important;
+                width: 100% !important;
                 margin: 0 auto !important;
+                display: block !important;
+                overflow: visible !important;
             }
             .mermaid-diagram-card svg {
                 max-width: 100% !important;
@@ -276,9 +276,9 @@
             .video-preview-card {
                 box-shadow: none !important;
             }
-            /* 移除多餘空行與頁面預設頁首頁尾 (消除網址與日期浮水印) */
+            /* 優雅紙張邊界 (每頁均勻舒適間距，無多餘頂部壓迫) */
             @page {
-                margin: 0;
+                margin: 1.8cm 1.5cm;
                 size: auto;
             }
         }
