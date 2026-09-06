@@ -160,6 +160,8 @@
                 color: #000000 !important;
                 height: auto !important;
                 overflow: visible !important;
+                margin: 0 !important;
+                padding: 1.5cm 1.2cm !important;
             }
             /* 隱藏所有非列印元素 (導航列、側邊欄、工具列、文檔標題Header、Toast 提示、按鈕等) */
             header, aside, #sidebar, #mobileBackdrop, #docModeSwitchBar, #docEditHeader, #docEditToolbar, 
@@ -274,9 +276,9 @@
             .video-preview-card {
                 box-shadow: none !important;
             }
-            /* 移除多餘空行與頁面限制 */
+            /* 移除多餘空行與頁面預設頁首頁尾 (消除網址與日期浮水印) */
             @page {
-                margin: 1.2cm;
+                margin: 0;
                 size: auto;
             }
         }
