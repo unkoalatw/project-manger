@@ -2169,7 +2169,8 @@
                 }
             },
 
-            toggleDocLinkDropdown() {
+            toggleDocLinkDropdown(e) {
+                if (e) e.stopPropagation();
                 const dropdown = document.getElementById('docLinkDropdown');
                 if (!dropdown) return;
 
