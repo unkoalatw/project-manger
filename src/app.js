@@ -3501,7 +3501,7 @@
                                             <button onclick="app.openTaskComments('${t.id}')" class="p-0.5 sm:p-1 px-1 sm:px-1.5 border border-black font-bold text-[10px] sm:text-[11px] bg-white hover:bg-yellow-200 flat-box flex items-center gap-0.5 shrink-0" title="任務討論串">
                                                 <span>💬</span> <span>${commentCount}</span>
                                             </button>
-                                            <select onchange="app.updateTaskStatus('${t.id}', this.value)" class="flat-input text-xs font-bold p-1 bg-zinc-100 cursor-pointer hidden md:block">
+                                            <select onchange="app.updateTaskStatus('${t.id}', this.value)" class="flat-input flat-select-sm text-xs font-bold bg-white cursor-pointer hidden md:block">
                                                 <option value="TODO" ${t.status === 'TODO' ? 'selected' : ''}>TODO</option>
                                                 <option value="DOING" ${t.status === 'DOING' ? 'selected' : ''}>DOING</option>
                                                 <option value="DONE" ${t.status === 'DONE' ? 'selected' : ''}>DONE</option>
@@ -3542,7 +3542,7 @@
                                 </div>
                                 <div class="flex justify-between items-center mt-1 border-t-2 border-zinc-100 pt-2">
                                     ${getPrioBadge(t.priority)}
-                                    <select onchange="app.updateTaskStatus('${t.id}', this.value)" class="flat-input text-[10px] font-bold p-0.5 bg-zinc-100 cursor-pointer">
+                                    <select onchange="app.updateTaskStatus('${t.id}', this.value)" class="flat-input flat-select-sm text-[10px] font-bold bg-white cursor-pointer">
                                         <option value="TODO" ${t.status === 'TODO' ? 'selected' : ''}>到 TODO</option>
                                         <option value="DOING" ${t.status === 'DOING' ? 'selected' : ''}>到 DOING</option>
                                         <option value="DONE" ${t.status === 'DONE' ? 'selected' : ''}>到 DONE</option>

@@ -44,10 +44,70 @@
             border: var(--flat-border);
             border-radius: 0px !important;
             outline: none;
+            transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
         }
         
         .flat-input:focus {
-            background-color: #fef08a; /* yellow-200 */
+            background-color: #fef08a !important; /* yellow-200 */
+            border-color: #000000 !important;
+            box-shadow: 2px 2px 0px 0px #000000 !important;
+        }
+
+        /* 🎛️ 現代潮流 Neo-Brutalist 自訂原生下拉式選單 (Custom Select Styling) */
+        select.flat-input,
+        select {
+            appearance: none !important;
+            -webkit-appearance: none !important;
+            -moz-appearance: none !important;
+            background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000000' stroke-width='3' stroke-linecap='square' stroke-linejoin='miter'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e") !important;
+            background-repeat: no-repeat !important;
+            background-position: right 0.65rem center !important;
+            background-size: 0.9em !important;
+            padding-right: 2rem !important;
+            cursor: pointer !important;
+            font-weight: 700 !important;
+            background-color: #ffffff !important;
+            color: #000000 !important;
+            border: 2px solid #000000 !important;
+            box-shadow: 2px 2px 0px 0px #000000 !important;
+            transition: all 0.15s ease-in-out !important;
+        }
+
+        select.flat-input:hover,
+        select:hover {
+            background-color: #fef9c3 !important; /* light yellow */
+            transform: translate(-1px, -1px);
+            box-shadow: 3px 3px 0px 0px #000000 !important;
+        }
+
+        select.flat-input:focus,
+        select:focus {
+            background-color: #fef08a !important;
+            transform: translate(0px, 0px);
+            box-shadow: 2px 2px 0px 0px #000000 !important;
+        }
+
+        /* 下拉選項清單樣式 */
+        select option {
+            font-weight: 600 !important;
+            padding: 8px 12px !important;
+            background-color: #ffffff !important;
+            color: #000000 !important;
+        }
+
+        select option:checked {
+            background-color: #000000 !important;
+            color: #ffffff !important;
+            font-weight: 800 !important;
+        }
+
+        /* 緊湊型選單 (如看板與清單狀態切換) */
+        select.flat-select-sm {
+            padding: 0.25rem 1.6rem 0.25rem 0.5rem !important;
+            background-position: right 0.4rem center !important;
+            background-size: 0.75em !important;
+            font-size: 0.75rem !important;
+            line-height: 1rem !important;
         }
 
         /* 隱藏捲動條但保留功能 */
