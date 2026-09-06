@@ -2714,10 +2714,20 @@
                 }
 
                 const previewEl = document.getElementById('docPreview');
-                // 4. 等待 Mermaid 渲染完成與 DOM 佈局穩定後呼叫 window.print()
+                // 4. 等待 Mermaid 渲染完成與 DOM 佈局穩定後呼叫 window.print()，並暫時清空頁面標題以消除瀏覽器列印頁首頁尾浮水印與文檔名稱
                 const triggerPrint = () => {
+                    const originalTitle = document.title;
+                    document.title = '';
+
+                    const restoreTitle = () => {
+                        document.title = originalTitle;
+                        window.removeEventListener('afterprint', restoreTitle);
+                    };
+                    window.addEventListener('afterprint', restoreTitle);
+
                     setTimeout(() => {
                         window.print();
+                        setTimeout(restoreTitle, 1200);
                     }, 250);
                 };
 

@@ -150,15 +150,20 @@
 
         /* 列印預覽專屬樣式 (@media print) */
         @media print {
+            *, *::before, *::after {
+                background-image: none !important;
+                box-shadow: none !important;
+                text-shadow: none !important;
+            }
             body {
                 background: #ffffff !important;
                 color: #000000 !important;
                 height: auto !important;
                 overflow: visible !important;
             }
-            /* 隱藏所有非列印元素 (導航列、側邊欄、工具列、Toast 提示、按鈕等) */
+            /* 隱藏所有非列印元素 (導航列、側邊欄、工具列、文檔標題Header、Toast 提示、按鈕等) */
             header, aside, #sidebar, #mobileBackdrop, #docModeSwitchBar, #docEditHeader, #docEditToolbar, 
-            #docFindReplaceBar, #docTocDrawer, #docLinksPanel, #docPreviewActions,
+            #docPreviewHeader, #docFindReplaceBar, #docTocDrawer, #docLinksPanel, #docPreviewActions,
             #viewDashboard, #viewTasks, #viewWizard, #viewStats, #viewSettings, #docEditor,
             #toast, #liveToast, .no-print, button {
                 display: none !important;
@@ -172,6 +177,7 @@
                 margin: 0 !important;
                 border: none !important;
                 box-shadow: none !important;
+                background: transparent !important;
             }
             #docPreview {
                 display: block !important;
@@ -181,12 +187,7 @@
                 margin: 0 !important;
                 width: 100% !important;
                 min-height: auto !important;
-            }
-            #docPreviewHeader {
-                display: block !important;
-                border-bottom: 2px solid #000 !important;
-                padding-bottom: 12px !important;
-                margin-bottom: 20px !important;
+                background: transparent !important;
             }
             /* 表格列印最佳化：移除外部 wrapper 陰影、溢位與外框，避免跨頁被黑條切斷覆蓋 */
             .neo-brutalist-table-wrapper {
