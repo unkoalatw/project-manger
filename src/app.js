@@ -36,7 +36,9 @@
                 isDocTocOpen: false,
                 expandedFolders: new Set(),
                 draggedFolderId: null,
-                enablePageBreaks: true
+                enablePageBreaks: true,
+                showDocLinks: true,
+                isSidebarCollapsed: false
             },
 
             // ================= 🎵 互動音效引擎 (Web Audio API 零依賴即時合成器) =================
@@ -629,6 +631,20 @@
                         this.updatePageBreakButtonUI();
                     } catch(e) {}
 
+                    // 初始化關聯網絡 (Links & Backlinks) 顯示開關
+                    try {
+                        const savedDocLinks = localStorage.getItem('flatSpecShowDocLinks');
+                        this.state.showDocLinks = savedDocLinks !== '0';
+                    } catch(e) {}
+
+                    // 初始化側邊欄收合狀態 (桌機版)
+                    try {
+                        const savedSidebarCollapsed = localStorage.getItem('flatSpecSidebarCollapsed');
+                        if (savedSidebarCollapsed === '1' && window.innerWidth >= 768) {
+                            this.toggleSidebar(false);
+                        }
+                    } catch(e) {}
+
                     // 0. 檢查是否有邀請連結參數 (?gasUrl=...&proj=...)
                     try {
                         const urlParams = new URLSearchParams(window.location.search);
@@ -767,6 +783,10 @@
                     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'f' && this.state.currentView === 'Docs') {
                         e.preventDefault();
                         this.toggleDocFindReplace(true);
+                    }
+                    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'b') {
+                        e.preventDefault();
+                        this.toggleSidebar();
                     }
                     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'h' && this.state.currentView === 'Docs') {
                         e.preventDefault();
@@ -1544,15 +1564,26 @@
                     return;
                 }
 
-                listEl.innerHTML = this.state.projects.map(proj => {
+                listEl.innerHTML = this.state.projects.map((proj, idx) => {
                     const isCurrent = proj.id === this.state.activeProjectId;
                     const docCount = proj.docs?.length || 0;
                     const taskCount = proj.tasks?.length || 0;
                     const safeTitle = this.escapeHtml(proj.title || '未命名專案');
                     const safeId = this.escapeHtml(proj.id);
+                    const canMoveUp = idx > 0;
+                    const canMoveDown = idx < this.state.projects.length - 1;
                     
                     return `
-                        <div class="flex items-center justify-between p-2 ${isCurrent ? 'bg-black text-white' : 'bg-white text-black hover:bg-zinc-50'} border-2 border-black flat-box transition-colors text-xs">
+                        <div class="flex items-center justify-between p-2 ${isCurrent ? 'bg-black text-white' : 'bg-white text-black hover:bg-zinc-50'} border-2 border-black flat-box transition-all text-xs"
+                             draggable="true"
+                             ondragstart="app.handleProjectDragStart(event, '${safeId}')"
+                             ondragover="app.handleProjectDragOver(event, '${safeId}')"
+                             ondragleave="app.handleProjectDragLeave(event)"
+                             ondrop="app.handleProjectDrop(event, '${safeId}')"
+                             ondragend="app.handleProjectDragEnd(event)">
+                            <div class="flex items-center gap-1 shrink-0 mr-1.5 cursor-grab active:cursor-grabbing select-none" title="拖曳重新排列專案順序">
+                                <span class="text-xs ${isCurrent ? 'text-zinc-400' : 'text-zinc-400'}">⋮⋮</span>
+                            </div>
                             <div class="min-w-0 flex-1 pr-2 cursor-pointer" onclick="app.switchProject('${safeId}'); app.openEditProjectModal();">
                                 <div class="font-bold flex items-center gap-1.5 truncate">
                                     <span>${isCurrent ? '⭐' : '📁'}</span>
@@ -1560,10 +1591,17 @@
                                     ${isCurrent ? '<span class="text-[10px] bg-white text-black px-1 font-black shrink-0">當前</span>' : ''}
                                 </div>
                                 <div class="text-[10px] ${isCurrent ? 'text-zinc-300' : 'text-zinc-500'} font-mono mt-0.5">
-                                    ${docCount} 份文檔 · ${taskCount} 項任務
+                                    ${docCount} 份文檔 · ${taskCount} 項任務 · 第 ${idx + 1} 位
                                 </div>
                             </div>
                             <div class="flex items-center gap-1 shrink-0">
+                                <!-- 上移/下移重新排列按鈕 -->
+                                <button onclick="app.moveProject('${safeId}', -1, event)" ${!canMoveUp ? 'disabled' : ''} class="p-1 px-1.5 ${canMoveUp ? (isCurrent ? 'bg-zinc-800 text-white hover:bg-zinc-700' : 'bg-zinc-100 text-black hover:bg-zinc-200') : 'opacity-30 cursor-not-allowed bg-transparent text-zinc-400'} border border-black font-bold text-xs flat-box transition-all" title="上移專案順序">
+                                    ▲
+                                </button>
+                                <button onclick="app.moveProject('${safeId}', 1, event)" ${!canMoveDown ? 'disabled' : ''} class="p-1 px-1.5 ${canMoveDown ? (isCurrent ? 'bg-zinc-800 text-white hover:bg-zinc-700' : 'bg-zinc-100 text-black hover:bg-zinc-200') : 'opacity-30 cursor-not-allowed bg-transparent text-zinc-400'} border border-black font-bold text-xs flat-box transition-all" title="下移專案順序">
+                                    ▼
+                                </button>
                                 ${this.state.projects.length > 1 ? `
                                     <button onclick="app.deleteProjectById('${safeId}', event)" class="p-1 px-2 ${isCurrent ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-red-100 text-red-700 hover:bg-red-200'} border border-black font-bold text-xs flat-box" title="直接刪除此專案">
                                         🗑️
@@ -1575,6 +1613,95 @@
                         </div>
                     `;
                 }).join('');
+            },
+
+            moveProject(projectId, delta, event) {
+                if (event) event.stopPropagation();
+                const idx = this.state.projects.findIndex(p => p.id === projectId);
+                if (idx === -1) return;
+
+                const newIdx = idx + delta;
+                if (newIdx < 0 || newIdx >= this.state.projects.length) return;
+
+                const [moved] = this.state.projects.splice(idx, 1);
+                this.state.projects.splice(newIdx, 0, moved);
+
+                this.debouncedSaveAndSync();
+                this.renderAll();
+                this.renderEditProjectModalList();
+                this.showToast('↕️ 專案排列順序已更新！');
+            },
+
+            handleProjectDragStart(e, projectId) {
+                this.state.draggedProjectId = projectId;
+                if (e.dataTransfer) {
+                    e.dataTransfer.setData('text/plain', projectId);
+                    e.dataTransfer.effectAllowed = 'move';
+                }
+                if (e.currentTarget) {
+                    e.currentTarget.classList.add('opacity-40', 'border-dashed');
+                }
+            },
+
+            handleProjectDragOver(e, targetProjectId) {
+                e.preventDefault();
+                if (e.dataTransfer) {
+                    e.dataTransfer.dropEffect = 'move';
+                }
+                const el = e.currentTarget;
+                if (!el || this.state.draggedProjectId === targetProjectId) return;
+
+                const rect = el.getBoundingClientRect();
+                const isUpper = (e.clientY - rect.top) < (rect.height / 2);
+                if (isUpper) {
+                    el.classList.add('border-t-4', 'border-t-black');
+                    el.classList.remove('border-b-4', 'border-b-black');
+                } else {
+                    el.classList.add('border-b-4', 'border-b-black');
+                    el.classList.remove('border-t-4', 'border-t-black');
+                }
+            },
+
+            handleProjectDragLeave(e) {
+                const el = e.currentTarget;
+                if (el) {
+                    el.classList.remove('border-t-4', 'border-t-black', 'border-b-4', 'border-b-black');
+                }
+            },
+
+            handleProjectDragEnd(e) {
+                this.state.draggedProjectId = null;
+                const items = document.querySelectorAll('#editProjectModalList [draggable="true"]');
+                items.forEach(item => {
+                    item.classList.remove('opacity-40', 'border-dashed', 'border-t-4', 'border-t-black', 'border-b-4', 'border-b-black');
+                });
+            },
+
+            handleProjectDrop(e, targetProjectId) {
+                e.preventDefault();
+                e.stopPropagation();
+                const draggedId = this.state.draggedProjectId || (e.dataTransfer ? e.dataTransfer.getData('text/plain') : null);
+                this.handleProjectDragEnd(e);
+
+                if (!draggedId || draggedId === targetProjectId) return;
+
+                const fromIdx = this.state.projects.findIndex(p => p.id === draggedId);
+                const toIdx = this.state.projects.findIndex(p => p.id === targetProjectId);
+                if (fromIdx === -1 || toIdx === -1) return;
+
+                const rect = e.currentTarget ? e.currentTarget.getBoundingClientRect() : { top: 0, height: 40 };
+                const isUpper = (e.clientY - rect.top) < (rect.height / 2);
+
+                const [draggedProj] = this.state.projects.splice(fromIdx, 1);
+                let insertIdx = this.state.projects.findIndex(p => p.id === targetProjectId);
+                if (!isUpper) insertIdx += 1;
+
+                this.state.projects.splice(insertIdx, 0, draggedProj);
+
+                this.debouncedSaveAndSync();
+                this.renderAll();
+                this.renderEditProjectModalList();
+                this.showToast('↕️ 專案排列順序已更新！');
             },
 
             deleteProjectById(targetId, event) {
@@ -1708,16 +1835,46 @@
             toggleSidebar(forceState) {
                 const sidebar = document.getElementById('sidebar');
                 const backdrop = document.getElementById('mobileBackdrop');
-                if(!sidebar || !backdrop) return;
+                const resizer = document.getElementById('sidebarResizer');
+                const toggleBtn = document.getElementById('sidebarToggleBtn');
+                if(!sidebar) return;
 
-                this.state.isMobileSidebarOpen = typeof forceState === 'boolean' ? forceState : !this.state.isMobileSidebarOpen;
-                
-                if (this.state.isMobileSidebarOpen) {
-                    sidebar.classList.remove('-translate-x-full');
-                    backdrop.classList.remove('hidden');
+                const isMobile = window.innerWidth < 768;
+
+                if (isMobile) {
+                    this.state.isMobileSidebarOpen = typeof forceState === 'boolean' ? forceState : !this.state.isMobileSidebarOpen;
+                    if (this.state.isMobileSidebarOpen) {
+                        sidebar.classList.remove('-translate-x-full');
+                        backdrop?.classList.remove('hidden');
+                    } else {
+                        sidebar.classList.add('-translate-x-full');
+                        backdrop?.classList.add('hidden');
+                    }
                 } else {
-                    sidebar.classList.add('-translate-x-full');
-                    backdrop.classList.add('hidden');
+                    // 桌機版收合/展開
+                    const isCurrentlyClosed = sidebar.classList.contains('-translate-x-full') || sidebar.classList.contains('hidden') || sidebar.style.display === 'none';
+                    let shouldOpen = typeof forceState === 'boolean' ? forceState : isCurrentlyClosed;
+                    
+                    this.state.isSidebarCollapsed = !shouldOpen;
+                    try {
+                        localStorage.setItem('flatSpecSidebarCollapsed', shouldOpen ? '0' : '1');
+                    } catch(e) {}
+
+                    if (shouldOpen) {
+                        sidebar.classList.remove('-translate-x-full', 'hidden');
+                        sidebar.style.display = '';
+                        if (resizer) resizer.style.display = '';
+                        if (toggleBtn) {
+                            toggleBtn.title = '收合側邊欄 (Ctrl+B)';
+                        }
+                    } else {
+                        sidebar.classList.add('-translate-x-full', 'hidden');
+                        sidebar.style.display = 'none';
+                        if (resizer) resizer.style.display = 'none';
+                        if (toggleBtn) {
+                            toggleBtn.title = '展開側邊欄 (Ctrl+B)';
+                        }
+                    }
                 }
             },
 
@@ -2387,6 +2544,11 @@
                         backlinks.push(otherDoc);
                     }
                 });
+
+                if (this.state.showDocLinks === false) {
+                    panelEl.classList.add('hidden');
+                    return;
+                }
 
                 panelEl.classList.remove('hidden');
                 let html = `
@@ -4141,6 +4303,32 @@
                         ? 'px-3 py-1.5 font-bold text-xs border-2 border-black bg-black text-white flat-box'
                         : 'px-3 py-1.5 font-bold text-xs border-2 border-zinc-500 bg-zinc-200 text-zinc-600 flat-box';
                 }
+                const docLinksBtn = document.getElementById('settingsDocLinksToggleBtn');
+                const isLinksEnabled = this.state.showDocLinks !== false;
+                if (docLinksBtn) {
+                    docLinksBtn.innerText = isLinksEnabled ? '已開啟' : '已關閉';
+                    docLinksBtn.className = isLinksEnabled
+                        ? 'px-3 py-1.5 font-bold text-xs border-2 border-black bg-black text-white flat-box'
+                        : 'px-3 py-1.5 font-bold text-xs border-2 border-zinc-500 bg-zinc-200 text-zinc-600 flat-box';
+                }
+            },
+
+            toggleShowDocLinksState() {
+                this.state.showDocLinks = !(this.state.showDocLinks !== false);
+                try {
+                    localStorage.setItem('flatSpecShowDocLinks', this.state.showDocLinks ? '1' : '0');
+                } catch(e) {}
+                this.updateSettingsPreferencesUI();
+                const p = this.getCurrentProject();
+                const doc = p?.docs?.find(d => d.id === this.state.activeDocId);
+                if (doc) {
+                    this.renderDocLinksPanel(doc);
+                }
+                if (this.state.showDocLinks) {
+                    this.showToast('🔗 文檔關聯網絡已設定為顯示');
+                } else {
+                    this.showToast('🔗 文檔關聯網絡已設定為隱藏');
+                }
             },
 
             openGasModal() {
@@ -5102,19 +5290,23 @@
                 const cleanLatex = (latex || '').trim();
                 if (typeof window !== 'undefined' && typeof window.katex !== 'undefined' && window.katex.renderToString) {
                     try {
-                        return window.katex.renderToString(cleanLatex, {
+                        const rendered = window.katex.renderToString(cleanLatex, {
                             displayMode: isBlock,
                             throwOnError: false
                         });
+                        if (isBlock) {
+                            return `<div class="katex-display">${rendered}</div>`;
+                        }
+                        return `<span class="katex-inline-wrapper">${rendered}</span>`;
                     } catch (e) {
                         console.warn("KaTeX render error:", e);
                     }
                 }
-                // KaTeX 未載入時的降級視覺樣式
+                // KaTeX 未載入或解析失敗時的乾淨降級樣式
                 if (isBlock) {
-                    return `<div class="my-3 p-3 bg-zinc-100 border-2 border-black font-mono text-sm text-center overflow-x-auto shadow-[2px_2px_0px_0px_#000]">$$ ${this.escapeHtml(cleanLatex)} $$</div>`;
+                    return `<div class="my-2 p-2 bg-zinc-50 border-l-2 border-zinc-400 font-mono text-sm text-center overflow-x-auto text-zinc-800">$$ ${this.escapeHtml(cleanLatex)} $$</div>`;
                 }
-                return `<span class="bg-zinc-200 px-1.5 py-0.5 font-mono text-xs border border-zinc-400 font-bold">$${this.escapeHtml(cleanLatex)}$</span>`;
+                return `<code class="bg-zinc-100 px-1 py-0.5 font-mono text-[0.9em] rounded text-zinc-800">${this.escapeHtml(cleanLatex)}</code>`;
             },
 
             // ================= 🌐 HTML 網頁沙盒預覽 (HTML Web Preview Sandbox) =================

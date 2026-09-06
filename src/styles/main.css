@@ -193,19 +193,28 @@
         .md-badge-cyan { background-color: #22d3ee !important; color: #000 !important; }
         .md-badge-gray { background-color: #d4d4d8 !important; color: #000 !important; }
 
-        /* KaTeX 數學公式優化 (Neo-Brutalist) */
+        /* KaTeX 數學公式優化 (優雅內嵌與精緻區塊排版) */
         .katex-display {
             overflow-x: auto;
             overflow-y: hidden;
-            padding: 0.75rem 1rem;
-            margin: 1rem 0;
-            background: #ffffff;
-            border: 2px solid #000;
-            box-shadow: 3px 3px 0px 0px #000;
+            padding: 0.5rem 0.75rem;
+            margin: 0.75rem 0;
+            background: #fafafa;
+            border-left: 3px solid #000;
+            border-top: none;
+            border-right: none;
+            border-bottom: none;
+            box-shadow: none;
+        }
+        .katex-inline-wrapper {
+            display: inline-block;
+            margin: 0 0.15em;
+            vertical-align: -0.1em;
         }
         .katex {
-            font-size: 1.1em;
+            font-size: 1.05em;
             text-rendering: auto;
+            line-height: inherit;
         }
 
         /* 列印預覽專屬樣式 (@media print) */
