@@ -1143,6 +1143,18 @@
                         throw new Error('雲端回傳格式非合法 JSON: ' + jsonErr.message);
                     }
                     
+                    if (data && typeof data === 'object' && !Array.isArray(data)) {
+                        if (Array.isArray(data.data)) {
+                            data = data.data;
+                        } else if (Array.isArray(data.projects)) {
+                            data = data.projects;
+                        } else if (data.status === 'error') {
+                            throw new Error('雲端後端回報錯誤: ' + (data.message || '未知錯誤'));
+                        } else if (data.message) {
+                            throw new Error(`雲端回傳非專案資料 (端點訊息: "${data.message}")。請確認 Apps Script 部署之程式碼是否為 FlatSpec 專用 Code.js`);
+                        }
+                    }
+
                     if (Array.isArray(data)) {
                         if (data.length > 0) {
                             const prevActiveProject = JSON.parse(JSON.stringify(this.getCurrentProject() || {}));
@@ -1204,7 +1216,7 @@
                             return true;
                         }
                     } else {
-                        throw new Error('雲端回傳格式非專案陣列');
+                        throw new Error('雲端回傳格式非專案陣列 (收到的回應: ' + JSON.stringify(data).slice(0, 100) + ')');
                     }
                 } catch (error) {
                     console.error("Pull from cloud error:", error);
@@ -1385,8 +1397,21 @@
                         if (txt.includes('<!DOCTYPE') || txt.includes('<html')) {
                             logs.push(`❌ GET 失敗: 偵測到 Google 登入重定向 (CORS 被阻擋，請將「誰可以存取」設為 Anyone)`);
                         } else {
-                            isGetOk = true;
-                            logs.push(`✅ GET 讀取成功 (${getLat}ms): 成功取得雲端資料庫回應`);
+                            try {
+                                const parsed = JSON.parse(txt);
+                                if (Array.isArray(parsed)) {
+                                    isGetOk = true;
+                                    logs.push(`✅ GET 讀取成功 (${getLat}ms): 成功取得雲端資料庫 ${parsed.length} 個專案`);
+                                } else if (parsed && typeof parsed === 'object') {
+                                    if (parsed.message) {
+                                        logs.push(`⚠️ GET 警告 (${getLat}ms): 端點回應「${parsed.message}」，此非 FlatSpec 專案資料庫！請確認是否部署了正確的 Code.js。`);
+                                    } else {
+                                        logs.push(`⚠️ GET 警告 (${getLat}ms): 雲端回傳格式非專案陣列`);
+                                    }
+                                }
+                            } catch(e) {
+                                logs.push(`❌ GET 解析失敗: 非合法 JSON 回應`);
+                            }
                         }
                     } else {
                         logs.push(`❌ GET 失敗: HTTP ${getRes.status}`);
@@ -1439,6 +1464,27 @@
                     }
                     diagBox.innerHTML = resultHtml;
                 }
+            },
+
+            promptChangeGasUrl() {
+                const current = (this.state.gasUrl || '').trim();
+                const newUrl = prompt('請輸入新的 Google Apps Script Web App URL (以 /exec 結尾)：\n\n注意：此端點需部署專屬的 Code.js，並設定「所有人 (Anyone)」皆可存取。', current);
+                if (newUrl === null) return;
+                const trimmed = newUrl.trim();
+                if (!trimmed) {
+                    this.showToast('已取消變更');
+                    return;
+                }
+                if (!trimmed.startsWith('https://script.google.com/')) {
+                    alert('⚠️ 網址格式似乎不正確，請確認是以 https://script.google.com/ 開頭的 Web App 網址！');
+                    return;
+                }
+                this.state.gasUrl = trimmed;
+                const inputElem = document.getElementById('gasUrlInput');
+                if (inputElem) inputElem.value = trimmed;
+                this.saveToLocal();
+                this.showToast('✅ 雲端同步網址已更新！');
+                this.testGasConnection();
             },
 
             updateSyncStatus(status, detail = '') {
