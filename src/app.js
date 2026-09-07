@@ -971,8 +971,12 @@
                     }
                     
                     let savedUrl = localStorage.getItem('flatSpecGasUrl');
-                    // 修正：只要存在合法的 URL 格式就保留，絕不盲目強制覆蓋使用者自訂網址
-                    if (!savedUrl || !savedUrl.trim().startsWith('http')) {
+                    // 自動清理/升級過往已失效或錯誤的歷史預設端點
+                    const LEGACY_URLS = [
+                        'https://script.google.com/macros/s/AKfycbxPoko2kbUAQas0LtRI-Vs2piyK-5Huj62iiQBK0HgULCZhcFUEjRU7-OgnQOpAo3pu/exec',
+                        'https://script.google.com/macros/s/AKfycbyKQNxw0NiU87rx9pxgb0r1XN74A2WLVAYeVLimNBZYYiY-07G1tK-pi1EXLhYn1nSyFw/exec'
+                    ];
+                    if (!savedUrl || !savedUrl.trim().startsWith('http') || LEGACY_URLS.includes(savedUrl.trim())) {
                         savedUrl = DEFAULT_GAS_URL;
                         localStorage.setItem('flatSpecGasUrl', DEFAULT_GAS_URL);
                     }
