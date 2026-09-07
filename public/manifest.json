@@ -1,0 +1,60 @@
+{
+  "id": "io.github.unkoalatw.twa",
+  "name": "FlatSpec Drive - 專案設計與執行系統",
+  "short_name": "FlatSpec",
+  "description": "極簡硬派全直角專案設計、規格文檔與任務執行系統，支援離線本地使用與雲端同步",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f4f4f5",
+  "theme_color": "#000000",
+  "prefer_related_applications": false,
+  "categories": [
+    "productivity",
+    "utilities",
+    "developer"
+  ],
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "screenshot-mobile.png",
+      "sizes": "540x960",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "FlatSpec 手機端即時任務與文檔管理"
+    },
+    {
+      "src": "screenshot-desktop.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "FlatSpec 電腦端規格書與架構精靈工作區"
+    }
+  ]
+}
