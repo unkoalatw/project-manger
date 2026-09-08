@@ -111,38 +111,39 @@
     <main class="flex-1 flex flex-col min-w-0 bg-white relative pb-16 md:pb-0 h-full overflow-hidden">
         
         <!-- 頂部導覽列 (Header - 精簡俐落、收納設定) -->
+        <!-- 頂部導覽列 (Header - 精簡俐落、自適應響應式防擁擠) -->
         <header class="h-14 border-b-2 border-black bg-white flex items-center justify-between px-2 sm:px-4 shrink-0 shadow-sm z-10 gap-1 sm:gap-2">
-            <div class="flex items-center gap-1 sm:gap-3 min-w-0 shrink">
+            <div class="flex items-center gap-1.5 sm:gap-2.5 min-w-0 flex-1 sm:flex-initial">
                 <button id="sidebarToggleBtn" onclick="app.toggleSidebar()" class="p-1.5 px-2 bg-zinc-100 hover:bg-yellow-200 border-2 border-black font-bold flat-box shrink-0 text-sm transition-colors" title="展開/收合側邊欄 (Ctrl+B)">
                     ☰
                 </button>
-                <button onclick="app.switchView('Home')" class="p-1.5 px-2.5 bg-black text-white hover:bg-zinc-800 border-2 border-black font-black text-xs flat-box flex items-center gap-1 shrink-0 shadow-[2px_2px_0px_0px_#000]" title="返回專案首頁 (選擇所有專案)">
-                    <span>🏠</span> <span class="hidden sm:inline">專案首頁</span>
+                <button onclick="app.switchView('Home')" class="hidden md:flex p-1.5 px-2.5 bg-black text-white hover:bg-zinc-800 border-2 border-black font-black text-xs flat-box items-center gap-1 shrink-0 shadow-[2px_2px_0px_0px_#000]" title="返回專案首頁 (選擇所有專案)">
+                    <span>🏠</span> <span class="hidden lg:inline">首頁</span>
                 </button>
                 <!-- 專案進度迷你儀表 (點擊可快速開啟專案設定) -->
-                <div class="flex flex-col min-w-0 max-w-[90px] sm:max-w-[140px] md:max-w-xs cursor-pointer group" onclick="app.openSettingsModal('project')" title="點擊開啟專案設定">
+                <div class="flex flex-col min-w-0 max-w-[120px] sm:max-w-[150px] md:max-w-[180px] lg:max-w-xs cursor-pointer group" onclick="app.openSettingsModal('project')" title="點擊開啟專案設定">
                     <div class="text-xs font-black truncate uppercase group-hover:underline" id="headerProjectName">未選擇專案</div>
-                    <div class="w-16 sm:w-28 md:w-32 h-1.5 sm:h-2 bg-zinc-200 border border-black mt-0.5 relative">
+                    <div class="w-20 sm:w-28 md:w-32 h-1.5 sm:h-2 bg-zinc-200 border border-black mt-0.5 relative">
                         <div id="headerProgressBar" class="h-full bg-green-400 border-r border-black" style="width: 0%"></div>
                     </div>
                 </div>
             </div>
 
             <!-- 視圖切換 Tabs (桌機版) -->
-            <div class="hidden lg:flex gap-1.5 xl:gap-2 font-mono text-xs xl:text-sm font-bold shrink-0">
-                <button id="viewTabHome" onclick="app.switchView('Home')" class="px-3 xl:px-4 py-1 border-2 border-black bg-zinc-100 hover:bg-white transition-colors uppercase">🏠 首頁</button>
-                <button id="viewTabDashboard" onclick="app.switchView('Dashboard')" class="px-3 xl:px-4 py-1 border-2 border-black bg-zinc-100 hover:bg-white transition-colors uppercase">📊 總覽</button>
-                <button id="viewTabDocs" onclick="app.switchView('Docs')" class="px-3 xl:px-4 py-1 border-2 border-black bg-zinc-100 hover:bg-white transition-colors uppercase">📄 文檔</button>
-                <button id="viewTabExecution" onclick="app.switchView('Execution')" class="px-3 xl:px-4 py-1 border-2 border-black bg-zinc-100 hover:bg-white transition-colors uppercase">✅ 任務</button>
-                <button id="viewTabWizard" onclick="app.switchView('Wizard')" class="px-3 xl:px-4 py-1 border-2 border-black bg-violet-200 hover:bg-violet-100 transition-colors uppercase">✨ 精靈</button>
+            <div class="hidden xl:flex gap-1.5 font-mono text-xs font-bold shrink-0">
+                <button id="viewTabHome" onclick="app.switchView('Home')" class="px-2.5 py-1 border-2 border-black bg-zinc-100 hover:bg-white transition-colors uppercase">🏠 首頁</button>
+                <button id="viewTabDashboard" onclick="app.switchView('Dashboard')" class="px-2.5 py-1 border-2 border-black bg-zinc-100 hover:bg-white transition-colors uppercase">📊 總覽</button>
+                <button id="viewTabDocs" onclick="app.switchView('Docs')" class="px-2.5 py-1 border-2 border-black bg-zinc-100 hover:bg-white transition-colors uppercase">📄 文檔</button>
+                <button id="viewTabExecution" onclick="app.switchView('Execution')" class="px-2.5 py-1 border-2 border-black bg-zinc-100 hover:bg-white transition-colors uppercase">✅ 任務</button>
+                <button id="viewTabWizard" onclick="app.switchView('Wizard')" class="px-2.5 py-1 border-2 border-black bg-violet-200 hover:bg-violet-100 transition-colors uppercase">✨ 精靈</button>
             </div>
 
             <!-- 右側協作、搜尋與設定 -->
-            <div class="flex items-center gap-1 sm:gap-2 shrink-0">
+            <div class="flex items-center gap-1 sm:gap-1.5 shrink-0">
                 <!-- AI 助手快捷按鈕 -->
                 <button onclick="app.toggleChatSidebar()" class="p-1.5 px-2 bg-purple-200 hover:bg-purple-300 text-purple-950 border-2 border-black font-black text-xs flat-box flex items-center gap-1 shadow-[2px_2px_0px_0px_#000] shrink-0" title="開啟 AI 助手對話框">
                     <span class="text-sm">🤖</span>
-                    <span class="hidden md:inline">AI 助手</span>
+                    <span class="hidden md:inline">AI</span>
                 </button>
 
                 <!-- 全域搜尋按鈕 (Ctrl+K) -->
@@ -152,15 +153,15 @@
                 </button>
 
                 <!-- ⚙️ 系統設定整合按鈕 (包含字體、音效、時光機、備份、雲端、專案等) -->
-                <button onclick="app.openSettingsModal()" class="p-1.5 px-2.5 bg-zinc-100 hover:bg-zinc-200 border-2 border-black font-bold text-xs flat-box flex items-center gap-1 transition-colors shrink-0" title="開啟系統與專案設定 (外觀字體、音效、備份、雲端、時光機)">
+                <button onclick="app.openSettingsModal()" class="p-1.5 px-2 bg-zinc-100 hover:bg-zinc-200 border-2 border-black font-bold text-xs flat-box flex items-center gap-1 transition-colors shrink-0" title="開啟系統與專案設定">
                     <span class="text-sm">⚙️</span>
                     <span class="hidden md:inline">設定</span>
                 </button>
 
                 <!-- 雲端連線狀態燈 (點擊開啟雲端同步設定) -->
-                <div id="syncStatusBadge" onclick="app.openSettingsModal('cloud')" class="cursor-pointer px-2 py-1.5 border-2 border-black font-bold text-[10px] md:text-xs flex items-center gap-1 bg-zinc-100 flat-shadow-sm hover:translate-y-px transition-transform shrink-0" title="點擊開啟雲端同步設定">
+                <div id="syncStatusBadge" onclick="app.openSettingsModal('cloud')" class="cursor-pointer px-1.5 sm:px-2 py-1.5 border-2 border-black font-bold text-[10px] md:text-xs flex items-center gap-1 bg-zinc-100 flat-shadow-sm hover:translate-y-px transition-transform shrink-0" title="點擊開啟雲端同步設定">
                     <span id="syncDot" class="w-2 h-2 rounded-full bg-zinc-400 border border-black shrink-0"></span>
-                    <span id="syncText" class="max-w-[45px] sm:max-w-[65px] md:max-w-none truncate">已連線</span>
+                    <span id="syncText" class="hidden sm:inline max-w-[55px] md:max-w-none truncate">已連線</span>
                 </div>
             </div>
         </header>
@@ -861,7 +862,7 @@
                             <button onclick="app.exportLocalJson()" class="flex-1 bg-black text-white font-bold py-2.5 px-3 border-2 border-black flat-box text-xs flex items-center justify-center gap-1.5">
                                 <span>📥</span> 下載本機 JSON 備份檔
                             </button>
-                            <button onclick="document.getElementById('importJsonInput').click()" class="flex-1 bg-white hover:bg-zinc-100 text-black font-bold py-2.5 px-3 border-2 border-black flat-box text-xs flex items-center justify-center gap-1.5">
+                            <button onclick="app.triggerImportBackup()" class="flex-1 bg-white hover:bg-zinc-100 text-black font-bold py-2.5 px-3 border-2 border-black flat-box text-xs flex items-center justify-center gap-1.5">
                                 <span>📤</span> 選取 JSON 檔案還原
                             </button>
                             <input type="file" id="importJsonInput" accept=".json" class="hidden" onchange="app.importLocalJson(event)">

@@ -4505,13 +4505,21 @@
             exportLocalJson() {
                 try {
                     const dataStr = JSON.stringify(this.state.projects, null, 2);
+                    const now = new Date();
+                    const dateStr = now.toISOString().slice(0, 10) + '_' + now.toTimeString().slice(0, 8).replace(/:/g, '');
+                    const filename = `FlatSpec_Backup_${dateStr}.json`;
+
+                    if (window.AndroidBridge && typeof window.AndroidBridge.exportFile === 'function') {
+                        window.AndroidBridge.exportFile(filename, 'application/json', dataStr);
+                        this.showToast('🚀 正在調用 Android 原生儲存器匯出備份...');
+                        return;
+                    }
+
                     const blob = new Blob([dataStr], { type: 'application/json' });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
-                    const now = new Date();
-                    const dateStr = now.toISOString().slice(0, 10) + '_' + now.toTimeString().slice(0, 8).replace(/:/g, '');
                     a.href = url;
-                    a.download = `FlatSpec_Backup_${dateStr}.json`;
+                    a.download = filename;
                     document.body.appendChild(a);
                     a.click();
                     document.body.removeChild(a);
@@ -4521,32 +4529,43 @@
                     this.showToast('匯出失敗: ' + e.message, 'error');
                 }
             },
+            importBackupJsonString(content) {
+                try {
+                    const parsed = JSON.parse(content);
+                    if (Array.isArray(parsed) && parsed.length > 0) {
+                        this.state.projects = parsed.map(p => this.normalizeProject(p)).filter(Boolean);
+                        this.state.activeProjectId = this.state.projects[0].id;
+                        this.state.activeDocId = this.state.projects[0].docs?.[0]?.id || null;
+                        this.saveToLocal();
+                        this.renderAll();
+                        this.switchView('Dashboard');
+                        this.showToast(`🎉 成功從檔案還原 ${this.state.projects.length} 個專案！`);
+                        this.closeModals();
+                        this.debouncedSaveAndSync();
+                    } else {
+                        this.showToast('檔案格式不符合專案陣列結構', 'error');
+                    }
+                } catch (err) {
+                    console.error("Import error:", err);
+                    this.showToast('解析 JSON 備份失敗: ' + err.message, 'error');
+                }
+            },
+            triggerImportBackup() {
+                if (window.AndroidBridge && typeof window.AndroidBridge.importFile === 'function') {
+                    window.AndroidBridge.importFile();
+                    this.showToast('📂 正在調用 Android 原生檔案選擇器...');
+                    return;
+                }
+                const input = document.getElementById('importJsonInput');
+                if (input) input.click();
+            },
             importLocalJson(event) {
                 const file = event.target.files?.[0];
                 if (!file) return;
 
                 const reader = new FileReader();
                 reader.onload = (e) => {
-                    try {
-                        const content = e.target.result;
-                        const parsed = JSON.parse(content);
-                        if (Array.isArray(parsed) && parsed.length > 0) {
-                            this.state.projects = parsed.map(p => this.normalizeProject(p)).filter(Boolean);
-                            this.state.activeProjectId = this.state.projects[0].id;
-                            this.state.activeDocId = this.state.projects[0].docs?.[0]?.id || null;
-                            this.saveToLocal();
-                            this.renderAll();
-                            this.switchView('Dashboard');
-                            this.showToast(`🎉 成功從本機檔案還原 ${this.state.projects.length} 個專案！`);
-                            this.closeModals();
-                            this.debouncedSaveAndSync();
-                        } else {
-                            this.showToast('檔案格式不符合專案陣列結構', 'error');
-                        }
-                    } catch (err) {
-                        console.error("Import error:", err);
-                        this.showToast('解析 JSON 檔案失敗: ' + err.message, 'error');
-                    }
+                    this.importBackupJsonString(e.target.result);
                 };
                 reader.readAsText(file);
                 event.target.value = '';
