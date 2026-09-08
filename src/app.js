@@ -1013,6 +1013,12 @@
                         if (savedView && ['Home', 'Dashboard', 'Docs', 'Wizard', 'Execution'].includes(savedView)) {
                             this.state.currentView = savedView;
                         }
+
+                        // 安全機制：若目前啟用的專案受密碼保護且尚未解鎖，強制預設為首頁視圖以防資訊洩漏
+                        const activeP = this.getProject(this.state.activeProjectId);
+                        if (activeP && activeP.password && !this.state.unlockedProjects.has(activeP.id)) {
+                            this.state.currentView = 'Home';
+                        }
                         const savedDocMode = localStorage.getItem('flatSpecLastDocMode');
                         if (savedDocMode && ['edit', 'preview'].includes(savedDocMode)) {
                             this.state.docMode = savedDocMode;
@@ -1972,14 +1978,22 @@
                 this.deleteProjectById(p.id);
             },
 
+            // 檢查專案是否已上鎖（有設定密碼且尚未在此工作階段解鎖）
+            isProjectLocked(proj) {
+                const target = proj || this.getCurrentProject();
+                if (!target || !target.password) return false;
+                return !this.state.unlockedProjects.has(target.id);
+            },
+
             // 請求開啟專案（若有密碼且未解鎖則彈出密碼視窗，否則直接切換並進入目標視圖）
             requestOpenProject(projectId, targetView = 'Docs') {
                 const proj = this.getProject(projectId);
                 if (!proj) return;
 
-                if (proj.password && !this.state.unlockedProjects.has(proj.id)) {
+                if (this.isProjectLocked(proj)) {
                     // 需要輸入密碼
                     this.state.pendingPasswordProjectId = proj.id;
+                    this.state.pendingPasswordTargetView = targetView || 'Docs';
                     const modal = document.getElementById('projectPasswordModal');
                     const titleEl = document.getElementById('pwdModalProjectTitle');
                     const errEl = document.getElementById('pwdModalError');
@@ -2014,10 +2028,12 @@
                 const inputPwd = inputEl.value.trim();
                 if (inputPwd === proj.password) {
                     this.state.unlockedProjects.add(proj.id);
+                    const targetView = this.state.pendingPasswordTargetView || 'Docs';
                     this.state.pendingPasswordProjectId = null;
+                    this.state.pendingPasswordTargetView = null;
                     if (modal) modal.classList.add('hidden');
                     this.switchProject(proj.id);
-                    this.switchView('Docs');
+                    this.switchView(targetView);
                     this.showToast(`🔓 專案「${proj.title}」已成功解鎖！`);
                 } else {
                     if (errEl) errEl.classList.remove('hidden');
@@ -2027,6 +2043,7 @@
 
             cancelUnlockProject() {
                 this.state.pendingPasswordProjectId = null;
+                this.state.pendingPasswordTargetView = null;
                 const modal = document.getElementById('projectPasswordModal');
                 if (modal) modal.classList.add('hidden');
                 // 恢復側邊欄選擇器為當前生效中的專案，防止顯示狀態與實際不同步
@@ -2183,10 +2200,16 @@
                 }).join('');
             },
 
-            // ================= 視圖控制 =================
             switchView(viewName) {
                 const views = ['Home', 'Dashboard', 'Docs', 'Wizard', 'Execution'];
                 if (!views.includes(viewName)) return;
+
+                // 若目標為專案內部視圖，但當前專案受密碼保護且尚未解鎖，則攔截並要求輸入密碼
+                const currentP = this.getCurrentProject();
+                if (viewName !== 'Home' && this.isProjectLocked(currentP)) {
+                    this.requestOpenProject(currentP.id, viewName);
+                    return;
+                }
 
                 this.state.currentView = viewName;
                 try { localStorage.setItem('flatSpecLastView', viewName); } catch(e) {}
@@ -2306,6 +2329,10 @@
                 
                 if (this.state.currentView === 'Docs') {
                     const p = this.getCurrentProject();
+                    if (this.isProjectLocked(p)) {
+                        this.renderDocs();
+                        return;
+                    }
                     const doc = p?.docs?.find(d => d.id === this.state.activeDocId);
                     if (doc) {
                         const titleEl = document.getElementById('docTitleInput');
@@ -2343,6 +2370,13 @@
                 
                 if (!p || !nameEl || !barEl) return;
                 
+                if (this.isProjectLocked(p)) {
+                    nameEl.innerText = `🔒 ${p.title} (已上鎖)`;
+                    barEl.style.width = '0%';
+                    barEl.className = 'h-full bg-zinc-200';
+                    return;
+                }
+
                 nameEl.innerText = p.title;
                 
                 const tasks = p.tasks || [];
@@ -2602,7 +2636,22 @@
                     return `<option value="${proj.id}" ${proj.id === this.state.activeProjectId ? 'selected' : ''}>${prefix}${this.escapeHtml(proj.title)}${hiddenSuffix}</option>`;
                 }).join('');
 
-                // 2. 渲染目錄樹
+                // 2. 若專案上鎖，禁止洩漏文檔樹結構與文檔清單
+                if (this.isProjectLocked(p)) {
+                    treeEl.innerHTML = `
+                        <div class="p-6 text-center space-y-3 bg-white border-2 border-black flat-box my-4">
+                            <div class="text-3xl">🔒</div>
+                            <div class="font-black text-sm text-black">此專案已受密碼保護</div>
+                            <p class="text-xs text-zinc-500 font-medium">請先輸入密碼解鎖，方可檢視目錄樹與編輯文檔內容。</p>
+                            <button onclick="app.requestOpenProject('${p.id}', 'Docs')" class="px-3 py-1.5 bg-black text-white font-bold text-xs flat-box hover:bg-zinc-800 transition-colors w-full">
+                                輸入密碼解鎖 ➔
+                            </button>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // 3. 渲染目錄樹
                 let html = '';
                 
                 // 文件庫分類
@@ -2680,14 +2729,38 @@
                 const p = this.getCurrentProject();
                 if (!p) return;
 
+                const safeSet = (id, val) => { const el = document.getElementById(id); if(el) el.innerText = val; };
+
+                if (this.isProjectLocked(p)) {
+                    safeSet('dashProgress', '🔒');
+                    safeSet('dashTodo', '🔒');
+                    safeSet('dashDone', '🔒');
+                    safeSet('dashDocs', '🔒');
+
+                    const visionEl = document.getElementById('dashVision');
+                    if (visionEl) {
+                        visionEl.innerHTML = `
+                            <div class="p-6 text-center space-y-2">
+                                <div class="text-2xl">🔒</div>
+                                <div class="font-bold text-sm text-black">此專案已受密碼保護</div>
+                                <p class="text-xs text-zinc-500">請先解鎖以檢視專案願景與架構。</p>
+                                <button onclick="app.requestOpenProject('${p.id}', 'Dashboard')" class="mt-2 px-3 py-1 bg-black text-white font-bold text-xs flat-box hover:bg-zinc-800">解鎖專案 ➔</button>
+                            </div>
+                        `;
+                    }
+                    const docListEl = document.getElementById('dashDocList');
+                    if (docListEl) {
+                        docListEl.innerHTML = `<div class="p-4 text-center text-xs text-zinc-400 italic">文檔已受保護，需先解鎖</div>`;
+                    }
+                    return;
+                }
+
                 const tasks = p.tasks || [];
                 const totalTasks = tasks.length;
                 const doneTasks = tasks.filter(t => t.status === 'DONE').length;
                 const todoTasks = totalTasks - doneTasks;
                 const pct = totalTasks === 0 ? 0 : Math.round((doneTasks / totalTasks) * 100);
 
-                const safeSet = (id, val) => { const el = document.getElementById(id); if(el) el.innerText = val; };
-                
                 safeSet('dashProgress', `${pct}%`);
                 safeSet('dashTodo', todoTasks);
                 safeSet('dashDone', doneTasks);
@@ -2717,6 +2790,12 @@
 
             // ================= 文檔編輯器與引用連結邏輯 =================
             openDoc(docId, targetMode) {
+                const p = this.getCurrentProject();
+                if (this.isProjectLocked(p)) {
+                    this.requestOpenProject(p.id, 'Docs');
+                    return;
+                }
+
                 this.state.activeDocId = docId;
                 try {
                     localStorage.setItem('flatSpecLastActiveDocId', docId);
@@ -3268,6 +3347,28 @@
             renderDocs() {
                 const p = this.getCurrentProject();
                 if (!p || !p.docs) return;
+
+                if (this.isProjectLocked(p)) {
+                    const titleEl = document.getElementById('docTitleInput');
+                    const editorEl = document.getElementById('docEditor');
+                    const previewEl = document.getElementById('docPreview');
+                    if (titleEl) titleEl.value = '🔒 專案已受密碼保護';
+                    if (editorEl) editorEl.value = '';
+                    if (previewEl) {
+                        previewEl.innerHTML = `
+                            <div class="p-12 text-center space-y-4 max-w-md mx-auto my-12 bg-white border-2 border-black flat-shadow-md">
+                                <div class="text-4xl">🔒</div>
+                                <h3 class="text-lg font-black uppercase">專案已受密碼保護</h3>
+                                <p class="text-xs text-zinc-500 font-medium">請先輸入密碼解鎖此專案，方可檢視與編輯完整文檔內容。</p>
+                                <button onclick="app.requestOpenProject('${p.id}', 'Docs')" class="px-4 py-2 bg-black text-white font-bold text-xs flat-box hover:bg-zinc-800 transition-colors">
+                                    立即解鎖專案 ➔
+                                </button>
+                            </div>
+                        `;
+                    }
+                    this.toggleDocMode('preview');
+                    return;
+                }
                 
                 const doc = p.docs.find(d => d.id === this.state.activeDocId) || p.docs[0];
                 if (!doc) return;
