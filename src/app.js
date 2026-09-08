@@ -13,7 +13,7 @@
                 projects: [],
                 activeProjectId: null,
                 activeDocId: null,
-                currentView: 'Dashboard', // Dashboard, Docs, Wizard, Execution
+                currentView: 'Home', // Home, Dashboard, Docs, Wizard, Execution
                 execViewMode: 'list', // list, kanban
                 docMode: 'edit', // edit, preview (mobile only)
                 gasUrl: 'https://script.google.com/macros/s/AKfycbxPLTdFYgqSv3PrGxK7U-UTIj3YIiJPU-QbMhLYq4NVyRd77263-xFsbFaFovHoKoC3/exec',
@@ -38,7 +38,9 @@
                 draggedFolderId: null,
                 enablePageBreaks: true,
                 showDocLinks: true,
-                isSidebarCollapsed: false
+                isSidebarCollapsed: false,
+                unlockedProjects: new Set(),
+                pendingPasswordProjectId: null
             },
 
             // ================= 🎵 互動音效引擎 (Web Audio API 零依賴即時合成器) =================
@@ -218,6 +220,8 @@
                 p.id = p.id || 'proj_' + Date.now();
                 p.category = p.category || '預設';
                 p.updatedAt = p.updatedAt || new Date().toISOString();
+                p.password = (typeof p.password === 'string') ? p.password.trim() : '';
+                p.hidden = !!p.hidden;
                 
                 // 願景與精靈結構
                 if (!p.wizard || typeof p.wizard !== 'object') {
@@ -452,9 +456,13 @@
                     if (bNorm) {
                         mergedProj.title = (lNorm.title !== bNorm.title) ? lNorm.title : cNorm.title;
                         mergedProj.category = (lNorm.category !== bNorm.category) ? lNorm.category : cNorm.category;
+                        mergedProj.password = (lNorm.password !== bNorm.password) ? lNorm.password : cNorm.password;
+                        mergedProj.hidden = (lNorm.hidden !== bNorm.hidden) ? lNorm.hidden : cNorm.hidden;
                     } else {
                         mergedProj.title = (cTime >= lTime) ? cNorm.title : (lNorm.title || cNorm.title);
                         mergedProj.category = (cTime >= lTime) ? cNorm.category : (lNorm.category || cNorm.category);
+                        mergedProj.password = (cTime >= lTime) ? (cNorm.password || '') : (lNorm.password || cNorm.password || '');
+                        mergedProj.hidden = (cTime >= lTime) ? (!!cNorm.hidden) : (!!lNorm.hidden);
                     }
 
                     // 精靈欄位細粒度合併
@@ -671,7 +679,7 @@
                     }
                     this.ensureActivePointers();
                     this.renderAll();
-                    this.switchView(this.state.currentView || 'Dashboard');
+                    this.switchView(this.state.currentView || 'Home');
 
                     // 2. 綁定事件監聽
                     this.bindEvents();
@@ -1002,7 +1010,7 @@
                             this.state.activeDocId = savedDocId;
                         }
                         const savedView = localStorage.getItem('flatSpecLastView');
-                        if (savedView && ['Dashboard', 'Docs', 'Wizard', 'Execution'].includes(savedView)) {
+                        if (savedView && ['Home', 'Dashboard', 'Docs', 'Wizard', 'Execution'].includes(savedView)) {
                             this.state.currentView = savedView;
                         }
                         const savedDocMode = localStorage.getItem('flatSpecLastDocMode');
@@ -1588,17 +1596,26 @@
             createNewProject() {
                 const titleEl = document.getElementById('newProjectTitle');
                 const catEl = document.getElementById('newProjectCategory');
-                const title = titleEl.value.trim();
+                const pwdToggle = document.getElementById('newProjectPasswordToggle');
+                const pwdInput = document.getElementById('newProjectPasswordInput');
+                const hideToggle = document.getElementById('newProjectHiddenToggle');
+
+                const title = (titleEl?.value || '').trim();
                 
                 if (!title) {
                     this.showToast('專案名稱不能為空', 'error');
                     return;
                 }
 
+                const password = (pwdToggle && pwdToggle.checked) ? (pwdInput?.value || '').trim() : '';
+                const isHidden = !!(hideToggle && hideToggle.checked);
+
                 const newProj = this.normalizeProject({
                     id: 'proj_' + Date.now(),
                     title: title,
-                    category: catEl.value.trim() || '預設',
+                    category: (catEl?.value || '').trim() || '預設',
+                    password: password,
+                    hidden: isHidden,
                     updatedAt: new Date().toISOString(),
                     docs: [{ id: 'doc_' + Date.now(), title: '核心規格書', content: '# ' + title + '\n\n寫下您的規格...' }],
                     tasks: [],
@@ -1608,15 +1625,22 @@
                 this.state.projects.push(newProj);
                 this.state.activeProjectId = newProj.id;
                 this.state.activeDocId = newProj.docs[0].id;
+                if (password) {
+                    this.state.unlockedProjects.add(newProj.id);
+                }
                 
-                titleEl.value = '';
-                catEl.value = '';
+                if (titleEl) titleEl.value = '';
+                if (catEl) catEl.value = '';
+                if (pwdToggle) pwdToggle.checked = false;
+                if (pwdInput) pwdInput.value = '';
+                if (hideToggle) hideToggle.checked = false;
+                document.getElementById('newProjectPasswordBox')?.classList.add('hidden');
                 
                 this.closeModals();
                 this.debouncedSaveAndSync();
                 this.renderAll();
-                this.switchView('Dashboard');
-                this.showToast('🎉 新專案已建立！');
+                this.switchView('Docs');
+                this.showToast('🎉 新專案已建立並已開啟編輯器！');
             },
 
             openEditProjectModal() {
@@ -1624,8 +1648,23 @@
                 if (!p) return;
                 const titleEl = document.getElementById('editProjectTitle');
                 const catEl = document.getElementById('editProjectCategory');
+                const pwdToggle = document.getElementById('editProjectPasswordToggle');
+                const pwdBox = document.getElementById('editProjectPasswordBox');
+                const pwdInput = document.getElementById('editProjectPasswordInput');
+                const hideToggle = document.getElementById('editProjectHiddenToggle');
+
                 if (titleEl) titleEl.value = p.title || '';
                 if (catEl) catEl.value = p.category || '';
+                
+                const hasPwd = !!p.password;
+                if (pwdToggle) pwdToggle.checked = hasPwd;
+                if (pwdBox) {
+                    if (hasPwd) pwdBox.classList.remove('hidden');
+                    else pwdBox.classList.add('hidden');
+                }
+                if (pwdInput) pwdInput.value = '';
+
+                if (hideToggle) hideToggle.checked = !!p.hidden;
                 
                 this.renderEditProjectModalList();
                 document.getElementById('editProjectModal')?.classList.remove('hidden');
@@ -1634,64 +1673,116 @@
             renderEditProjectModalList() {
                 const listEl = document.getElementById('editProjectModalList');
                 const countEl = document.getElementById('editProjectTotalCount');
-                if (!listEl) return;
+                const hiddenListEl = document.getElementById('hiddenProjectsModalList');
+                const hiddenCountEl = document.getElementById('hiddenProjectsTotalCount');
 
-                if (countEl) countEl.innerText = this.state.projects.length;
+                const publicProjects = this.state.projects.filter(p => !p.hidden);
+                const hiddenProjects = this.state.projects.filter(p => p.hidden);
 
-                if (this.state.projects.length === 0) {
-                    listEl.innerHTML = '<div class="text-xs text-zinc-500 text-center py-2 font-bold">目前無任何專案</div>';
-                    return;
+                if (countEl) countEl.innerText = publicProjects.length;
+                if (hiddenCountEl) hiddenCountEl.innerText = hiddenProjects.length;
+
+                if (listEl) {
+                    if (publicProjects.length === 0) {
+                        listEl.innerHTML = '<div class="text-xs text-zinc-500 text-center py-2 font-bold">目前無任何公開專案</div>';
+                    } else {
+                        listEl.innerHTML = publicProjects.map((proj, idx) => {
+                            const isCurrent = proj.id === this.state.activeProjectId;
+                            const docCount = proj.docs?.length || 0;
+                            const taskCount = proj.tasks?.length || 0;
+                            const safeTitle = this.escapeHtml(proj.title || '未命名專案');
+                            const safeId = this.escapeHtml(proj.id);
+                            const hasPassword = !!proj.password;
+                            const canMoveUp = idx > 0;
+                            const canMoveDown = idx < publicProjects.length - 1;
+                            
+                            return `
+                                <div class="flex items-center justify-between p-2 ${isCurrent ? 'bg-black text-white' : 'bg-white text-black hover:bg-zinc-50'} border-2 border-black flat-box transition-all text-xs"
+                                     draggable="true"
+                                     ondragstart="app.handleProjectDragStart(event, '${safeId}')"
+                                     ondragover="app.handleProjectDragOver(event, '${safeId}')"
+                                     ondragleave="app.handleProjectDragLeave(event)"
+                                     ondrop="app.handleProjectDrop(event, '${safeId}')"
+                                     ondragend="app.handleProjectDragEnd(event)">
+                                    <div class="flex items-center gap-1 shrink-0 mr-1.5 cursor-grab active:cursor-grabbing select-none" title="拖曳重新排列專案順序">
+                                        <span class="text-xs ${isCurrent ? 'text-zinc-400' : 'text-zinc-400'}">⋮⋮</span>
+                                    </div>
+                                    <div class="min-w-0 flex-1 pr-2 cursor-pointer" onclick="app.requestOpenProject('${safeId}', 'Docs')">
+                                        <div class="font-bold flex items-center gap-1.5 truncate">
+                                            <span>${hasPassword ? '🔒' : (isCurrent ? '⭐' : '📁')}</span>
+                                            <span class="truncate">${safeTitle}</span>
+                                            ${isCurrent ? '<span class="text-[10px] bg-white text-black px-1 font-black shrink-0">當前</span>' : ''}
+                                        </div>
+                                        <div class="text-[10px] ${isCurrent ? 'text-zinc-300' : 'text-zinc-500'} font-mono mt-0.5">
+                                            ${docCount} 份文檔 · ${taskCount} 項任務
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center gap-1 shrink-0">
+                                        <!-- 上移/下移重新排列按鈕 -->
+                                        <button onclick="app.moveProject('${safeId}', -1, event)" ${!canMoveUp ? 'disabled' : ''} class="p-1 px-1.5 ${canMoveUp ? (isCurrent ? 'bg-zinc-800 text-white hover:bg-zinc-700' : 'bg-zinc-100 text-black hover:bg-zinc-200') : 'opacity-30 cursor-not-allowed bg-transparent text-zinc-400'} border border-black font-bold text-xs flat-box transition-all" title="上移專案順序">
+                                            ▲
+                                        </button>
+                                        <button onclick="app.moveProject('${safeId}', 1, event)" ${!canMoveDown ? 'disabled' : ''} class="p-1 px-1.5 ${canMoveDown ? (isCurrent ? 'bg-zinc-800 text-white hover:bg-zinc-700' : 'bg-zinc-100 text-black hover:bg-zinc-200') : 'opacity-30 cursor-not-allowed bg-transparent text-zinc-400'} border border-black font-bold text-xs flat-box transition-all" title="下移專案順序">
+                                            ▼
+                                        </button>
+                                        ${this.state.projects.length > 1 ? `
+                                            <button onclick="app.deleteProjectById('${safeId}', event)" class="p-1 px-2 ${isCurrent ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-red-100 text-red-700 hover:bg-red-200'} border border-black font-bold text-xs flat-box" title="直接刪除此專案">
+                                                🗑️
+                                            </button>
+                                        ` : `
+                                            <span class="text-[10px] text-zinc-400 px-1">保留</span>
+                                        `}
+                                    </div>
+                                </div>
+                            `;
+                        }).join('');
+                    }
                 }
 
-                listEl.innerHTML = this.state.projects.map((proj, idx) => {
-                    const isCurrent = proj.id === this.state.activeProjectId;
-                    const docCount = proj.docs?.length || 0;
-                    const taskCount = proj.tasks?.length || 0;
-                    const safeTitle = this.escapeHtml(proj.title || '未命名專案');
-                    const safeId = this.escapeHtml(proj.id);
-                    const canMoveUp = idx > 0;
-                    const canMoveDown = idx < this.state.projects.length - 1;
-                    
-                    return `
-                        <div class="flex items-center justify-between p-2 ${isCurrent ? 'bg-black text-white' : 'bg-white text-black hover:bg-zinc-50'} border-2 border-black flat-box transition-all text-xs"
-                             draggable="true"
-                             ondragstart="app.handleProjectDragStart(event, '${safeId}')"
-                             ondragover="app.handleProjectDragOver(event, '${safeId}')"
-                             ondragleave="app.handleProjectDragLeave(event)"
-                             ondrop="app.handleProjectDrop(event, '${safeId}')"
-                             ondragend="app.handleProjectDragEnd(event)">
-                            <div class="flex items-center gap-1 shrink-0 mr-1.5 cursor-grab active:cursor-grabbing select-none" title="拖曳重新排列專案順序">
-                                <span class="text-xs ${isCurrent ? 'text-zinc-400' : 'text-zinc-400'}">⋮⋮</span>
-                            </div>
-                            <div class="min-w-0 flex-1 pr-2 cursor-pointer" onclick="app.switchProject('${safeId}'); app.openEditProjectModal();">
-                                <div class="font-bold flex items-center gap-1.5 truncate">
-                                    <span>${isCurrent ? '⭐' : '📁'}</span>
-                                    <span class="truncate">${safeTitle}</span>
-                                    ${isCurrent ? '<span class="text-[10px] bg-white text-black px-1 font-black shrink-0">當前</span>' : ''}
+                if (hiddenListEl) {
+                    if (hiddenProjects.length === 0) {
+                        hiddenListEl.innerHTML = '<div class="text-xs text-zinc-400 text-center py-2 font-bold">目前無隱藏專案</div>';
+                    } else {
+                        hiddenListEl.innerHTML = hiddenProjects.map(proj => {
+                            const safeTitle = this.escapeHtml(proj.title || '未命名專案');
+                            const safeId = this.escapeHtml(proj.id);
+                            const docCount = proj.docs?.length || 0;
+                            const hasPassword = !!proj.password;
+
+                            return `
+                                <div class="flex items-center justify-between p-2 bg-zinc-50 border border-black text-xs">
+                                    <div class="min-w-0 flex-1 pr-2">
+                                        <div class="font-bold flex items-center gap-1 truncate">
+                                            <span>${hasPassword ? '🔒' : '👁️‍🗨️'}</span>
+                                            <span class="truncate">${safeTitle}</span>
+                                            <span class="text-[10px] bg-amber-200 text-amber-900 px-1 font-mono font-bold shrink-0">已隱藏</span>
+                                        </div>
+                                        <div class="text-[10px] text-zinc-500 font-mono mt-0.5">${docCount} 份文檔 · 分類: ${this.escapeHtml(proj.category || '預設')}</div>
+                                    </div>
+                                    <div class="flex items-center gap-1.5 shrink-0">
+                                        <button onclick="app.unhideProject('${safeId}')" class="px-2.5 py-1 bg-white hover:bg-zinc-100 text-black border border-black font-bold text-xs flat-box" title="解除隱藏狀態">
+                                            👁️ 解除隱藏
+                                        </button>
+                                        <button onclick="app.deleteProjectById('${safeId}', event)" class="p-1 px-2 bg-red-100 text-red-700 hover:bg-red-200 border border-black font-bold text-xs flat-box" title="刪除此專案">
+                                            🗑️
+                                        </button>
+                                    </div>
                                 </div>
-                                <div class="text-[10px] ${isCurrent ? 'text-zinc-300' : 'text-zinc-500'} font-mono mt-0.5">
-                                    ${docCount} 份文檔 · ${taskCount} 項任務 · 第 ${idx + 1} 位
-                                </div>
-                            </div>
-                            <div class="flex items-center gap-1 shrink-0">
-                                <!-- 上移/下移重新排列按鈕 -->
-                                <button onclick="app.moveProject('${safeId}', -1, event)" ${!canMoveUp ? 'disabled' : ''} class="p-1 px-1.5 ${canMoveUp ? (isCurrent ? 'bg-zinc-800 text-white hover:bg-zinc-700' : 'bg-zinc-100 text-black hover:bg-zinc-200') : 'opacity-30 cursor-not-allowed bg-transparent text-zinc-400'} border border-black font-bold text-xs flat-box transition-all" title="上移專案順序">
-                                    ▲
-                                </button>
-                                <button onclick="app.moveProject('${safeId}', 1, event)" ${!canMoveDown ? 'disabled' : ''} class="p-1 px-1.5 ${canMoveDown ? (isCurrent ? 'bg-zinc-800 text-white hover:bg-zinc-700' : 'bg-zinc-100 text-black hover:bg-zinc-200') : 'opacity-30 cursor-not-allowed bg-transparent text-zinc-400'} border border-black font-bold text-xs flat-box transition-all" title="下移專案順序">
-                                    ▼
-                                </button>
-                                ${this.state.projects.length > 1 ? `
-                                    <button onclick="app.deleteProjectById('${safeId}', event)" class="p-1 px-2 ${isCurrent ? 'bg-red-500 text-white hover:bg-red-600' : 'bg-red-100 text-red-700 hover:bg-red-200'} border border-black font-bold text-xs flat-box" title="直接刪除此專案">
-                                        🗑️
-                                    </button>
-                                ` : `
-                                    <span class="text-[10px] ${isCurrent ? 'text-zinc-400' : 'text-zinc-400'} px-1">保留</span>
-                                `}
-                            </div>
-                        </div>
-                    `;
-                }).join('');
+                            `;
+                        }).join('');
+                    }
+                }
+            },
+
+            unhideProject(projectId) {
+                const proj = this.getProject(projectId);
+                if (!proj) return;
+                proj.hidden = false;
+                proj.updatedAt = new Date().toISOString();
+                this.debouncedSaveAndSync();
+                this.renderAll();
+                this.renderEditProjectModalList();
+                this.showToast(`👁️ 專案「${proj.title}」已解除隱藏！`);
             },
 
             moveProject(projectId, delta, event) {
@@ -1821,6 +1912,9 @@
                 if (!p) return;
                 const title = document.getElementById('editProjectTitle')?.value.trim();
                 const category = document.getElementById('editProjectCategory')?.value.trim();
+                const pwdToggle = document.getElementById('editProjectPasswordToggle');
+                const pwdInput = document.getElementById('editProjectPasswordInput');
+                const hideToggle = document.getElementById('editProjectHiddenToggle');
                 
                 if (!title) {
                     this.showToast('專案名稱不能為空', 'error');
@@ -1829,6 +1923,30 @@
 
                 p.title = title;
                 p.category = category || '預設';
+                
+                // 處理密碼更新
+                if (pwdToggle) {
+                    if (pwdToggle.checked) {
+                        const newPwd = (pwdInput?.value || '').trim();
+                        if (newPwd) {
+                            p.password = newPwd;
+                            this.state.unlockedProjects.add(p.id);
+                        } else if (!p.password) {
+                            // 使用者勾選但未填密碼，若原本無密碼則提示
+                            this.showToast('請輸入要設定的密碼', 'error');
+                            return;
+                        }
+                    } else {
+                        // 取消密碼
+                        p.password = '';
+                    }
+                }
+
+                // 處理隱藏設定
+                if (hideToggle) {
+                    p.hidden = hideToggle.checked;
+                }
+
                 p.updatedAt = new Date().toISOString();
                 
                 this.closeModals();
@@ -1841,6 +1959,59 @@
                 const p = this.getCurrentProject();
                 if (!p) return;
                 this.deleteProjectById(p.id);
+            },
+
+            // 請求開啟專案（若有密碼且未解鎖則彈出密碼視窗，否則直接切換並進入目標視圖）
+            requestOpenProject(projectId, targetView = 'Docs') {
+                const proj = this.getProject(projectId);
+                if (!proj) return;
+
+                if (proj.password && !this.state.unlockedProjects.has(proj.id)) {
+                    // 需要輸入密碼
+                    this.state.pendingPasswordProjectId = proj.id;
+                    const modal = document.getElementById('projectPasswordModal');
+                    const titleEl = document.getElementById('pwdModalProjectTitle');
+                    const errEl = document.getElementById('pwdModalError');
+                    const inputEl = document.getElementById('projectUnlockPasswordInput');
+                    
+                    if (titleEl) titleEl.innerText = `解鎖專案：「${proj.title}」`;
+                    if (errEl) errEl.classList.add('hidden');
+                    if (inputEl) {
+                        inputEl.value = '';
+                        setTimeout(() => inputEl.focus(), 100);
+                    }
+                    if (modal) modal.classList.remove('hidden');
+                    return;
+                }
+
+                // 已解鎖或無密碼，直接進入
+                this.switchProject(proj.id);
+                if (targetView) {
+                    this.switchView(targetView);
+                }
+            },
+
+            confirmUnlockProject() {
+                const projId = this.state.pendingPasswordProjectId;
+                const proj = this.getProject(projId);
+                const inputEl = document.getElementById('projectUnlockPasswordInput');
+                const errEl = document.getElementById('pwdModalError');
+                const modal = document.getElementById('projectPasswordModal');
+
+                if (!proj || !inputEl) return;
+
+                const inputPwd = inputEl.value.trim();
+                if (inputPwd === proj.password) {
+                    this.state.unlockedProjects.add(proj.id);
+                    this.state.pendingPasswordProjectId = null;
+                    if (modal) modal.classList.add('hidden');
+                    this.switchProject(proj.id);
+                    this.switchView('Docs');
+                    this.showToast(`🔓 專案「${proj.title}」已成功解鎖！`);
+                } else {
+                    if (errEl) errEl.classList.remove('hidden');
+                    inputEl.select();
+                }
             },
 
             switchProject(id) {
@@ -1856,9 +2027,140 @@
                 if(window.innerWidth < 768) this.toggleSidebar(false);
             },
 
+            // ================= 專案首頁 (Home Portal) 渲染 =================
+            renderHomeView() {
+                const gridEl = document.getElementById('homeProjectsGrid');
+                const searchEl = document.getElementById('homeProjectSearch');
+                const filterEl = document.getElementById('homeCategoryFilter');
+                const countBadge = document.getElementById('homeProjectCountBadge');
+
+                if (!gridEl) return;
+
+                const searchVal = (searchEl?.value || '').toLowerCase().trim();
+                const selectedCategory = filterEl?.value || 'ALL';
+
+                // 1. 整理分類選項
+                if (filterEl) {
+                    const categories = new Set();
+                    this.state.projects.filter(p => !p.hidden).forEach(p => {
+                        if (p.category) categories.add(p.category);
+                    });
+                    const currentSel = filterEl.value;
+                    let optsHtml = '<option value="ALL">🌟 所有分類</option>';
+                    Array.from(categories).sort().forEach(cat => {
+                        optsHtml += `<option value="${this.escapeHtml(cat)}" ${cat === currentSel ? 'selected' : ''}>📁 ${this.escapeHtml(cat)}</option>`;
+                    });
+                    filterEl.innerHTML = optsHtml;
+                }
+
+                // 2. 篩選非隱藏專案
+                const displayProjects = this.state.projects.filter(p => {
+                    if (p.hidden) return false;
+                    if (selectedCategory !== 'ALL' && p.category !== selectedCategory) return false;
+                    if (searchVal) {
+                        const titleMatch = (p.title || '').toLowerCase().includes(searchVal);
+                        const catMatch = (p.category || '').toLowerCase().includes(searchVal);
+                        return titleMatch || catMatch;
+                    }
+                    return true;
+                });
+
+                if (countBadge) {
+                    countBadge.innerText = `${displayProjects.length} 個專案`;
+                }
+
+                if (displayProjects.length === 0) {
+                    gridEl.innerHTML = `
+                        <div class="col-span-full p-12 bg-white border-2 border-black flat-shadow-lg text-center space-y-3">
+                            <span class="text-4xl">🔍</span>
+                            <h3 class="text-lg font-black uppercase">未找到任何符合條件的專案</h3>
+                            <p class="text-xs text-zinc-500 font-bold">您可以清除搜尋關鍵字，或點擊上方「＋ 建立新專案」開始創作！</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // 3. 渲染專案卡片
+                gridEl.innerHTML = displayProjects.map(p => {
+                    const tasks = p.tasks || [];
+                    const docs = p.docs || [];
+                    const totalTasks = tasks.length;
+                    const doneTasks = tasks.filter(t => t.status === 'DONE').length;
+                    const pct = totalTasks === 0 ? 0 : Math.round((doneTasks / totalTasks) * 100);
+                    const isCurrent = p.id === this.state.activeProjectId;
+                    const hasPassword = !!p.password;
+                    const isUnlocked = hasPassword && this.state.unlockedProjects.has(p.id);
+                    const safeTitle = this.escapeHtml(p.title || '未命名專案');
+                    const safeCategory = this.escapeHtml(p.category || '預設');
+                    const updatedStr = p.updatedAt ? new Date(p.updatedAt).toLocaleDateString() : '剛剛';
+
+                    return `
+                        <div class="bg-white border-2 border-black flat-box flat-shadow-md hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_0px_#000] transition-all cursor-pointer flex flex-col justify-between group overflow-hidden"
+                             onclick="app.requestOpenProject('${p.id}', 'Docs')">
+                            <!-- 卡片頂部 -->
+                            <div class="p-5 border-b-2 border-black">
+                                <div class="flex items-start justify-between gap-2 mb-2">
+                                    <span class="text-[11px] font-mono font-black px-2 py-0.5 border border-black bg-zinc-100 uppercase">
+                                        🏷️ ${safeCategory}
+                                    </span>
+                                    <div class="flex items-center gap-1">
+                                        ${hasPassword ? `
+                                            <span class="text-xs px-1.5 py-0.5 font-bold ${isUnlocked ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'} border border-black" title="${isUnlocked ? '已在此工作階段解鎖' : '受密碼保護'}">
+                                                ${isUnlocked ? '🔓 已解鎖' : '🔒 需密碼'}
+                                            </span>
+                                        ` : ''}
+                                        ${isCurrent ? `
+                                            <span class="text-[10px] font-black bg-black text-white px-1.5 py-0.5 uppercase">
+                                                當前使用
+                                            </span>
+                                        ` : ''}
+                                    </div>
+                                </div>
+                                <h3 class="text-xl font-black group-hover:text-violet-600 transition-colors truncate mb-1">
+                                    ${safeTitle}
+                                </h3>
+                                <p class="text-xs text-zinc-500 font-medium">
+                                    最後更新：${updatedStr}
+                                </p>
+                            </div>
+
+                            <!-- 卡片中間指標 -->
+                            <div class="p-5 space-y-3 bg-zinc-50/50">
+                                <div class="flex items-center justify-between text-xs font-bold font-mono">
+                                    <span>專案進度</span>
+                                    <span class="${pct === 100 ? 'text-green-600' : 'text-zinc-700'} font-black">${pct}%</span>
+                                </div>
+                                <div class="w-full bg-zinc-200 h-2.5 border border-black overflow-hidden">
+                                    <div class="${pct === 100 ? 'bg-green-500' : (pct > 0 ? 'bg-blue-500' : 'bg-zinc-300')} h-full transition-all duration-300" style="width: ${pct}%"></div>
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-2 pt-1 text-center font-mono">
+                                    <div class="p-2 bg-white border border-black">
+                                        <div class="text-[10px] text-zinc-500 font-bold">文檔數量</div>
+                                        <div class="text-sm font-black">${docs.length} 篇</div>
+                                    </div>
+                                    <div class="p-2 bg-white border border-black">
+                                        <div class="text-[10px] text-zinc-500 font-bold">任務清單</div>
+                                        <div class="text-sm font-black">${doneTasks}/${totalTasks}</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 卡片底部動作列 -->
+                            <div class="p-3 bg-zinc-100 border-t-2 border-black flex items-center justify-between">
+                                <span class="text-xs font-bold text-zinc-600 group-hover:text-black">
+                                    ${hasPassword && !isUnlocked ? '輸入密碼進入編輯 ➔' : '點擊開啟文檔編輯器 ➔'}
+                                </span>
+                                <span class="text-base font-black group-hover:translate-x-1 transition-transform">➔</span>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            },
+
             // ================= 視圖控制 =================
             switchView(viewName) {
-                const views = ['Dashboard', 'Docs', 'Wizard', 'Execution'];
+                const views = ['Home', 'Dashboard', 'Docs', 'Wizard', 'Execution'];
                 if (!views.includes(viewName)) return;
 
                 this.state.currentView = viewName;
@@ -1887,6 +2189,7 @@
                 });
 
                 const navBtns = {
+                    'Home': document.getElementById('navBtnHome'),
                     'Dashboard': document.getElementById('navBtnDashboard'),
                     'Docs': document.getElementById('navBtnDocs'),
                     'Execution': document.getElementById('navBtnExecution'),
@@ -1906,6 +2209,7 @@
                     }
                 }
 
+                if (viewName === 'Home') this.renderHomeView();
                 if (viewName === 'Docs') this.renderDocs();
                 if (viewName === 'Wizard') this.renderWizard();
                 if (viewName === 'Execution') this.renderExecution();
@@ -1962,6 +2266,7 @@
                 this.renderSidebar();
                 this.renderHeader();
                 this.renderDashboard();
+                if (this.state.currentView === 'Home') this.renderHomeView();
                 if (this.state.currentView === 'Docs') this.renderDocs();
                 if (this.state.currentView === 'Wizard') this.renderWizard();
                 if (this.state.currentView === 'Execution') this.renderExecution();
@@ -1972,6 +2277,7 @@
                 this.renderSidebar();
                 this.renderHeader();
                 this.renderDashboard();
+                if (this.state.currentView === 'Home') this.renderHomeView();
                 
                 if (this.state.currentView === 'Docs') {
                     const p = this.getCurrentProject();
@@ -2261,10 +2567,15 @@
 
                 if (!p || !treeEl || !selectEl) return;
 
-                // 1. 渲染專案下拉清單
-                selectEl.innerHTML = this.state.projects.map(proj => 
-                    `<option value="${proj.id}" ${proj.id === this.state.activeProjectId ? 'selected' : ''}>${this.escapeHtml(proj.title)}</option>`
-                ).join('');
+                // 1. 渲染專案下拉清單 (非隱藏專案，或是當前作用中的專案)
+                const visibleProjects = this.state.projects.filter(proj => !proj.hidden || proj.id === this.state.activeProjectId);
+                selectEl.innerHTML = visibleProjects.map(proj => {
+                    const hasPassword = !!proj.password;
+                    const isUnlocked = hasPassword && this.state.unlockedProjects.has(proj.id);
+                    const prefix = hasPassword ? (isUnlocked ? '🔓 ' : '🔒 ') : '';
+                    const hiddenSuffix = proj.hidden ? ' (已隱藏)' : '';
+                    return `<option value="${proj.id}" ${proj.id === this.state.activeProjectId ? 'selected' : ''}>${prefix}${this.escapeHtml(proj.title)}${hiddenSuffix}</option>`;
+                }).join('');
 
                 // 2. 渲染目錄樹
                 let html = '';

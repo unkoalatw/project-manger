@@ -34,20 +34,25 @@
     <aside id="sidebar" class="bg-zinc-200 border-r-2 border-black w-72 flex-shrink-0 flex flex-col fixed md:relative z-50 h-full transform -translate-x-full md:translate-x-0 transition-transform duration-300">
         <!-- 側邊欄頭部 -->
         <div class="p-4 border-b-2 border-black bg-zinc-300 flex items-center justify-between">
-            <h1 class="font-black text-lg tracking-tight uppercase flex items-center gap-2">
+            <h1 class="font-black text-lg tracking-tight uppercase flex items-center gap-2 cursor-pointer" onclick="app.switchView('Home')" title="返回專案首頁">
                 <span class="text-2xl">📁</span> FlatSpec
             </h1>
-            <button onclick="app.toggleSidebar()" class="p-1.5 px-2 bg-white hover:bg-yellow-200 border-2 border-black font-bold text-xs flat-box flex items-center gap-1 shadow-xs transition-colors" title="收合側邊欄 (Ctrl+B)">
-                <span class="md:hidden">✕</span>
-                <span class="hidden md:inline">◀ 收合</span>
-            </button>
+            <div class="flex items-center gap-1">
+                <button onclick="app.switchView('Home')" class="p-1.5 px-2 bg-white hover:bg-zinc-100 border-2 border-black font-bold text-xs flat-box flex items-center gap-1 shadow-xs transition-colors" title="返回專案首頁">
+                    🏠 首頁
+                </button>
+                <button onclick="app.toggleSidebar()" class="p-1.5 px-2 bg-white hover:bg-yellow-200 border-2 border-black font-bold text-xs flat-box flex items-center gap-1 shadow-xs transition-colors" title="收合側邊欄 (Ctrl+B)">
+                    <span class="md:hidden">✕</span>
+                    <span class="hidden md:inline">◀</span>
+                </button>
+            </div>
         </div>
 
         <!-- 專案選擇器 -->
         <div class="p-4 border-b-2 border-black bg-white">
             <label class="text-xs font-bold uppercase text-zinc-500 mb-1 block">當前專案</label>
             <div class="flex gap-1.5">
-                <select id="projectSelector" onchange="app.switchProject(this.value)" class="flat-input w-full p-2 text-sm font-bold bg-zinc-100 cursor-pointer truncate">
+                <select id="projectSelector" onchange="app.requestOpenProject(this.value, 'Docs')" class="flat-input w-full p-2 text-sm font-bold bg-zinc-100 cursor-pointer truncate">
                     <!-- 動態載入 -->
                 </select>
                 <button onclick="app.openEditProjectModal()" class="bg-zinc-100 hover:bg-zinc-200 text-black px-2 border-2 border-black font-bold text-xs shrink-0 flat-box flex items-center gap-0.5" title="專案重新排列與設定">
@@ -111,6 +116,9 @@
                 <button id="sidebarToggleBtn" onclick="app.toggleSidebar()" class="p-1.5 px-2 bg-zinc-100 hover:bg-yellow-200 border-2 border-black font-bold flat-box shrink-0 text-sm transition-colors" title="展開/收合側邊欄 (Ctrl+B)">
                     ☰
                 </button>
+                <button onclick="app.switchView('Home')" class="p-1.5 px-2.5 bg-black text-white hover:bg-zinc-800 border-2 border-black font-black text-xs flat-box flex items-center gap-1 shrink-0 shadow-[2px_2px_0px_0px_#000]" title="返回專案首頁 (選擇所有專案)">
+                    <span>🏠</span> <span class="hidden sm:inline">專案首頁</span>
+                </button>
                 <!-- 專案進度迷你儀表 (點擊可快速開啟專案設定) -->
                 <div class="flex flex-col min-w-0 max-w-[90px] sm:max-w-[140px] md:max-w-xs cursor-pointer group" onclick="app.openSettingsModal('project')" title="點擊開啟專案設定">
                     <div class="text-xs font-black truncate uppercase group-hover:underline" id="headerProjectName">未選擇專案</div>
@@ -122,6 +130,7 @@
 
             <!-- 視圖切換 Tabs (桌機版) -->
             <div class="hidden lg:flex gap-1.5 xl:gap-2 font-mono text-xs xl:text-sm font-bold shrink-0">
+                <button id="viewTabHome" onclick="app.switchView('Home')" class="px-3 xl:px-4 py-1 border-2 border-black bg-zinc-100 hover:bg-white transition-colors uppercase">🏠 首頁</button>
                 <button id="viewTabDashboard" onclick="app.switchView('Dashboard')" class="px-3 xl:px-4 py-1 border-2 border-black bg-zinc-100 hover:bg-white transition-colors uppercase">📊 總覽</button>
                 <button id="viewTabDocs" onclick="app.switchView('Docs')" class="px-3 xl:px-4 py-1 border-2 border-black bg-zinc-100 hover:bg-white transition-colors uppercase">📄 文檔</button>
                 <button id="viewTabExecution" onclick="app.switchView('Execution')" class="px-3 xl:px-4 py-1 border-2 border-black bg-zinc-100 hover:bg-white transition-colors uppercase">✅ 任務</button>
@@ -158,6 +167,46 @@
 
         <div class="flex-1 overflow-y-auto relative no-scrollbar bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px]">
             
+            <!-- 視圖 0: 專案首頁 (Home Portal) -->
+            <div id="viewHome" class="p-4 md:p-8 max-w-6xl mx-auto space-y-6">
+                <!-- 首頁 Banner -->
+                <div class="bg-black text-white p-6 border-2 border-black flat-shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                    <div>
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="text-3xl">📁</span>
+                            <h2 class="text-2xl md:text-3xl font-black uppercase tracking-tight">FlatSpec 專案工作台</h2>
+                        </div>
+                        <p class="text-xs md:text-sm text-zinc-300 font-medium">
+                            選擇專案直接進入文檔編輯器，支援密碼隱私保護與雲端即時同步。
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-2 w-full md:w-auto">
+                        <button onclick="app.openNewProjectModal()" class="w-full md:w-auto bg-yellow-300 hover:bg-yellow-400 text-black border-2 border-black font-black px-4 py-2.5 text-sm flat-box flex items-center justify-center gap-1.5 shadow-[2px_2px_0px_0px_#fff]">
+                            <span>＋</span> <span>建立新專案</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 搜尋與統計欄 -->
+                <div class="bg-white border-2 border-black p-4 flat-box flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                    <div class="relative flex-1">
+                        <input id="homeProjectSearch" type="text" oninput="app.renderHomeView()" placeholder="搜尋專案名稱、分類標籤..." class="flat-input w-full p-2 pl-8 text-sm font-bold bg-zinc-50 border-2 border-black" />
+                        <span class="absolute left-2.5 top-2.5 text-xs pointer-events-none">🔍</span>
+                    </div>
+                    <div class="flex items-center gap-2 shrink-0">
+                        <select id="homeCategoryFilter" onchange="app.renderHomeView()" class="flat-input p-2 text-xs font-bold bg-zinc-100 border-2 border-black cursor-pointer">
+                            <option value="ALL">🌟 所有分類</option>
+                        </select>
+                        <span id="homeProjectCountBadge" class="text-xs font-mono font-black bg-zinc-100 border-2 border-black px-2.5 py-2">0 個專案</span>
+                    </div>
+                </div>
+
+                <!-- 專案卡片網格 -->
+                <div id="homeProjectsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                    <!-- 動態注入專案卡片 -->
+                </div>
+            </div>
+
             <!-- 視圖 1: 儀表板 (Dashboard) -->
             <div id="viewDashboard" class="hidden p-4 md:p-8 max-w-5xl mx-auto space-y-6">
                 <!-- 數據卡片 -->
@@ -557,6 +606,10 @@
     </main>
 
     <nav class="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white border-t-2 border-black z-40 flex justify-around items-center px-1 safe-area-pb">
+        <button onclick="app.switchView('Home')" class="flex flex-col items-center justify-center w-full h-full text-zinc-500 hover:text-black hover:bg-zinc-100 transition-colors" id="navBtnHome">
+            <span class="text-xl mb-0.5">🏠</span>
+            <span class="text-[10px] font-bold">首頁</span>
+        </button>
         <button onclick="app.switchView('Dashboard')" class="flex flex-col items-center justify-center w-full h-full text-zinc-500 hover:text-black hover:bg-zinc-100 transition-colors" id="navBtnDashboard">
             <span class="text-xl mb-0.5">📊</span>
             <span class="text-[10px] font-bold">總覽</span>
@@ -910,18 +963,39 @@
                 <!-- Tab 6: 專案管理 (Project Settings) -->
                 <div id="panelSettings_project" class="hidden space-y-4">
                     <!-- 當前專案設定 -->
-                    <div class="p-3 bg-zinc-50 border-2 border-black space-y-3">
+                    <div class="p-4 bg-zinc-50 border-2 border-black space-y-3">
                         <h4 class="font-black text-xs uppercase text-zinc-700 flex items-center gap-1">
                             <span>✏️</span> <span>編輯當前專案資訊</span>
                         </h4>
                         <div>
                             <label class="block font-bold text-xs mb-1">專案名稱 *</label>
-                            <input type="text" id="editProjectTitle" class="flat-input w-full p-2 text-sm bg-white">
+                            <input type="text" id="editProjectTitle" class="flat-input w-full p-2 text-sm bg-white font-bold">
                         </div>
                         <div>
                             <label class="block font-bold text-xs mb-1">分類標籤</label>
                             <input type="text" id="editProjectCategory" class="flat-input w-full p-2 text-sm bg-white">
                         </div>
+
+                        <!-- 密碼保護設置 -->
+                        <div class="p-3 bg-white border border-zinc-300 space-y-2">
+                            <label class="flex items-center gap-2 cursor-pointer text-xs font-bold select-none">
+                                <input type="checkbox" id="editProjectPasswordToggle" class="accent-black" onchange="document.getElementById('editProjectPasswordBox').classList.toggle('hidden', !this.checked)">
+                                <span>🔒 啟用專案密碼保護 (需解鎖方可檢視)</span>
+                            </label>
+                            <div id="editProjectPasswordBox" class="hidden pt-1 space-y-1">
+                                <input type="password" id="editProjectPasswordInput" class="flat-input w-full p-2 text-xs font-mono" placeholder="輸入新密碼 (若留空則不更改)...">
+                                <div class="text-[10px] text-zinc-500 font-mono">如需取消密碼保護，請取消上方勾選後點擊儲存即可。</div>
+                            </div>
+                        </div>
+
+                        <!-- 隱藏專案設置 -->
+                        <div class="p-3 bg-white border border-zinc-300">
+                            <label class="flex items-center gap-2 cursor-pointer text-xs font-bold select-none">
+                                <input type="checkbox" id="editProjectHiddenToggle" class="accent-black">
+                                <span>👁️ 隱藏此專案 (在首頁與側邊欄不顯示，可隨時在此面板下方解除)</span>
+                            </label>
+                        </div>
+
                         <div class="flex gap-2 pt-1">
                             <button onclick="app.saveProjectSettings()" class="flex-1 py-2 bg-black text-white border-2 border-black font-bold text-xs flat-box hover:bg-zinc-800">
                                 💾 儲存專案設定
@@ -932,19 +1006,35 @@
                         </div>
                     </div>
 
-                    <!-- 專案清單總覽與重新排列管理 -->
+                    <!-- 專案清單總覽與重新排列管理 (正常顯示的專案) -->
                     <div class="space-y-2">
                         <div class="flex items-center justify-between">
                             <div>
                                 <h4 class="font-black text-xs uppercase text-zinc-700 flex items-center gap-1">
-                                    <span>📋</span> <span>專案列表排序與管理 (<span id="editProjectTotalCount">0</span>)</span>
+                                    <span>📋</span> <span>公開專案列表與排序 (<span id="editProjectTotalCount">0</span>)</span>
                                 </h4>
                                 <p class="text-[10px] text-zinc-500 font-mono mt-0.5">可按 ▲ / ▼ 按鈕或直接拖曳 ⋮⋮ 自由調整專案前後順序</p>
                             </div>
                             <button onclick="app.openNewProjectModal()" class="text-xs font-bold bg-black text-white px-2.5 py-1 shrink-0">+ 新建專案</button>
                         </div>
                         <div id="editProjectModalList" class="space-y-1.5 max-h-56 overflow-y-auto border-2 border-black p-2 bg-zinc-100">
-                            <!-- 動態載入專案項目與快速刪除按鈕 -->
+                            <!-- 動態載入公開專案項目與快速操作按鈕 -->
+                        </div>
+                    </div>
+
+                    <!-- 👁️‍🗨️ 已隱藏專案管理清單 (可在此一鍵解除隱藏) -->
+                    <div class="p-3 bg-amber-50 border-2 border-amber-900 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <h4 class="font-black text-xs uppercase text-amber-950 flex items-center gap-1.5">
+                                <span>👁️‍🗨️</span> <span>已隱藏專案專區 (<span id="hiddenProjectsTotalCount">0</span>)</span>
+                            </h4>
+                            <span class="text-[10px] font-mono bg-amber-200 text-amber-900 px-2 py-0.5 border border-amber-900 font-bold">隱私防護</span>
+                        </div>
+                        <p class="text-[11px] text-amber-900 font-medium">
+                            以下為已設定隱藏的專案，未出現在首頁及側邊欄中。點擊「解除隱藏」可立即恢復顯示：
+                        </p>
+                        <div id="hiddenProjectsModalList" class="space-y-1.5 max-h-48 overflow-y-auto border-2 border-amber-900 p-2 bg-white">
+                            <!-- 動態載入已隱藏專案項目 -->
                         </div>
                     </div>
                 </div>
@@ -1009,6 +1099,65 @@
                     <button onclick="app.closeModals()" class="px-3 py-2 border-2 border-black font-bold text-xs bg-zinc-100 hover:bg-zinc-200">取消</button>
                     <button onclick="app.saveTaskEdit()" class="px-4 py-2 border-2 border-black font-bold text-xs bg-black text-white flat-box hover:bg-zinc-800">儲存</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: 新建專案 -->
+    <div id="newProjectModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
+        <div class="bg-white border-2 border-black p-6 w-full max-w-sm flat-shadow-lg">
+            <div class="flex items-center justify-between border-b-2 border-black pb-2 mb-4">
+                <h3 class="font-black text-lg uppercase flex items-center gap-1.5">📁 新增專案</h3>
+                <button onclick="app.closeModals()" class="text-xl font-bold hover:text-red-600 px-2">&times;</button>
+            </div>
+            <div class="space-y-3">
+                <div>
+                    <label class="block font-bold text-xs mb-1">專案名稱 *</label>
+                    <input type="text" id="newProjectTitle" class="flat-input w-full p-2 text-sm font-bold" placeholder="例如：畢業專題系統" onkeydown="if(event.key==='Enter') app.createNewProject()">
+                </div>
+                <div>
+                    <label class="block font-bold text-xs mb-1">分類標籤 (選填)</label>
+                    <input type="text" id="newProjectCategory" class="flat-input w-full p-2 text-sm" placeholder="例如：工作、生活、軟體開發">
+                </div>
+                <div class="p-3 bg-zinc-50 border border-zinc-300 space-y-2">
+                    <label class="flex items-center gap-2 cursor-pointer text-xs font-bold select-none">
+                        <input type="checkbox" id="newProjectPasswordToggle" class="accent-black" onchange="document.getElementById('newProjectPasswordBox').classList.toggle('hidden', !this.checked)">
+                        <span>🔒 啟用專案密碼保護 (需解鎖方可檢視)</span>
+                    </label>
+                    <div id="newProjectPasswordBox" class="hidden pt-1">
+                        <input type="password" id="newProjectPasswordInput" class="flat-input w-full p-2 text-xs font-mono" placeholder="請設定專案密碼...">
+                    </div>
+                </div>
+                <div class="pt-1">
+                    <label class="flex items-center gap-2 cursor-pointer text-xs font-bold text-zinc-700 select-none">
+                        <input type="checkbox" id="newProjectHiddenToggle" class="accent-black">
+                        <span>👁️ 隱藏專案 (在首頁與側邊欄不顯示，可由總設定管理)</span>
+                    </label>
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 mt-6">
+                <button onclick="app.closeModals()" class="px-4 py-2 border-2 border-black font-bold text-sm bg-zinc-100 hover:bg-zinc-200">取消</button>
+                <button onclick="app.createNewProject()" class="px-4 py-2 border-2 border-black font-bold text-sm bg-black text-white flat-box hover:bg-zinc-800">建立專案</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: 專案密碼驗證解鎖 -->
+    <div id="projectPasswordModal" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+        <div class="bg-white border-2 border-black p-6 w-full max-w-sm flat-shadow-lg">
+            <div class="text-center space-y-2 mb-4">
+                <span class="text-4xl block">🔒</span>
+                <h3 class="font-black text-lg uppercase" id="pwdModalProjectTitle">專案已受密碼保護</h3>
+                <p class="text-xs text-zinc-500 font-medium">請輸入專案密碼以解鎖並進入編輯器</p>
+            </div>
+            <input type="hidden" id="pwdModalProjectId">
+            <div class="space-y-3">
+                <input type="password" id="projectUnlockPasswordInput" class="flat-input w-full p-2.5 text-center text-sm font-mono tracking-widest border-2 border-black bg-zinc-50" placeholder="請輸入密碼..." onkeydown="if(event.key==='Enter') app.confirmUnlockProject()">
+                <div id="pwdModalError" class="hidden text-xs text-red-600 font-bold text-center">⚠️ 密碼錯誤，請重新輸入！</div>
+            </div>
+            <div class="flex gap-2 mt-6">
+                <button onclick="app.closeModals()" class="flex-1 py-2.5 border-2 border-black font-bold text-xs bg-zinc-100 hover:bg-zinc-200">取消</button>
+                <button onclick="app.confirmUnlockProject()" class="flex-1 py-2.5 border-2 border-black font-bold text-xs bg-black text-white flat-box hover:bg-zinc-800">解鎖進入 ➔</button>
             </div>
         </div>
     </div>
