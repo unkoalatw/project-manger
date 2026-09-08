@@ -1143,8 +1143,9 @@
     </div>
 
     <!-- Modal: 專案密碼驗證解鎖 -->
-    <div id="projectPasswordModal" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
-        <div class="bg-white border-2 border-black p-6 w-full max-w-sm flat-shadow-lg">
+    <div id="projectPasswordModal" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onclick="app.cancelUnlockProject()">
+        <div class="bg-white border-2 border-black p-6 w-full max-w-sm flat-shadow-lg relative" onclick="event.stopPropagation()">
+            <button type="button" onclick="app.cancelUnlockProject()" class="absolute top-3 right-3 text-xl font-bold leading-none p-1 text-zinc-500 hover:text-black" title="取消">&times;</button>
             <div class="text-center space-y-2 mb-4">
                 <span class="text-4xl block">🔒</span>
                 <h3 class="font-black text-lg uppercase" id="pwdModalProjectTitle">專案已受密碼保護</h3>
@@ -1156,8 +1157,8 @@
                 <div id="pwdModalError" class="hidden text-xs text-red-600 font-bold text-center">⚠️ 密碼錯誤，請重新輸入！</div>
             </div>
             <div class="flex gap-2 mt-6">
-                <button onclick="app.cancelUnlockProject()" class="flex-1 py-2.5 border-2 border-black font-bold text-xs bg-zinc-100 hover:bg-zinc-200">取消</button>
-                <button onclick="app.confirmUnlockProject()" class="flex-1 py-2.5 border-2 border-black font-bold text-xs bg-black text-white flat-box hover:bg-zinc-800">解鎖進入 ➔</button>
+                <button type="button" onclick="app.cancelUnlockProject()" class="flex-1 py-2.5 border-2 border-black font-bold text-xs bg-zinc-100 hover:bg-zinc-200">取消</button>
+                <button type="button" onclick="app.confirmUnlockProject()" class="flex-1 py-2.5 border-2 border-black font-bold text-xs bg-black text-white flat-box hover:bg-zinc-800">解鎖進入 ➔</button>
             </div>
         </div>
     </div>
