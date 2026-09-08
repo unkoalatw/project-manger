@@ -1643,7 +1643,7 @@
                 this.showToast('🎉 新專案已建立並已開啟編輯器！');
             },
 
-            openEditProjectModal() {
+            populateEditProjectModalFields() {
                 const p = this.getCurrentProject();
                 if (!p) return;
                 const titleEl = document.getElementById('editProjectTitle');
@@ -1665,9 +1665,11 @@
                 if (pwdInput) pwdInput.value = '';
 
                 if (hideToggle) hideToggle.checked = !!p.hidden;
-                
                 this.renderEditProjectModalList();
-                document.getElementById('editProjectModal')?.classList.remove('hidden');
+            },
+
+            openEditProjectModal() {
+                this.openSettingsModal('project');
             },
 
             renderEditProjectModalList() {
@@ -2014,6 +2016,17 @@
                 }
             },
 
+            cancelUnlockProject() {
+                this.state.pendingPasswordProjectId = null;
+                const modal = document.getElementById('projectPasswordModal');
+                if (modal) modal.classList.add('hidden');
+                // 恢復側邊欄選擇器為當前生效中的專案，防止顯示狀態與實際不同步
+                const selectEl = document.getElementById('projectSelector');
+                if (selectEl && this.state.activeProjectId) {
+                    selectEl.value = this.state.activeProjectId;
+                }
+            },
+
             switchProject(id) {
                 this.state.activeProjectId = id;
                 try { localStorage.setItem('flatSpecLastActiveProjectId', id); } catch(e) {}
@@ -2045,12 +2058,15 @@
                     this.state.projects.filter(p => !p.hidden).forEach(p => {
                         if (p.category) categories.add(p.category);
                     });
-                    const currentSel = filterEl.value;
-                    let optsHtml = '<option value="ALL">🌟 所有分類</option>';
-                    Array.from(categories).sort().forEach(cat => {
-                        optsHtml += `<option value="${this.escapeHtml(cat)}" ${cat === currentSel ? 'selected' : ''}>📁 ${this.escapeHtml(cat)}</option>`;
+                    const cats = Array.from(categories).sort();
+                    let optsHtml = `<option value="ALL" ${selectedCategory === 'ALL' ? 'selected' : ''}>🌟 所有分類</option>`;
+                    cats.forEach(cat => {
+                        optsHtml += `<option value="${this.escapeHtml(cat)}" ${cat === selectedCategory ? 'selected' : ''}>📁 ${this.escapeHtml(cat)}</option>`;
                     });
                     filterEl.innerHTML = optsHtml;
+                    if (selectedCategory !== 'ALL' && cats.includes(selectedCategory)) {
+                        filterEl.value = selectedCategory;
+                    }
                 }
 
                 // 2. 篩選非隱藏專案
@@ -4670,14 +4686,7 @@
                     const el = document.getElementById('gasUrlInput');
                     if (el) el.value = this.state.gasUrl;
                 } else if (tabId === 'project') {
-                    const p = this.getCurrentProject();
-                    if (p) {
-                        const titleEl = document.getElementById('editProjectTitle');
-                        const catEl = document.getElementById('editProjectCategory');
-                        if (titleEl) titleEl.value = p.title || '';
-                        if (catEl) catEl.value = p.category || '';
-                    }
-                    this.renderEditProjectModalList();
+                    this.populateEditProjectModalFields();
                 }
             },
 
@@ -4762,7 +4771,7 @@
                 document.getElementById('newDocModal')?.classList.remove('hidden');
             },
             closeModals() {
-                ['settingsModal', 'gasModal', 'newProjectModal', 'newDocModal', 'backupModal', 'editProjectModal', 'editTaskModal', 'insertImageModal', 'imageViewerModal', 'searchModal', 'teamModal', 'taskCommentsModal', 'fontModal', 'historyModal'].forEach(id => {
+                ['settingsModal', 'gasModal', 'newProjectModal', 'newDocModal', 'backupModal', 'editProjectModal', 'editTaskModal', 'insertImageModal', 'imageViewerModal', 'searchModal', 'teamModal', 'taskCommentsModal', 'fontModal', 'historyModal', 'projectPasswordModal'].forEach(id => {
                     const el = document.getElementById(id);
                     if(el) el.classList.add('hidden');
                 });
