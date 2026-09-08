@@ -1022,6 +1022,14 @@
                             this.state.execViewMode = savedExecMode;
                         }
                     } catch(e) {}
+
+                    // 時光機基線快照初始化：若當前有專案且歷史紀錄為空，建立初始基線快照
+                    try {
+                        const existingHist = JSON.parse(localStorage.getItem('flatSpecHistory') || '[]');
+                        if ((!Array.isArray(existingHist) || existingHist.length === 0) && this.state.projects.length > 0) {
+                            this.recordLocalHistorySnapshot(this.state.projects, '初始基線快照');
+                        }
+                    } catch(e) {}
                 } catch (e) {
                     console.warn("Local storage parse error:", e);
                     this.state.projects = [];
@@ -1039,7 +1047,7 @@
                 }
             },
 
-            recordLocalHistorySnapshot(projects, label = '自動存檔') {
+            recordLocalHistorySnapshot(projects, label = '自動存檔', force = false) {
                 if (!Array.isArray(projects) || projects.length === 0) return;
                 try {
                     let history = [];
@@ -1065,23 +1073,24 @@
 
                     const now = new Date();
                     const entry = {
+                        id: 'snap_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
                         time: now.toISOString(),
                         label: label,
                         projectsCount: projects.length,
                         data: leanProjects
                     };
 
-                    // 避免連續無變更重複寫入相同快照
-                    if (history.length > 0) {
+                    // 避免連續無變更重複寫入相同快照 (手動建立或強制保存時則不受此限)
+                    if (!force && history.length > 0) {
                         const lastData = JSON.stringify(history[0].data);
                         if (lastData === JSON.stringify(leanProjects)) {
                             return;
                         }
                     }
 
-                    // 保留最近 10 份歷史快照
+                    // 保留最近 30 份歷史快照
                     history.unshift(entry);
-                    if (history.length > 10) history = history.slice(0, 10);
+                    if (history.length > 30) history = history.slice(0, 30);
 
                     // 安全寫入嘗試 (若仍發生 QuotaExceededError 則自動逐層裁減)
                     while (history.length > 0) {
@@ -5894,9 +5903,9 @@ ${rawHtml}
 
                 if (!Array.isArray(history) || history.length === 0) {
                     listEl.innerHTML = `
-                        <div class="text-center py-10 text-zinc-500 font-bold text-xs bg-zinc-50 border-2 border-dashed border-zinc-300">
+                        <div class="text-center py-10 text-zinc-500 dark:text-zinc-400 font-bold text-xs bg-zinc-50 dark:bg-zinc-900 border-2 border-dashed border-zinc-300 dark:border-zinc-700">
                             <span>🕒 尚無歷史快照紀錄</span>
-                            <p class="text-[11px] text-zinc-400 mt-1">每次儲存或雲端同步後將自動在此建立時光機還原點</p>
+                            <p class="text-[11px] text-zinc-400 dark:text-zinc-500 mt-1">每次儲存或雲端同步後將自動在此建立時光機還原點，亦可點擊上方「＋ 建立快照」</p>
                         </div>
                     `;
                     return;
@@ -5910,19 +5919,19 @@ ${rawHtml}
                     const projNames = (snap.data || []).map(p => p.title).slice(0, 3).join('、') + (count > 3 ? ' 等' : '');
 
                     return `
-                        <div class="p-3 bg-white border-2 border-black flat-box shadow-[2px_2px_0px_0px_#000] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5">
+                        <div class="p-3 bg-white dark:bg-zinc-800 border-2 border-black dark:border-zinc-700 flat-box shadow-[2px_2px_0px_0px_#000] flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5">
                             <div class="space-y-0.5 min-w-0">
                                 <div class="flex items-center gap-2">
-                                    <span class="font-black text-xs text-black font-mono">${timeStr}</span>
-                                    <span class="px-1.5 py-0.2 ${isLatest ? 'bg-green-500 text-white' : 'bg-zinc-200 text-zinc-800'} font-bold text-[10px] uppercase">${snap.label || '自動存檔'}</span>
-                                    ${isLatest ? '<span class="text-[10px] font-black text-green-700 font-mono">（當前版本）</span>' : ''}
+                                    <span class="font-black text-xs text-black dark:text-white font-mono">${timeStr}</span>
+                                    <span class="px-1.5 py-0.2 ${isLatest ? 'bg-green-500 text-white' : 'bg-zinc-200 dark:bg-zinc-700 text-zinc-800 dark:text-zinc-200'} font-bold text-[10px] uppercase">${snap.label || '自動存檔'}</span>
+                                    ${isLatest ? '<span class="text-[10px] font-black text-green-700 dark:text-green-400 font-mono">（當前版本）</span>' : ''}
                                 </div>
-                                <div class="text-[11px] text-zinc-600 truncate font-medium">
-                                    專案數：<span class="font-bold text-black">${count}</span> 個 (${this.escapeHtml(projNames || '無專案')})
+                                <div class="text-[11px] text-zinc-600 dark:text-zinc-300 truncate font-medium">
+                                    專案數：<span class="font-bold text-black dark:text-white">${count}</span> 個 (${this.escapeHtml(projNames || '無專案')})
                                 </div>
                             </div>
                             <div class="flex items-center gap-1.5 shrink-0 self-end sm:self-center">
-                                <button onclick="app.restoreHistorySnapshot(${idx})" class="px-3 py-1 bg-black text-white hover:bg-zinc-800 font-bold text-xs flat-box shadow-[1px_1px_0px_0px_#000] flex items-center gap-1" title="將所有專案與文檔還原至此時間點">
+                                <button onclick="app.restoreHistorySnapshot(${idx})" class="px-3 py-1 bg-black dark:bg-zinc-900 text-white hover:bg-zinc-800 dark:hover:bg-zinc-700 font-bold text-xs flat-box border-2 border-black dark:border-zinc-600 shadow-[1px_1px_0px_0px_#000] flex items-center gap-1" title="將所有專案與文檔還原至此時間點">
                                     <span>⏪</span> <span>還原此版本</span>
                                 </button>
                             </div>
@@ -7500,100 +7509,39 @@ this.closeModals();
                 }
             },
 
-            // ================= 🕒 本機歷史版本時光機 (Snapshot Time Machine) =================
-            saveSnapshot(reason = '自動存檔快照') {
+            // ================= 🕒 本機歷史版本時光機 (Snapshot Time Machine - Unified) =================
+            saveSnapshot(reason = '手動建立快照') {
                 try {
-                    const p = this.getCurrentProject();
-                    if (!p) return;
-                    const raw = localStorage.getItem('flatSpecSnapshots');
-                    let snapshots = raw ? JSON.parse(raw) : [];
-                    const snap = {
-                        id: 'snap_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-                        time: new Date().toISOString(),
-                        reason,
-                        projectTitle: p.title || '未命名專案',
-                        projectId: p.id,
-                        data: JSON.parse(JSON.stringify(this.state.projects))
-                    };
-                    snapshots.unshift(snap);
-                    // 保留最新 30 筆
-                    if (snapshots.length > 30) snapshots = snapshots.slice(0, 30);
-                    localStorage.setItem('flatSpecSnapshots', JSON.stringify(snapshots));
+                    this.recordLocalHistorySnapshot(this.state.projects, reason, true);
+                    this.renderHistorySnapshotsList();
                 } catch(e) {
-                    console.warn('Save snapshot skipped:', e);
+                    console.warn('Save snapshot error:', e);
                 }
-            },
-
-            getSnapshots() {
-                try {
-                    const raw = localStorage.getItem('flatSpecSnapshots');
-                    return raw ? JSON.parse(raw) : [];
-                } catch(e) {
-                    return [];
-                }
-            },
-
-            openHistoryModal() {
-                this.renderSnapshots();
-                const m = document.getElementById('historyModal');
-                if (m) m.classList.remove('hidden');
-            },
-
-            closeHistoryModal() {
-                const m = document.getElementById('historyModal');
-                if (m) m.classList.add('hidden');
             },
 
             renderSnapshots() {
-                const listEl = document.getElementById('historySnapshotsList');
-                if (!listEl) return;
-                const snapshots = this.getSnapshots();
-                if (snapshots.length === 0) {
-                    listEl.innerHTML = '<div class="p-4 text-center text-xs text-zinc-500 font-bold border-2 border-dashed border-zinc-300">目前尚無歷史快照記錄。系統將在每次同步與存檔時自動建立。</div>';
-                    return;
-                }
-                listEl.innerHTML = snapshots.map(s => {
-                    const d = new Date(s.time);
-                    const timeStr = d.toLocaleString();
-                    return `
-                        <div class="p-3 bg-zinc-50 hover:bg-yellow-50 border-2 border-black flex items-center justify-between gap-2 flat-box">
-                            <div>
-                                <div class="font-bold text-xs text-black flex items-center gap-1.5">
-                                    <span>📸</span> <span>${this.escapeHtml(s.reason)}</span>
-                                    <span class="text-[10px] text-zinc-500 font-mono">(${this.escapeHtml(s.projectTitle)})</span>
-                                </div>
-                                <div class="text-[11px] text-zinc-500 font-mono mt-0.5">${timeStr}</div>
-                            </div>
-                            <button onclick="app.restoreSnapshot('${s.id}')" class="px-2.5 py-1 bg-black hover:bg-zinc-800 text-white font-bold text-xs border-2 border-black flat-box shrink-0">
-                                ↺ 還原
-                            </button>
-                        </div>
-                    `;
-                }).join('');
+                this.renderHistorySnapshotsList();
+            },
+
+            renderHistorySnapshots() {
+                this.renderHistorySnapshotsList();
             },
 
             restoreSnapshot(snapshotId) {
-                const snapshots = this.getSnapshots();
-                const target = snapshots.find(s => s.id === snapshotId);
-                if (!target || !target.data) {
-                    this.showToast('❌ 找不到該歷史快照資料');
-                    return;
-                }
-                if (confirm(`確定要將專案還原至【${new Date(target.time).toLocaleString()}】的狀態嗎？當前未存的修改將被覆蓋。`)) {
-                    this.state.projects = JSON.parse(JSON.stringify(target.data));
-                    if (target.projectId && this.state.projects.some(p => p.id === target.projectId)) {
-                        this.state.activeProjectId = target.projectId;
-                    }
-                    this.ensureActivePointers();
-                    this.saveToLocal();
-                    this.renderAll();
-                    this.closeHistoryModal();
-                    this.state.hasUnsavedChanges = true;
-                    localStorage.setItem('flatSpecHasPendingChanges', 'true');
-                    this.debouncedSaveAndSync();
-                    this.showToast('🎉 已成功還原至歷史版本快照並排程同步！');
+                let history = [];
+                try {
+                    history = JSON.parse(localStorage.getItem('flatSpecHistory') || '[]');
+                } catch(e) {}
+                const idx = history.findIndex(s => s.id === snapshotId);
+                if (idx !== -1) {
+                    this.restoreHistorySnapshot(idx);
+                } else if (typeof snapshotId === 'number') {
+                    this.restoreHistorySnapshot(snapshotId);
+                } else {
+                    this.showToast('❌ 找不到該歷史快照資料', 'error');
                 }
             },
+
 
             // ================= 🤖 Groq AI 助理模組 (Groq AI Chat & Autonomous Doc Creation) =================
             getGroqApiKey() {

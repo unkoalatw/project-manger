@@ -828,12 +828,12 @@
 
                 <!-- Tab 3: 本機歷史快照時光機 (History) -->
                 <div id="panelSettings_history" class="hidden space-y-4">
-                    <div class="p-3 bg-zinc-50 border-2 border-black flex items-center justify-between">
+                    <div class="p-3 bg-zinc-50 dark:bg-zinc-900 border-2 border-black dark:border-zinc-700 flex items-center justify-between">
                         <div>
-                            <h4 class="font-black text-xs uppercase text-zinc-800">🕒 本機歷史快照時光機</h4>
-                            <p class="text-[11px] text-zinc-500 font-medium">系統每次存檔皆會自動記錄快照，可隨時倒帶回溯！</p>
+                            <h4 class="font-black text-xs uppercase text-zinc-800 dark:text-zinc-100">🕒 本機歷史快照時光機</h4>
+                            <p class="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium">系統每次存檔皆會自動記錄快照，可隨時倒帶回溯！</p>
                         </div>
-                        <button onclick="app.saveSnapshot('手動建立快照'); app.renderHistorySnapshots(); app.showToast('💾 已建立最新歷史快照');" class="px-3 py-1.5 bg-black text-white font-bold text-xs flat-box hover:bg-zinc-800 shrink-0">
+                        <button onclick="app.saveSnapshot('手動建立快照'); app.showToast('💾 已建立最新歷史快照');" class="px-3 py-1.5 bg-black dark:bg-white text-white dark:text-black font-bold text-xs flat-box hover:bg-zinc-800 dark:hover:bg-zinc-200 shrink-0">
                             ＋ 建立快照
                         </button>
                     </div>
