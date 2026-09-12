@@ -1180,23 +1180,36 @@
 
     <!-- Modal: 新建文檔 -->
     <div id="newDocModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-        <div class="bg-white border border-slate-200 rounded-2xl p-6 w-full max-w-sm shadow-xl">
-            <h3 class="font-black text-lg uppercase mb-4 border-b border-slate-200 pb-2">📄 新增文檔</h3>
-            <div class="space-y-3">
+        <div class="bg-white border border-slate-200 rounded-2xl p-6 w-full max-w-md shadow-xl">
+            <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
+                <h3 class="font-black text-base uppercase flex items-center gap-2">📄 新增專案文檔</h3>
+                <button onclick="app.closeModals()" class="text-lg font-bold hover:text-red-600 px-1">&times;</button>
+            </div>
+            <div class="space-y-3.5">
                 <div>
-                    <label class="block font-bold text-xs mb-1">所屬資料夾</label>
+                    <label class="block font-bold text-xs mb-1 text-slate-700">文檔範本類型</label>
+                    <select id="newDocTemplateSelect" onchange="app.handleNewDocTemplateChange(this.value)" class="flat-input w-full p-2 text-xs font-bold bg-slate-50 cursor-pointer">
+                        <option value="proposal">🚀 功能提案書 (Feature Proposal / PRD)</option>
+                        <option value="tech_spec">🛠️ 技術架構與 API 規格書 (Tech Spec)</option>
+                        <option value="meeting">📋 專案會議紀錄與決策追蹤 (Meeting Notes)</option>
+                        <option value="bug_report">🐞 缺陷排查與除錯報告 (Bug Report)</option>
+                        <option value="blank">📝 空白文檔 (Blank Document)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-bold text-xs mb-1 text-slate-700">所屬資料夾</label>
                     <select id="newDocFolderSelect" class="flat-input w-full p-2 text-xs font-bold bg-slate-50 cursor-pointer">
                         <option value="">📁 根目錄 (無所屬資料夾)</option>
                     </select>
                 </div>
                 <div>
-                    <label class="block font-bold text-xs mb-1">文檔標題 *</label>
-                    <input type="text" id="newDocTitle" class="flat-input w-full p-2 text-sm" placeholder="例如：資料庫結構設計" onkeydown="if(event.key==='Enter') app.createNewDoc()">
+                    <label class="block font-bold text-xs mb-1 text-slate-700">文檔標題 *</label>
+                    <input type="text" id="newDocTitle" class="flat-input w-full p-2 text-sm font-semibold" placeholder="例如：功能提案書：Mermaid 流程圖互動檢視系統" onkeydown="if(event.key==='Enter') app.createNewDoc()">
                 </div>
             </div>
-            <div class="flex justify-end gap-2 mt-6">
-                <button onclick="app.closeModals()" class="px-4 py-2 border border-slate-200 font-bold text-sm bg-slate-100 hover:bg-slate-200">取消</button>
-                <button onclick="app.createNewDoc()" class="px-4 py-2 border border-slate-200 font-bold text-sm bg-black text-white flat-box hover:bg-slate-800">新增</button>
+            <div class="flex justify-end gap-2 mt-6 pt-3 border-t border-slate-100">
+                <button onclick="app.closeModals()" class="px-4 py-2 border border-slate-200 font-bold text-xs bg-slate-100 hover:bg-slate-200 rounded-md">取消</button>
+                <button onclick="app.createNewDoc()" class="px-4 py-2 border border-black font-bold text-xs bg-black text-white flat-box hover:bg-slate-800 rounded-md">＋ 建立文檔</button>
             </div>
         </div>
     </div>

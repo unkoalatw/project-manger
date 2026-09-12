@@ -3111,10 +3111,246 @@
                 panelEl.innerHTML = html;
             },
 
-            openNewDocModal(defaultFolderId = null) {
-                const folderSelect = document.getElementById('newDocFolderSelect');
+            getDocTemplate(templateKey, title) {
+                const safeTitle = (title || '未命名功能').replace(/^(?:🚀\s*功能提案書：|🛠️\s*技術規格書：|📋\s*專案會議紀錄：|🐞\s*缺陷排查：)/, '').trim() || '未命名功能';
+                const today = new Date().toISOString().split('T')[0];
+                const author = this.getMyProfile()?.name || '專案成員';
+
+                switch (templateKey) {
+                    case 'proposal':
+                        return `# 🚀 功能提案書：${safeTitle}
+
+> **提案負責人**: ${author}  
+> **提案日期**: ${today}  
+> **當前狀態**: 🟡 審核評審中 (Reviewing)  
+> **優先級**: P1 - High  
+> **預計上線版本**: v1.2.0  
+
+---
+
+## 1. 提案背景與問題定義 (Problem Statement)
+- **核心痛點**: 描述目前使用者或業務流程中面臨的瓶頸與操作困難。
+- **解決契機**: 為什麼現在需要開發此功能？能帶來什麼量化或質化的業務效益？
+
+---
+
+## 2. 目標與非目標 (Goals & Non-Goals)
+### 🎯 核心目標 (Goals)
+1. 解決 [核心痛點]，使關鍵任務操作效率提升 50% 以上。
+2. 提供清晰直覺的互動介面與即時回饋。
+3. 確保離線可用性與跨裝置資料同步的一致性。
+
+### 🚫 非目標 (Non-Goals)
+1. 本階段不處理次要邊界情境，預計留待後續版本迭代優化。
+
+---
+
+## 3. 目標使用者與情境分析 (User Stories)
+| 角色 (Persona) | 使用情境 (User Story) | 預期效益 (Benefit) |
+| :--- | :--- | :--- |
+| **產品經理** | 作為 PM，我希望能一鍵建立結構化功能提案書與時程表 | 節省 80% 規格撰寫與排版時間 |
+| **開發工程師** | 作為工程師，我希望有清楚的架構流程圖與資料結構定義 | 降低溝通成本，避免需求偏差與重工 |
+| **終端使用者** | 作為使用者，我希望能直覺操作各項功能並享有即時回饋 | 獲得流暢穩定的操作體驗 |
+
+---
+
+## 4. 系統架構與業務流程圖 (Architecture & Flow)
+
+\`\`\`mermaid
+flowchart TD
+    A([開始：使用者觸發操作]) --> B{系統檢查狀態與輸入}
+    B -- 驗證通過 --> C[執行核心業務邏輯處理]
+    B -- 驗證失敗 --> D[彈出防呆提示並終止]
+    C --> E[更新本地狀態 State / Cache]
+    E --> F[觸發雲端儲存與雙向同步]
+    F --> G([完成：介面即時渲染呈現])
+\`\`\`
+
+---
+
+## 5. 功能規格與詳細設計 (Specifications)
+
+### 5.1 互動介面規格
+- **進入點**: 位於系統主工具列，具備顯著且直覺的操作按鈕。
+- **快捷鍵支援**: 支援快捷鍵快速提交與操作。
+- **防呆機制**: 必填欄位為空時提示紅字，並禁用提交按鈕。
+
+### 5.2 資料結構定義 (Data Schema)
+| 欄位名稱 (Field) | 資料型別 (Type) | 必填 | 說明 (Description) |
+| :--- | :--- | :---: | :--- |
+| \`id\` | String | ✅ | 唯一識別碼 UUID / Timestamp |
+| \`title\` | String | ✅ | 提案或功能名稱 |
+| \`status\` | String | ✅ | 狀態 (\`DRAFT\` / \`ACTIVE\` / \`ARCHIVED\`) |
+| \`createdAt\` | ISOString | ✅ | 建立時間戳記 |
+
+---
+
+## 6. 驗收標準 (Acceptance Criteria)
+- [ ] **場景 1 (基本操作)**: 使用者點擊建立按鈕後，系統能正確解析參數並建立對應物件。
+- [ ] **場景 2 (離線保護)**: 離線狀態下所有編輯操作應安全保存在本地，連線後自動同步至雲端。
+- [ ] **場景 3 (響應式適應)**: 在桌面與手機端螢幕皆能自適應排版，無溢出或破版現象。
+
+---
+
+## 7. 實施時程規劃 (Milestones)
+
+\`\`\`mermaid
+gantt
+    title 功能開發與交付時程規劃
+    dateFormat  YYYY-MM-DD
+    section 規劃與設計
+    需求評審與規格確認    :done, des1, ${today}, 2d
+    介面原型與架構設計    :active, des2, after des1, 3d
+    section 核心開發
+    前端介面與組件建置    :dev1, after des2, 5d
+    狀態邏輯與雲端同步    :dev2, after dev1, 4d
+    section 測試與交付
+    驗收測試與除錯優化    :test1, after dev2, 3d
+    正式發布上線          :milestone, m1, after test1, 0d
+\`\`\`
+`;
+
+                    case 'tech_spec':
+                        return `# 🛠️ 技術架構與 API 規格書：${safeTitle}
+
+> **架構負責人**: ${author}  
+> **建立日期**: ${today}  
+> **技術棧**: JavaScript (ES6+), Vite, TailwindCSS, Mermaid, REST API  
+
+---
+
+## 1. 系統架構總覽 (Architecture Overview)
+
+\`\`\`mermaid
+graph TD
+    Client[Web / Android PWA 前端] --> State[前端狀態管理 Store]
+    State --> Cache[本地快取 LocalStorage / IndexedDB]
+    State --> API[GAS REST API / Cloud Backend]
+    API --> DB[(Google Sheets 試算表資料庫)]
+\`\`\`
+
+---
+
+## 2. API 介面規格 (Endpoints)
+
+### 2.1 讀取資料 (GET /pull)
+- **Method**: \`GET\`
+- **參數**: \`action=pull\`
+- **Response**:
+\`\`\`json
+{
+  "status": "success",
+  "data": {
+    "projects": []
+  }
+}
+\`\`\`
+
+---
+
+## 3. 安全性與錯誤處理 (Security & Error Handling)
+- **Token 驗證**: 支援密碼雜湊與權限控管。
+- **重試機制**: 網路逾時自動重試 3 次。
+`;
+
+                    case 'meeting':
+                        return `# 📋 專案會議紀錄：${safeTitle}
+
+> **會議日期**: ${today}  
+> **主持人**: ${author}  
+> **與會人員**: 全體專案核心成員  
+> **會議主題**: ${safeTitle}  
+
+---
+
+## 1. 會議討論要點 (Key Discussions)
+1. 針對新功能之需求與範疇進行確認。
+2. 評估時程與資源分配。
+
+---
+
+## 2. 決策事項 (Decisions Made)
+- [x] **決策 1**: 確認採用 PWA 離線優先架構。
+- [x] **決策 2**: 統一採用 Mermaid 作為圖表視覺化引擎。
+
+---
+
+## 3. 行動待辦清單 (Action Items)
+- [ ] **@負責人**: 完成功能提案書與規格初稿 (截止日: ${today})
+- [ ] **@負責人**: 建立開發分支與原型 (截止日: ${today})
+`;
+
+                    case 'bug_report':
+                        return `# 🐞 缺陷排查與修復報告：${safeTitle}
+
+> **回報人**: ${author}  
+> **發生日期**: ${today}  
+> **嚴重程度**: 🔴 Critical / 🟠 Major / 🟡 Minor  
+> **修復狀態**: 🟡 調查中 (Investigating / Fixed / Verified)  
+
+---
+
+## 1. 問題描述 (Issue Description)
+- **重現步驟**:
+  1. 進入系統
+  2. 執行操作...
+- **預期行為**:
+- **實際行為**:
+
+---
+
+## 2. 根本原因分析 (Root Cause)
+- 分析造成問題的底層代碼或邊界條件。
+
+---
+
+## 3. 修復方案與驗證 (Solution & Verification)
+- [x] 修正代碼
+- [ ] 執行整合測試
+`;
+
+                    case 'blank':
+                    default:
+                        return `# ${safeTitle}\n\n開始撰寫...`;
+                }
+            },
+
+            handleNewDocTemplateChange(templateKey) {
                 const titleEl = document.getElementById('newDocTitle');
-                if (titleEl) titleEl.value = '';
+                if (!titleEl) return;
+                const currentVal = titleEl.value.trim();
+                const placeholders = {
+                    proposal: '例如：功能提案書：即時協作同步系統',
+                    tech_spec: '例如：技術規格書：狀態管理與快取架構',
+                    meeting: '例如：第 5 次專案衝刺會議紀錄',
+                    bug_report: '例如：問題排查：離線狀態資料衝突處理',
+                    blank: '例如：核心設計構想'
+                };
+                titleEl.placeholder = placeholders[templateKey] || '例如：核心設計構想';
+                
+                // 如果當前標題為空或符合其他範本的前綴，自動替換預設文字
+                if (!currentVal || currentVal.startsWith('功能提案書') || currentVal.startsWith('技術規格書') || currentVal.startsWith('專案會議紀錄') || currentVal.startsWith('缺陷排查') || currentVal.startsWith('未命名')) {
+                    if (templateKey === 'proposal') titleEl.value = '功能提案書：';
+                    else if (templateKey === 'tech_spec') titleEl.value = '技術規格書：';
+                    else if (templateKey === 'meeting') titleEl.value = '專案會議紀錄：';
+                    else if (templateKey === 'bug_report') titleEl.value = '缺陷排查：';
+                    else if (templateKey === 'blank') titleEl.value = '';
+                }
+            },
+
+            openNewDocModal(defaultFolderId = null, defaultTemplate = 'proposal') {
+                const folderSelect = document.getElementById('newDocFolderSelect');
+                const templateSelect = document.getElementById('newDocTemplateSelect');
+                const titleEl = document.getElementById('newDocTitle');
+                
+                if (templateSelect) {
+                    templateSelect.value = defaultTemplate || 'proposal';
+                }
+
+                if (titleEl) {
+                    titleEl.value = (defaultTemplate === 'proposal') ? '功能提案書：' : '';
+                    this.handleNewDocTemplateChange(defaultTemplate || 'proposal');
+                }
 
                 if (folderSelect) {
                     const p = this.getCurrentProject();
@@ -3135,22 +3371,38 @@
                 }
 
                 document.getElementById('newDocModal')?.classList.remove('hidden');
-                setTimeout(() => document.getElementById('newDocTitle')?.focus(), 50);
+                setTimeout(() => {
+                    if (titleEl) {
+                        titleEl.focus();
+                        if (titleEl.value) {
+                            titleEl.setSelectionRange(titleEl.value.length, titleEl.value.length);
+                        }
+                    }
+                }, 50);
             },
 
             createNewDoc() {
                 const p = this.getCurrentProject();
                 const titleEl = document.getElementById('newDocTitle');
                 const folderEl = document.getElementById('newDocFolderSelect');
+                const templateEl = document.getElementById('newDocTemplateSelect');
                 if (!p || !titleEl) return;
 
-                const title = titleEl.value.trim() || '未命名文檔';
+                const templateKey = templateEl?.value || 'proposal';
+                let title = titleEl.value.trim();
+                if (!title || title === '功能提案書：' || title === '技術規格書：' || title === '專案會議紀錄：' || title === '缺陷排查：') {
+                    if (templateKey === 'proposal') title = '功能提案書：新功能提案';
+                    else if (templateKey === 'tech_spec') title = '技術規格書：系統架構設計';
+                    else if (templateKey === 'meeting') title = '專案會議紀錄';
+                    else if (templateKey === 'bug_report') title = '缺陷排查報告';
+                    else title = '未命名文檔';
+                }
                 const folderId = folderEl?.value || null;
 
                 const newDoc = {
                     id: 'doc_' + Date.now(),
                     title: title,
-                    content: `# ${title}\n\n開始撰寫...`,
+                    content: this.getDocTemplate(templateKey, title),
                     folderId: folderId
                 };
                 
@@ -3171,7 +3423,27 @@
                 this.debouncedSaveAndSync();
                 this.renderSidebar();
                 this.switchView('Docs');
-                this.showToast('📄 文檔已建立');
+                this.showToast('🚀 已成功建立「' + title + '」！');
+            },
+
+            createFeatureProposalDoc(customTitle = 'Mermaid 視覺化圖表高階渲染與互動檢視系統') {
+                const p = this.getCurrentProject();
+                if (!p) return;
+                const title = `🚀 功能提案書：${customTitle}`;
+                const newDoc = {
+                    id: 'doc_' + Date.now(),
+                    title: title,
+                    content: this.getDocTemplate('proposal', customTitle),
+                    folderId: null
+                };
+                if (!p.docs) p.docs = [];
+                p.docs.unshift(newDoc);
+                p.updatedAt = new Date().toISOString();
+                this.state.activeDocId = newDoc.id;
+                this.debouncedSaveAndSync();
+                this.renderAll();
+                this.switchView('Docs');
+                this.showToast('🚀 功能提案書已建立！');
             },
 
             deleteCurrentDoc() {
@@ -4942,9 +5214,6 @@
             },
             openNewProjectModal() {
                 document.getElementById('newProjectModal')?.classList.remove('hidden');
-            },
-            openNewDocModal() {
-                document.getElementById('newDocModal')?.classList.remove('hidden');
             },
             closeModals() {
                 ['settingsModal', 'gasModal', 'newProjectModal', 'newDocModal', 'backupModal', 'editProjectModal', 'editTaskModal', 'insertImageModal', 'imageViewerModal', 'searchModal', 'teamModal', 'taskCommentsModal', 'fontModal', 'historyModal', 'projectPasswordModal'].forEach(id => {
