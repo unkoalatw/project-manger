@@ -7583,24 +7583,25 @@ ${rawHtml}
                             flowchart: {
                                 htmlLabels: true,
                                 curve: 'basis',
-                                nodeSpacing: 45,
-                                rankSpacing: 45,
-                                padding: 15
+                                nodeSpacing: 25,
+                                rankSpacing: 30,
+                                padding: 8,
+                                useMaxWidth: false
                             },
                             sequence: {
-                                actorMargin: 50,
-                                messageMargin: 35,
-                                boxMargin: 10,
-                                boxTextMargin: 5,
-                                noteMargin: 10,
+                                actorMargin: 40,
+                                messageMargin: 30,
+                                boxMargin: 8,
+                                boxTextMargin: 4,
+                                noteMargin: 8,
                                 messageFontFamily: "'Plus Jakarta Sans', 'Noto Sans TC', sans-serif"
                             },
                             gantt: {
-                                titleTopMargin: 25,
-                                barHeight: 20,
+                                titleTopMargin: 20,
+                                barHeight: 18,
                                 barGap: 4,
-                                topPadding: 50,
-                                sidePadding: 75
+                                topPadding: 40,
+                                sidePadding: 50
                             }
                         });
                         this._mermaidInitialized = true;
@@ -7615,6 +7616,21 @@ ${rawHtml}
                             const { svg } = await mermaid.render(id, code);
                             node.innerHTML = svg;
                             node.setAttribute('data-processed', 'true');
+                            
+                            // 修正 SVG 尺寸過大問題：保留自然寬高，避免單欄流程圖被強制拉伸到 100% 容器寬度
+                            const svgEl = node.querySelector('svg');
+                            if (svgEl) {
+                                svgEl.style.width = 'auto';
+                                svgEl.style.height = 'auto';
+                                const viewBox = svgEl.getAttribute('viewBox');
+                                if (viewBox) {
+                                    const parts = viewBox.split(/[\s,]+/).map(Number);
+                                    if (parts.length === 4 && parts[2] > 0) {
+                                        const naturalWidth = parts[2];
+                                        svgEl.style.maxWidth = `${Math.min(naturalWidth, 680)}px`;
+                                    }
+                                }
+                            }
                         } catch (err) {
                             console.warn('[Mermaid] render error for diagram:', err);
                             node.setAttribute('data-processed', 'true');
