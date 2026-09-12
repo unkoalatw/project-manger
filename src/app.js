@@ -1149,10 +1149,11 @@
                 }
                 
                 try {
-                    const fetchUrl = this.state.gasUrl;
+                    const fetchUrl = this.state.gasUrl + (this.state.gasUrl.includes('?') ? '&' : '?') + 't=' + Date.now();
                     const response = await fetch(fetchUrl, { 
                         method: 'GET',
-                        redirect: 'follow'
+                        redirect: 'follow',
+                        cache: 'no-store'
                     });
                     
                     if (!response.ok) {
