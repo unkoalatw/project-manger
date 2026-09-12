@@ -6311,12 +6311,12 @@ ${rawHtml}
                                 <div class="bg-slate-50 text-slate-700 px-4 py-2 text-[11px] font-mono font-medium border-b border-slate-200 flex justify-between items-center select-none">
                                     <span class="flex items-center gap-1.5 font-sans font-black tracking-wide">📊 流程圖 / 圖表視覺化 (Mermaid)</span>
                                     <div class="flex items-center gap-2">
-                                        <button type="button" onclick="const card = this.closest('.mermaid-diagram-card'); const codeEl = card.querySelector('.mermaid-source'); codeEl.classList.toggle('hidden');" class="hover:underline cursor-pointer px-1.5 py-0.5 bg-slate-200 hover:bg-slate-300 text-slate-800 border border-slate-300 rounded text-[10px] font-bold">切換原始碼</button>
-                                        <button type="button" onclick="const card = this.closest('.mermaid-diagram-card'); const text = card.querySelector('.mermaid-code-text').innerText; navigator.clipboard.writeText(text); app.showToast('📋 圖表代碼已複製至剪貼簿！');" class="hover:underline cursor-pointer px-1.5 py-0.5 bg-slate-200 hover:bg-slate-300 text-slate-800 border border-slate-300 rounded text-[10px] font-bold">複製代碼</button>
+                                        <button type="button" onclick="const codeEl = this.closest('.mermaid-diagram-card').querySelector('.mermaid-source'); codeEl.classList.toggle('hidden');" class="hover:underline cursor-pointer px-2 py-0.5 bg-amber-100 hover:bg-amber-200 border border-amber-300 text-amber-900 rounded text-[10px] font-bold">切換原始碼</button>
+                                        <button type="button" onclick="navigator.clipboard.writeText(this.closest('.mermaid-diagram-card').querySelector('.mermaid-code-text').innerText); app.showToast('📋 圖表代碼已複製至剪貼簿！');" class="hover:underline cursor-pointer px-2 py-0.5 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 rounded text-[10px] font-bold">複製代碼</button>
                                     </div>
                                 </div>
                                 <div class="p-3 md:p-5 overflow-x-auto flex justify-center bg-white min-h-[80px]">
-                                    <pre class="mermaid text-xs font-mono text-center w-full flex justify-center" data-raw-code="${escaped}">${cleanCode}</pre>
+                                    <pre class="mermaid text-xs font-mono text-center w-full flex justify-center">${escaped}</pre>
                                 </div>
                                 <div class="mermaid-source hidden border-t border-slate-200 bg-slate-900 p-3">
                                     <pre class="text-slate-100 font-mono text-xs overflow-x-auto leading-relaxed mermaid-code-text"><code>${escaped}</code></pre>
@@ -7029,6 +7029,7 @@ ${rawHtml}
                             startOnLoad: false,
                             theme: 'default',
                             securityLevel: 'loose',
+                            suppressErrorRendering: true,
                             flowchart: {
                                 htmlLabels: true,
                                 curve: 'basis'
@@ -7036,42 +7037,33 @@ ${rawHtml}
                         });
                         this._mermaidInitialized = true;
                     }
-                    
-                    // 針對每個 mermaid 節點逐一安全渲染，若發生語法錯誤則提供優雅的提示面板與原始代碼檢視
-                    nodes.forEach(async (node, idx) => {
-                        const rawCode = (node.getAttribute('data-raw-code') || node.textContent || '').trim();
-                        const id = 'mermaid_' + Date.now() + '_' + idx;
+
+                    nodes.forEach(async (node) => {
+                        if (node.getAttribute('data-processed') === 'true') return;
+                        const code = node.textContent || '';
+                        const id = 'mermaid_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
                         try {
-                            const { svg } = await mermaid.render(id, rawCode);
+                            const { svg } = await mermaid.render(id, code);
                             node.innerHTML = svg;
                             node.setAttribute('data-processed', 'true');
                         } catch (err) {
-                            console.warn('[Mermaid] render error on node:', err, rawCode);
+                            console.warn('[Mermaid] render error for diagram:', err);
                             node.setAttribute('data-processed', 'true');
-                            // 移除 mermaid 自動注入在 body 末端的錯誤元素
-                            const autoErr = document.getElementById('d' + id);
-                            if (autoErr) autoErr.remove();
-
-                            const card = node.closest('.mermaid-diagram-card');
-                            if (card) {
-                                const sourceEl = card.querySelector('.mermaid-source');
-                                if (sourceEl) sourceEl.classList.remove('hidden');
-                            }
-
+                            const cleanCode = this.escapeHtml(code);
                             node.innerHTML = `
-                                <div class="w-full text-left p-4 bg-amber-50/70 border border-amber-200 rounded-lg space-y-2">
-                                    <div class="flex items-center justify-between">
-                                        <div class="flex items-center gap-1.5 text-xs font-bold text-amber-900">
-                                            <span>⚠️</span>
-                                            <span>Mermaid 語法不完整或包含特殊字元</span>
-                                        </div>
-                                        <span class="text-[10px] font-mono bg-amber-200 text-amber-900 px-1.5 py-0.5 rounded font-bold">語法提示</span>
+                                <div class="p-4 bg-amber-50 border border-amber-200 rounded-lg text-left text-amber-900 w-full max-w-lg mx-auto">
+                                    <div class="flex items-center gap-1.5 font-bold text-xs text-amber-950 mb-1">
+                                        <span>⚠️</span> <span>Mermaid 圖表語法有誤，無法正常繪製</span>
                                     </div>
-                                    <p class="text-[11px] text-amber-800 leading-relaxed font-normal">
-                                        此圖表語法暫時無法解析為圖形，已自動在下方為您展開原始代碼。若節點文字含有括號 <code>( )</code>、引號或特殊符號，建議以雙引號包裹，例如：<code>A["文字(含括號)"]</code>。
-                                    </p>
+                                    <p class="text-[11px] text-amber-800 mb-2">請檢查括號 <code>( )</code>、引號 <code>" "</code> 或箭頭語法是否完整配對。點擊上方「切換原始碼」可展開檢視並修正。</p>
+                                    <pre class="bg-amber-100/70 p-2 text-[10px] font-mono rounded overflow-x-auto text-amber-950 border border-amber-200"><code>${cleanCode}</code></pre>
                                 </div>
                             `;
+                            // 移除 Mermaid 在失敗時可能殘留在 DOM body 尾端的臨時錯誤元素
+                            const leftover = document.getElementById(id) || document.getElementById('d' + id);
+                            if (leftover && leftover.parentNode) {
+                                leftover.parentNode.removeChild(leftover);
+                            }
                         }
                     });
                 } catch(e) {
