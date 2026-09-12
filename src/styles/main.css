@@ -310,36 +310,42 @@
             margin: 0.5rem 0.25rem !important;
         }
 
-        /* 飛書 / Google Docs 表格 (Minimalist Lines Table) */
-        .neo-brutalist-table-wrapper {
-            border: 1px solid #e2e8f0;
+        /* 飛書 / Google Docs / 聶永真精緻線條表格 (Crisp Minimalist Lines Table) */
+        .doc-table-wrapper, .neo-brutalist-table-wrapper {
+            border: 1px solid #94a3b8 !important;
             border-radius: 6px;
-            box-shadow: var(--shadow-subtle);
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
             overflow-x: auto;
-            margin: 1.25rem 0;
+            margin: 1.5rem 0;
             background: #ffffff;
         }
-        .neo-brutalist-table-wrapper table {
-            border-collapse: separate;
-            border-spacing: 0;
+        .doc-table-wrapper table, .neo-brutalist-table-wrapper table {
+            border-collapse: collapse !important;
             width: 100%;
+            border: 1px solid #94a3b8 !important;
         }
-        .neo-brutalist-table-wrapper th {
-            background-color: #f8fafc !important;
-            color: #475569 !important;
-            font-weight: 600 !important;
-            border-bottom: 1px solid #e2e8f0 !important;
-            border-right: 1px solid #f1f5f9 !important;
+        .doc-table-wrapper th, .neo-brutalist-table-wrapper th {
+            background-color: #f1f5f9 !important;
+            color: #0f172a !important;
+            font-weight: 700 !important;
+            border: 1px solid #94a3b8 !important;
+            border-bottom: 2px solid #64748b !important;
             padding: 10px 14px !important;
+            text-align: left;
+            font-size: 13px;
         }
-        .neo-brutalist-table-wrapper td {
-            border-bottom: 1px solid #f1f5f9 !important;
-            border-right: 1px solid #f1f5f9 !important;
+        .doc-table-wrapper td, .neo-brutalist-table-wrapper td {
+            border: 1px solid #cbd5e1 !important;
             padding: 10px 14px !important;
-            color: #334155 !important;
+            color: #1e293b !important;
+            font-size: 13.5px;
+            line-height: 1.6;
         }
-        .neo-brutalist-table-wrapper tr:last-child td {
-            border-bottom: none !important;
+        .doc-table-wrapper tbody tr:nth-child(even), .neo-brutalist-table-wrapper tbody tr:nth-child(even) {
+            background-color: #f8fafc;
+        }
+        .doc-table-wrapper tbody tr:hover, .neo-brutalist-table-wrapper tbody tr:hover {
+            background-color: #f1f5f9 !important;
         }
 
         /* 流程圖視覺化卡片 (Mermaid Card - Minimalist) */
