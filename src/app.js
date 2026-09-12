@@ -2380,6 +2380,7 @@
                         }
                         this.renderDocLinksPanel(doc);
                         this.renderDocAttachmentsBar(doc);
+                        this.renderDocVoiceMemos(doc);
                         this.toggleDocMode(this.state.docMode || 'edit');
                     }
                 }
@@ -3690,6 +3691,7 @@ graph TD
                 this.renderDocLinksPanel(doc);
                 this.renderDocToc();
                 this.renderDocAttachmentsBar(doc);
+                this.renderDocVoiceMemos(doc);
                 if (this.isProjectReadOnly(p)) {
                     this.toggleDocMode('preview');
                 } else {
@@ -4221,6 +4223,558 @@ graph TD
                 this.showToast('🗑️ 快照已刪除');
             },
 
+            // ================= 🎙️ IndexedDB 高容量音訊資料庫管理 =================
+            audioDB: {
+                dbName: 'FlatSpecAudioDB',
+                dbVersion: 1,
+                dbInstance: null,
+
+                async getDB() {
+                    if (this.dbInstance) return this.dbInstance;
+                    if (typeof window === 'undefined' || !window.indexedDB) return null;
+                    return new Promise((resolve, reject) => {
+                        const req = window.indexedDB.open(this.dbName, this.dbVersion);
+                        req.onupgradeneeded = (e) => {
+                            const db = e.target.result;
+                            if (!db.objectStoreNames.contains('audio_blobs')) {
+                                db.createObjectStore('audio_blobs', { keyPath: 'id' });
+                            }
+                        };
+                        req.onsuccess = (e) => {
+                            this.dbInstance = e.target.result;
+                            resolve(this.dbInstance);
+                        };
+                        req.onerror = (e) => reject(e.target.error);
+                    });
+                },
+
+                async saveBlob(id, blob, metadata = {}) {
+                    const db = await this.getDB();
+                    if (!db) return null;
+                    return new Promise((resolve, reject) => {
+                        const tx = db.transaction('audio_blobs', 'readwrite');
+                        const store = tx.objectStore('audio_blobs');
+                        const record = {
+                            id,
+                            blob,
+                            mimeType: blob.type || 'audio/webm',
+                            size: blob.size,
+                            ...metadata,
+                            createdAt: new Date().toISOString()
+                        };
+                        const req = store.put(record);
+                        req.onsuccess = () => resolve(record);
+                        req.onerror = (e) => reject(e.target.error);
+                    });
+                },
+
+                async getBlob(id) {
+                    const db = await this.getDB();
+                    if (!db) return null;
+                    return new Promise((resolve, reject) => {
+                        const tx = db.transaction('audio_blobs', 'readonly');
+                        const store = tx.objectStore('audio_blobs');
+                        const req = store.get(id);
+                        req.onsuccess = (e) => resolve(e.target.result || null);
+                        req.onerror = (e) => reject(e.target.error);
+                    });
+                },
+
+                async deleteBlob(id) {
+                    const db = await this.getDB();
+                    if (!db) return false;
+                    return new Promise((resolve, reject) => {
+                        const tx = db.transaction('audio_blobs', 'readwrite');
+                        const store = tx.objectStore('audio_blobs');
+                        const req = store.delete(id);
+                        req.onsuccess = () => resolve(true);
+                        req.onerror = (e) => reject(e.target.error);
+                    });
+                }
+            },
+
+            // ================= 🎙️ 語音備忘錄錄音與播放器 =================
+            voiceRecorder: {
+                mediaRecorder: null,
+                audioChunks: [],
+                stream: null,
+                timerInterval: null,
+                secondsElapsed: 0,
+                recordedBlob: null,
+                targetType: 'doc', // 'doc' or 'task'
+                targetId: null
+            },
+
+            openDocVoiceMemoRecorder() {
+                const p = this.getCurrentProject();
+                const doc = p?.docs?.find(d => d.id === this.state.activeDocId);
+                if (!doc) {
+                    this.showToast('請先選擇或開啟一篇文檔', 'error');
+                    return;
+                }
+                this.voiceRecorder.targetType = 'doc';
+                this.voiceRecorder.targetId = doc.id;
+                this.resetVoiceRecorderUI();
+                const input = document.getElementById('voiceMemoTitleInput');
+                if (input) input.value = `${doc.title || '文檔'} - 語音備忘 ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
+                document.getElementById('voiceMemoModal')?.classList.remove('hidden');
+            },
+
+            openTaskVoiceMemoRecorder(taskId) {
+                this.voiceRecorder.targetType = 'task';
+                this.voiceRecorder.targetId = taskId;
+                this.resetVoiceRecorderUI();
+                const p = this.getCurrentProject();
+                const task = p?.tasks?.find(t => t.id === taskId);
+                const input = document.getElementById('voiceMemoTitleInput');
+                if (input) input.value = `${task?.title || '任務'} - 語音備忘`;
+                document.getElementById('voiceMemoModal')?.classList.remove('hidden');
+            },
+
+            closeVoiceMemoModal() {
+                this.cancelAudioRecording();
+                document.getElementById('voiceMemoModal')?.classList.add('hidden');
+            },
+
+            resetVoiceRecorderUI() {
+                this.voiceRecorder.recordedBlob = null;
+                this.voiceRecorder.audioChunks = [];
+                this.voiceRecorder.secondsElapsed = 0;
+                clearInterval(this.voiceRecorder.timerInterval);
+
+                const timer = document.getElementById('voiceRecordingTimer');
+                if (timer) timer.innerText = '00:00';
+
+                const statusText = document.getElementById('voiceRecordingStatusText');
+                if (statusText) statusText.innerText = '準備就緒';
+
+                const dot = document.getElementById('voiceRecordingDot');
+                if (dot) dot.className = 'w-3 h-3 rounded-full bg-slate-300';
+
+                const preview = document.getElementById('voiceMemoPreviewPlayer');
+                if (preview) {
+                    preview.pause();
+                    preview.src = '';
+                    preview.classList.add('hidden');
+                }
+
+                document.getElementById('btnStartVoiceRecord')?.classList.remove('hidden');
+                document.getElementById('btnStopVoiceRecord')?.classList.add('hidden');
+                document.getElementById('btnDiscardVoiceRecord')?.classList.add('hidden');
+                const saveBtn = document.getElementById('btnSaveVoiceRecord');
+                if (saveBtn) {
+                    saveBtn.disabled = true;
+                    saveBtn.innerText = this.voiceRecorder.targetType === 'doc' ? '儲存至文檔' : '儲存至任務';
+                }
+            },
+
+            async startAudioRecording() {
+                try {
+                    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                        this.showToast('瀏覽器不支援麥克風錄音 API', 'error');
+                        return;
+                    }
+
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    this.voiceRecorder.stream = stream;
+                    this.voiceRecorder.audioChunks = [];
+                    this.voiceRecorder.secondsElapsed = 0;
+
+                    let mimeType = 'audio/webm;codecs=opus';
+                    if (!window.MediaRecorder || !MediaRecorder.isTypeSupported(mimeType)) {
+                        mimeType = 'audio/webm';
+                        if (!window.MediaRecorder || !MediaRecorder.isTypeSupported(mimeType)) {
+                            mimeType = 'audio/mp4';
+                            if (!window.MediaRecorder || !MediaRecorder.isTypeSupported(mimeType)) mimeType = '';
+                        }
+                    }
+
+                    const options = mimeType ? { mimeType } : {};
+                    const mediaRecorder = new MediaRecorder(stream, options);
+                    this.voiceRecorder.mediaRecorder = mediaRecorder;
+
+                    mediaRecorder.ondataavailable = (e) => {
+                        if (e.data && e.data.size > 0) {
+                            this.voiceRecorder.audioChunks.push(e.data);
+                        }
+                    };
+
+                    mediaRecorder.onstop = () => {
+                        const blob = new Blob(this.voiceRecorder.audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+                        this.voiceRecorder.recordedBlob = blob;
+                        const preview = document.getElementById('voiceMemoPreviewPlayer');
+                        if (preview) {
+                            preview.src = URL.createObjectURL(blob);
+                            preview.classList.remove('hidden');
+                        }
+                        const saveBtn = document.getElementById('btnSaveVoiceRecord');
+                        if (saveBtn) saveBtn.disabled = false;
+                    };
+
+                    mediaRecorder.start(250);
+
+                    document.getElementById('btnStartVoiceRecord')?.classList.add('hidden');
+                    document.getElementById('btnStopVoiceRecord')?.classList.remove('hidden');
+                    document.getElementById('btnDiscardVoiceRecord')?.classList.remove('hidden');
+
+                    const statusText = document.getElementById('voiceRecordingStatusText');
+                    if (statusText) statusText.innerText = '正在錄音...';
+
+                    const dot = document.getElementById('voiceRecordingDot');
+                    if (dot) dot.className = 'w-3 h-3 rounded-full bg-rose-500 recording-pulse-badge';
+
+                    this.voiceRecorder.timerInterval = setInterval(() => {
+                        this.voiceRecorder.secondsElapsed++;
+                        const mins = String(Math.floor(this.voiceRecorder.secondsElapsed / 60)).padStart(2, '0');
+                        const secs = String(this.voiceRecorder.secondsElapsed % 60).padStart(2, '0');
+                        const timer = document.getElementById('voiceRecordingTimer');
+                        if (timer) timer.innerText = `${mins}:${secs}`;
+                    }, 1000);
+
+                    this.playSound('click');
+                } catch(err) {
+                    console.error('Recording error:', err);
+                    this.showToast('無法取得麥克風權限或裝置不支援: ' + err.message, 'error');
+                }
+            },
+
+            stopAudioRecording() {
+                if (this.voiceRecorder.mediaRecorder && this.voiceRecorder.mediaRecorder.state !== 'inactive') {
+                    this.voiceRecorder.mediaRecorder.stop();
+                }
+                if (this.voiceRecorder.stream) {
+                    this.voiceRecorder.stream.getTracks().forEach(t => t.stop());
+                    this.voiceRecorder.stream = null;
+                }
+                clearInterval(this.voiceRecorder.timerInterval);
+
+                document.getElementById('btnStopVoiceRecord')?.classList.add('hidden');
+                document.getElementById('btnStartVoiceRecord')?.classList.remove('hidden');
+
+                const statusText = document.getElementById('voiceRecordingStatusText');
+                if (statusText) statusText.innerText = '錄音完畢，可試聽或儲存';
+
+                const dot = document.getElementById('voiceRecordingDot');
+                if (dot) dot.className = 'w-3 h-3 rounded-full bg-emerald-500';
+
+                this.playSound('click');
+            },
+
+            cancelAudioRecording() {
+                if (this.voiceRecorder.mediaRecorder && this.voiceRecorder.mediaRecorder.state !== 'inactive') {
+                    try { this.voiceRecorder.mediaRecorder.stop(); } catch(e) {}
+                }
+                if (this.voiceRecorder.stream) {
+                    this.voiceRecorder.stream.getTracks().forEach(t => t.stop());
+                    this.voiceRecorder.stream = null;
+                }
+                this.resetVoiceRecorderUI();
+            },
+
+            async saveAudioRecording() {
+                const blob = this.voiceRecorder.recordedBlob;
+                if (!blob) {
+                    this.showToast('無可儲存的音訊檔案', 'error');
+                    return;
+                }
+
+                const titleInput = document.getElementById('voiceMemoTitleInput');
+                const title = titleInput?.value.trim() || '語音備忘';
+                const audioId = 'aud_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4);
+                const duration = this.voiceRecorder.secondsElapsed;
+
+                try {
+                    await this.audioDB.saveBlob(audioId, blob, { title, duration });
+                    
+                    const p = this.getCurrentProject();
+                    if (this.voiceRecorder.targetType === 'doc') {
+                        const doc = p?.docs?.find(d => d.id === this.voiceRecorder.targetId);
+                        if (doc) {
+                            doc.audioList = doc.audioList || [];
+                            doc.audioList.push({
+                                id: audioId,
+                                title,
+                                duration,
+                                size: blob.size,
+                                createdAt: new Date().toISOString()
+                            });
+                            p.updatedAt = new Date().toISOString();
+                            this.debouncedSaveAndSync();
+                            this.renderDocVoiceMemos(doc);
+                            this.showToast('🎙️ 語音備忘已儲存至文檔！');
+                        }
+                    } else if (this.voiceRecorder.targetType === 'task') {
+                        const task = p?.tasks?.find(t => t.id === this.voiceRecorder.targetId);
+                        if (task) {
+                            task.audioList = task.audioList || [];
+                            task.audioList.push({
+                                id: audioId,
+                                title,
+                                duration,
+                                size: blob.size,
+                                createdAt: new Date().toISOString()
+                            });
+                            p.updatedAt = new Date().toISOString();
+                            this.debouncedSaveAndSync();
+                            this.renderExecution();
+                            this.showToast('🎙️ 語音備忘已附加至任務！');
+                        }
+                    }
+
+                    this.closeVoiceMemoModal();
+                    this.playSound('task_done');
+                } catch(err) {
+                    console.error('Failed to save audio to IndexedDB:', err);
+                    this.showToast('音檔儲存失敗: ' + err.message, 'error');
+                }
+            },
+
+            async playVoiceMemo(audioId) {
+                try {
+                    const record = await this.audioDB.getBlob(audioId);
+                    if (!record || !record.blob) {
+                        this.showToast('找不到音訊本機記錄 (可能已清除)', 'error');
+                        return;
+                    }
+                    const audioUrl = URL.createObjectURL(record.blob);
+                    const player = new Audio(audioUrl);
+                    player.play();
+                    this.showToast(`▶️ 正在播放：${record.title || '語音備忘'}`);
+                } catch(err) {
+                    this.showToast('播放失敗: ' + err.message, 'error');
+                }
+            },
+
+            async downloadVoiceMemo(audioId) {
+                try {
+                    const record = await this.audioDB.getBlob(audioId);
+                    if (!record || !record.blob) {
+                        this.showToast('找不到音訊檔案', 'error');
+                        return;
+                    }
+                    const a = document.createElement('a');
+                    a.href = URL.createObjectURL(record.blob);
+                    a.download = `${record.title || 'voice_memo'}.webm`;
+                    a.click();
+                } catch(err) {
+                    this.showToast('下載失敗: ' + err.message, 'error');
+                }
+            },
+
+            async deleteDocVoiceMemo(audioId) {
+                if (!confirm('確定要刪除這筆語音備忘錄嗎？')) return;
+                const p = this.getCurrentProject();
+                const doc = p?.docs?.find(d => d.id === this.state.activeDocId);
+                if (doc && doc.audioList) {
+                    doc.audioList = doc.audioList.filter(a => a.id !== audioId);
+                    p.updatedAt = new Date().toISOString();
+                    this.debouncedSaveAndSync();
+                    this.renderDocVoiceMemos(doc);
+                }
+                await this.audioDB.deleteBlob(audioId);
+                this.showToast('🗑️ 語音備忘已刪除');
+            },
+
+            renderDocVoiceMemos(doc) {
+                const bar = document.getElementById('docVoiceMemoBar');
+                if (!bar) return;
+                const list = doc?.audioList || [];
+                if (list.length === 0) {
+                    bar.classList.add('hidden');
+                    bar.innerHTML = '';
+                    return;
+                }
+                bar.classList.remove('hidden');
+                let html = `
+                    <div class="flex items-center gap-1 font-bold text-rose-800 shrink-0 mr-1">
+                        <span>🎙️</span> <span>語音備忘 (${list.length})</span>
+                    </div>
+                `;
+                list.forEach(item => {
+                    const mins = String(Math.floor((item.duration || 0) / 60)).padStart(2, '0');
+                    const secs = String((item.duration || 0) % 60).padStart(2, '0');
+                    html += `
+                        <div class="voice-memo-chip flex items-center gap-1.5 bg-white border border-rose-200 rounded-full px-2.5 py-1 text-xs">
+                            <button type="button" onclick="app.playVoiceMemo('${item.id}')" class="text-rose-600 hover:text-rose-800 font-bold flex items-center gap-1" title="點擊播放">
+                                <span>▶️</span> <span class="max-w-[120px] truncate">${this.escapeHtml(item.title)}</span>
+                                <span class="text-[10px] font-mono text-slate-400">(${mins}:${secs})</span>
+                            </button>
+                            <button type="button" onclick="app.downloadVoiceMemo('${item.id}')" class="text-slate-400 hover:text-slate-700" title="下載音檔">💾</button>
+                            <button type="button" onclick="app.deleteDocVoiceMemo('${item.id}')" class="text-slate-400 hover:text-rose-600 font-bold ml-0.5" title="刪除">✕</button>
+                        </div>
+                    `;
+                });
+                bar.innerHTML = html;
+            },
+
+            // ================= 📖 純淨閱讀模式 (Clean Zen Reader) 與獨立發布 =================
+            readerState: {
+                fontSizeDelta: 0,
+                theme: 'paper'
+            },
+
+            openCleanReader() {
+                const p = this.getCurrentProject();
+                const doc = p?.docs?.find(d => d.id === this.state.activeDocId);
+                if (!doc) {
+                    this.showToast('找不到當前文檔', 'error');
+                    return;
+                }
+
+                const overlay = document.getElementById('cleanReaderOverlay');
+                const titleEl = document.getElementById('cleanReaderDocTitle');
+                const contentEl = document.getElementById('cleanReaderContent');
+                if (!overlay || !contentEl) return;
+
+                if (titleEl) titleEl.innerText = doc.title || '無標題文檔';
+
+                let rawContent = doc.content || '*文檔無內容*';
+                let renderedHtml = '';
+                if (typeof marked !== 'undefined' && marked.parse) {
+                    renderedHtml = marked.parse(rawContent);
+                } else {
+                    renderedHtml = `<pre class="whitespace-pre-wrap">${this.escapeHtml(rawContent)}</pre>`;
+                }
+
+                contentEl.innerHTML = renderedHtml;
+
+                if (typeof mermaid !== 'undefined' && mermaid.run) {
+                    try {
+                        mermaid.run({ querySelector: '#cleanReaderContent .language-mermaid, #cleanReaderContent .mermaid' });
+                    } catch(e) {}
+                }
+
+                this.setReaderTheme(this.readerState.theme || 'paper');
+                overlay.classList.remove('hidden');
+                document.body.style.overflow = 'hidden';
+                this.playSound('click');
+            },
+
+            closeCleanReader() {
+                const overlay = document.getElementById('cleanReaderOverlay');
+                if (overlay) overlay.classList.add('hidden');
+                document.body.style.overflow = '';
+            },
+
+            setReaderTheme(theme) {
+                this.readerState.theme = theme;
+                const overlay = document.getElementById('cleanReaderOverlay');
+                if (!overlay) return;
+                overlay.className = `fixed inset-0 z-50 overflow-y-auto select-text reader-theme-${theme}`;
+
+                ['paper', 'sepia', 'night'].forEach(t => {
+                    const btn = document.getElementById(`btnTheme${t.charAt(0).toUpperCase() + t.slice(1)}`);
+                    if (btn) {
+                        if (t === theme) {
+                            btn.className = 'px-2.5 py-1 text-xs font-bold rounded-md bg-white text-slate-800 shadow-xs';
+                        } else {
+                            btn.className = 'px-2.5 py-1 text-xs font-bold rounded-md text-slate-500 hover:text-slate-800';
+                        }
+                    }
+                });
+            },
+
+            adjustReaderFontSize(delta) {
+                this.readerState.fontSizeDelta = Math.max(-2, Math.min(6, this.readerState.fontSizeDelta + delta));
+                const contentEl = document.getElementById('cleanReaderContent');
+                if (contentEl) {
+                    const baseSize = 16 + this.readerState.fontSizeDelta * 2;
+                    contentEl.style.fontSize = `${baseSize}px`;
+                }
+            },
+
+            exportDocAsStandaloneHTML() {
+                const p = this.getCurrentProject();
+                const doc = p?.docs?.find(d => d.id === this.state.activeDocId);
+                if (!doc) {
+                    this.showToast('找不到當前文檔', 'error');
+                    return;
+                }
+
+                let rawContent = doc.content || '';
+                let renderedHtml = (typeof marked !== 'undefined' && marked.parse) ? marked.parse(rawContent) : `<pre>${this.escapeHtml(rawContent)}</pre>`;
+
+                const standaloneHTML = `<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>${this.escapeHtml(doc.title || '文檔')} - FlatSpec</title>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&family=Noto+Sans+TC:wght@400;500;700&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"><\/script>
+    <style>
+        :root {
+            --bg-page: #f8fafc;
+            --bg-card: #ffffff;
+            --text-primary: #0f172a;
+            --text-secondary: #475569;
+            --border: #e2e8f0;
+            --font-family: 'Plus Jakarta Sans', 'Noto Sans TC', sans-serif;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: var(--font-family);
+            background-color: var(--bg-page);
+            color: var(--text-primary);
+            line-height: 1.8;
+            -webkit-font-smoothing: antialiased;
+        }
+        .container {
+            max-width: 860px;
+            margin: 40px auto;
+            padding: 48px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.06);
+        }
+        @media (max-width: 640px) {
+            .container { margin: 16px; padding: 24px; }
+        }
+        h1, h2, h3, h4 { font-weight: 700; color: #0f172a; margin-top: 1.5em; }
+        h1 { font-size: 2rem; border-bottom: 2px solid var(--border); padding-bottom: 12px; margin-top: 0; }
+        pre, code { font-family: 'JetBrains Mono', monospace; }
+        code:not(pre code) { background: #f1f5f9; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; }
+        pre { background: #0f172a; color: #f8fafc; padding: 16px; border-radius: 8px; overflow-x: auto; }
+        blockquote { border-left: 4px solid #cbd5e1; margin-left: 0; padding-left: 16px; color: var(--text-secondary); }
+        table { width: 100%; border-collapse: collapse; margin: 1.5em 0; }
+        th, td { border: 1px solid var(--border); padding: 8px 12px; text-align: left; }
+        th { background: #f8fafc; }
+        img { max-width: 100%; border-radius: 8px; }
+        .meta-footer { margin-top: 48px; padding-top: 24px; border-top: 1px solid var(--border); font-size: 12px; color: var(--text-secondary); display: flex; justify-content: space-between; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>${this.escapeHtml(doc.title || '無標題文檔')}</h1>
+        <article class="content">
+            ${renderedHtml}
+        </article>
+        <div class="meta-footer">
+            <span>專案：${this.escapeHtml(p?.title || 'FlatSpec')}</span>
+            <span>發布時間：${new Date().toLocaleDateString()}</span>
+        </div>
+    </div>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof mermaid !== 'undefined') {
+                mermaid.initialize({ startOnLoad: true, theme: 'neutral' });
+            }
+        });
+    <\/script>
+</body>
+</html>`;
+
+                const blob = new Blob([standaloneHTML], { type: 'text/html;charset=utf-8' });
+                const a = document.createElement('a');
+                a.href = URL.createObjectURL(blob);
+                a.download = `${doc.title || 'document'}.html`;
+                a.click();
+                this.showToast('🌐 獨立網頁 HTML 已匯出！');
+                this.playSound('task_done');
+            },
+
             toggleDocMode(mode) {
                 this.state.docMode = mode || 'edit';
                 try { localStorage.setItem('flatSpecLastDocMode', this.state.docMode); } catch(e) {}
@@ -4730,8 +5284,14 @@ graph TD
                 document.getElementById('editTaskId').value = task.id;
                 document.getElementById('editTaskTitleInput').value = task.title || '';
                 document.getElementById('editTaskPriorityInput').value = task.priority || 'MED';
-                document.getElementById('editTaskStatusInput').value = task.status || 'TODO';
                 document.getElementById('editTaskDescInput').value = task.desc || '';
+
+                // 填充狀態下拉選單 (支援自定義看板欄位)
+                const statusSelect = document.getElementById('editTaskStatusInput');
+                if (statusSelect) {
+                    const cols = this.getProjectTaskColumns(p);
+                    statusSelect.innerHTML = cols.map(c => `<option value="${this.escapeHtml(c.id)}" ${task.status === c.id ? 'selected' : ''}>${this.escapeHtml(c.title)}</option>`).join('');
+                }
 
                 // 填充成員下拉選單
                 const assigneeSelect = document.getElementById('editTaskAssigneeInput');
@@ -4871,6 +5431,8 @@ graph TD
                     return t.assignee === this.taskMemberFilter || t.assignee === members.find(m => m.id === this.taskMemberFilter)?.name;
                 });
 
+                const cols = this.getProjectTaskColumns(p);
+
                 const getPrioBadge = (prio) => {
                     if (prio === 'HIGH') return `<span class="bg-red-100 text-red-900 border border-red-500 px-1 py-0.2 text-[9px] sm:text-[10px] font-black shrink-0">🔴<span class="hidden sm:inline ml-0.5">HIGH</span></span>`;
                     if (prio === 'LOW') return `<span class="bg-blue-100 text-blue-900 border border-blue-500 px-1 py-0.2 text-[9px] sm:text-[10px] font-black shrink-0">🔵<span class="hidden sm:inline ml-0.5">LOW</span></span>`;
@@ -4891,12 +5453,14 @@ graph TD
                         listEl.innerHTML = filteredTasks.length === 0 ? `<div class="p-8 text-center text-zinc-400 font-bold border-2 border-dashed border-zinc-300">目前尚無符合的任務。</div>` : 
                             filteredTasks.map(t => {
                                 const commentCount = (t.comments || []).length;
+                                const audioCount = (t.audioList || []).length;
+                                const optHtml = cols.map(c => `<option value="${this.escapeHtml(c.id)}" ${t.status === c.id ? 'selected' : ''}>${this.escapeHtml(c.title)}</option>`).join('');
                                 return `
                                     <div id="task_${t.id}" class="bg-white border border-slate-200 rounded-xl p-3 hover:border-slate-300 hover:shadow-sm transition-all flex items-center justify-between gap-3 ${t.status === 'DONE' ? 'opacity-60 bg-slate-50/70' : ''}">
                                         <div class="flex items-center gap-2 flex-1 min-w-0">
                                             <input type="checkbox" class="w-4 h-4 sm:w-5 sm:h-5 border-2 border-black accent-black cursor-pointer shrink-0" 
                                                 ${t.status === 'DONE' ? 'checked' : ''} 
-                                                onchange="app.updateTaskStatus('${t.id}', this.checked ? 'DONE' : 'TODO')">
+                                                onchange="app.updateTaskStatus('${t.id}', this.checked ? 'DONE' : '${cols[0]?.id || 'TODO'}')">
                                             <div class="flex flex-col min-w-0">
                                                 <span onclick="app.openEditTaskModal('${t.id}')" class="font-black text-xs sm:text-sm truncate cursor-pointer hover:underline ${t.status === 'DONE' ? 'line-through text-zinc-500' : ''}" title="點擊編輯任務">${this.escapeHtml(t.title)}</span>
                                                 ${t.desc ? `<span class="text-[10px] sm:text-[11px] text-zinc-500 font-mono truncate max-w-md">${this.escapeHtml(t.desc)}</span>` : ''}
@@ -4905,13 +5469,14 @@ graph TD
                                         <div class="flex items-center gap-1 sm:gap-1.5 shrink-0">
                                             ${getAssigneeBadge(t.assignee)}
                                             ${getPrioBadge(t.priority)}
+                                            <button onclick="app.openTaskVoiceMemoRecorder('${t.id}')" class="p-0.5 sm:p-1 px-1 sm:px-1.5 border border-slate-200 font-bold text-[10px] sm:text-[11px] bg-white hover:bg-rose-50 text-rose-600 rounded flex items-center gap-0.5 shrink-0" title="錄製/檢視語音備忘">
+                                                <span>🎙️</span> <span>${audioCount}</span>
+                                            </button>
                                             <button onclick="app.openTaskComments('${t.id}')" class="p-0.5 sm:p-1 px-1 sm:px-1.5 border border-black font-bold text-[10px] sm:text-[11px] bg-white hover:bg-yellow-200 flat-box flex items-center gap-0.5 shrink-0" title="任務討論串">
                                                 <span>💬</span> <span>${commentCount}</span>
                                             </button>
                                             <select onchange="app.updateTaskStatus('${t.id}', this.value)" class="flat-input flat-select-sm text-xs font-bold bg-white cursor-pointer hidden md:block">
-                                                <option value="TODO" ${t.status === 'TODO' ? 'selected' : ''}>TODO</option>
-                                                <option value="DOING" ${t.status === 'DOING' ? 'selected' : ''}>DOING</option>
-                                                <option value="DONE" ${t.status === 'DONE' ? 'selected' : ''}>DONE</option>
+                                                ${optHtml}
                                             </select>
                                             <button onclick="app.openEditTaskModal('${t.id}')" class="text-zinc-600 hover:bg-zinc-200 p-1 border border-transparent hover:border-black transition-colors text-xs font-bold shrink-0" title="編輯">✏️</button>
                                             <button onclick="app.deleteTask('${t.id}')" class="text-red-500 hover:bg-red-100 p-1 border border-transparent hover:border-red-500 transition-colors text-xs shrink-0" title="刪除">🗑️</button>
@@ -4921,54 +5486,228 @@ graph TD
                             }).join('');
                     }
                 } 
-                // 看板模式渲染
+                // 看板模式渲染 (動態自定義欄位)
                 else {
-                    const kanbans = { 'TODO': '', 'DOING': '', 'DONE': '' };
-                    let counts = { 'TODO': 0, 'DOING': 0, 'DONE': 0 };
+                    const kanbanContainer = document.getElementById('execKanbanView');
+                    if (!kanbanContainer) return;
 
-                    filteredTasks.forEach(t => {
-                        const status = t.status || 'TODO';
-                        if(counts[status] !== undefined) counts[status]++;
-                        const commentCount = (t.comments || []).length;
-                        
-                        const renderCard = `
-                            <div id="task_${t.id}" class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:border-slate-300 transition-all text-sm flex flex-col gap-2.5">
-                                <div class="flex justify-between items-start">
-                                    <span onclick="app.openEditTaskModal('${t.id}')" class="leading-tight cursor-pointer hover:underline font-black" title="點擊編輯任務">${this.escapeHtml(t.title)}</span>
+                    const colorStyles = {
+                        slate: { bg: 'bg-slate-50', border: 'border-slate-200', text: 'text-slate-800', badge: 'bg-slate-100 text-slate-700' },
+                        blue: { bg: 'bg-blue-50/50', border: 'border-blue-200', text: 'text-blue-800', badge: 'bg-blue-100 text-blue-800' },
+                        emerald: { bg: 'bg-emerald-50/50', border: 'border-emerald-200', text: 'text-emerald-800', badge: 'bg-emerald-100 text-emerald-800' },
+                        amber: { bg: 'bg-amber-50/50', border: 'border-amber-200', text: 'text-amber-800', badge: 'bg-amber-100 text-amber-800' },
+                        purple: { bg: 'bg-purple-50/50', border: 'border-purple-200', text: 'text-purple-800', badge: 'bg-purple-100 text-purple-800' },
+                        rose: { bg: 'bg-rose-50/50', border: 'border-rose-200', text: 'text-rose-800', badge: 'bg-rose-100 text-rose-800' },
+                        cyan: { bg: 'bg-cyan-50/50', border: 'border-cyan-200', text: 'text-cyan-800', badge: 'bg-cyan-100 text-cyan-800' },
+                        indigo: { bg: 'bg-indigo-50/50', border: 'border-indigo-200', text: 'text-indigo-800', badge: 'bg-indigo-100 text-indigo-800' }
+                    };
+
+                    let kanbanHtml = '';
+
+                    cols.forEach(col => {
+                        const colTasks = filteredTasks.filter(t => (t.status || 'TODO') === col.id);
+                        const cStyle = colorStyles[col.color || 'slate'] || colorStyles.slate;
+
+                        const cardsHtml = colTasks.length === 0 
+                            ? `<div class="text-xs text-slate-400 p-6 text-center italic">尚無任務</div>`
+                            : colTasks.map(t => {
+                                const commentCount = (t.comments || []).length;
+                                const audioCount = (t.audioList || []).length;
+                                const statusOptions = cols.map(c => `<option value="${this.escapeHtml(c.id)}" ${t.status === c.id ? 'selected' : ''}>${this.escapeHtml(c.title)}</option>`).join('');
+
+                                return `
+                                    <div id="task_${t.id}" draggable="true" ondragstart="app.onTaskDragStart(event, '${t.id}')" class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:border-slate-300 transition-all text-sm flex flex-col gap-2.5 cursor-grab active:cursor-grabbing">
+                                        <div class="flex justify-between items-start">
+                                            <span onclick="app.openEditTaskModal('${t.id}')" class="leading-tight cursor-pointer hover:underline font-black" title="點擊編輯任務">${this.escapeHtml(t.title)}</span>
+                                            <div class="flex items-center gap-1 shrink-0">
+                                                <button onclick="app.openEditTaskModal('${t.id}')" class="text-[10px] text-zinc-500 hover:text-black">✏️</button>
+                                                <button onclick="app.deleteTask('${t.id}')" class="text-xs text-zinc-400 hover:text-red-500">✕</button>
+                                            </div>
+                                        </div>
+                                        ${t.desc ? `<p class="text-[11px] text-zinc-500 font-mono line-clamp-2">${this.escapeHtml(t.desc)}</p>` : ''}
+                                        <div class="flex items-center justify-between gap-1 flex-wrap">
+                                            ${getAssigneeBadge(t.assignee)}
+                                            <div class="flex items-center gap-1">
+                                                ${audioCount > 0 ? `
+                                                    <button onclick="app.openTaskVoiceMemoRecorder('${t.id}')" class="text-[10px] text-rose-600 hover:text-rose-800 flex items-center gap-0.5 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200">
+                                                        <span>🎙️</span> <span>${audioCount}</span>
+                                                    </button>
+                                                ` : ''}
+                                                <button onclick="app.openTaskComments('${t.id}')" class="text-[10px] text-zinc-600 hover:text-black flex items-center gap-0.5 bg-zinc-100 px-1.5 py-0.5 border border-zinc-300">
+                                                    <span>💬</span> <span>${commentCount}</span>
+                                                </button>
+                                            </div>
+                                        </div>
+                                        <div class="flex justify-between items-center mt-1 border-t-2 border-zinc-100 pt-2">
+                                            ${getPrioBadge(t.priority)}
+                                            <select onchange="app.updateTaskStatus('${t.id}', this.value)" class="flat-input flat-select-sm text-[10px] font-bold bg-white cursor-pointer max-w-[110px]">
+                                                ${statusOptions}
+                                            </select>
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('');
+
+                        kanbanHtml += `
+                            <div ondragover="event.preventDefault(); this.classList.add('ring-2', 'ring-black');" ondragleave="this.classList.remove('ring-2', 'ring-black');" ondrop="this.classList.remove('ring-2', 'ring-black'); app.onTaskDrop(event, '${col.id}')" class="min-w-[85vw] md:min-w-[300px] flex-1 flex flex-col ${cStyle.bg} border ${cStyle.border} rounded-xl snap-center overflow-hidden transition-all">
+                                <div class="p-3 border-b ${cStyle.border} bg-white font-bold text-xs ${cStyle.text} flex justify-between items-center">
+                                    <span class="truncate">${this.escapeHtml(col.title)}</span>
                                     <div class="flex items-center gap-1 shrink-0">
-                                        <button onclick="app.openEditTaskModal('${t.id}')" class="text-[10px] text-zinc-500 hover:text-black">✏️</button>
-                                        <button onclick="app.deleteTask('${t.id}')" class="text-xs text-zinc-400 hover:text-red-500">✕</button>
+                                        <span class="${cStyle.badge} rounded px-2 py-0.5 text-xs font-mono">${colTasks.length}</span>
+                                        <button type="button" onclick="app.openEditColumnModal('${col.id}')" class="text-slate-400 hover:text-slate-700 p-0.5 rounded" title="設定此欄位">⚙️</button>
                                     </div>
                                 </div>
-                                ${t.desc ? `<p class="text-[11px] text-zinc-500 font-mono line-clamp-2">${this.escapeHtml(t.desc)}</p>` : ''}
-                                <div class="flex items-center justify-between gap-1 flex-wrap">
-                                    ${getAssigneeBadge(t.assignee)}
-                                    <button onclick="app.openTaskComments('${t.id}')" class="text-[10px] text-zinc-600 hover:text-black flex items-center gap-0.5 bg-zinc-100 px-1.5 py-0.5 border border-zinc-300">
-                                        <span>💬</span> <span>${commentCount}</span>
-                                    </button>
-                                </div>
-                                <div class="flex justify-between items-center mt-1 border-t-2 border-zinc-100 pt-2">
-                                    ${getPrioBadge(t.priority)}
-                                    <select onchange="app.updateTaskStatus('${t.id}', this.value)" class="flat-input flat-select-sm text-[10px] font-bold bg-white cursor-pointer">
-                                        <option value="TODO" ${t.status === 'TODO' ? 'selected' : ''}>到 TODO</option>
-                                        <option value="DOING" ${t.status === 'DOING' ? 'selected' : ''}>到 DOING</option>
-                                        <option value="DONE" ${t.status === 'DONE' ? 'selected' : ''}>到 DONE</option>
-                                    </select>
+                                <div class="flex-1 p-2 overflow-y-auto space-y-2 no-scrollbar min-h-[120px]" id="kanbanCol_${col.id}">
+                                    ${cardsHtml}
                                 </div>
                             </div>
                         `;
-                        if(kanbans[status] !== undefined) kanbans[status] += renderCard;
                     });
 
-                    const setInner = (id, html) => { const el = document.getElementById(id); if(el) el.innerHTML = html; };
-                    setInner('kanbanTodo', kanbans['TODO'] || '<div class="text-xs text-zinc-400 p-4 text-center italic">無任務</div>');
-                    setInner('kanbanDoing', kanbans['DOING'] || '<div class="text-xs text-zinc-400 p-4 text-center italic">無任務</div>');
-                    setInner('kanbanDone', kanbans['DONE'] || '<div class="text-xs text-zinc-400 p-4 text-center italic">無任務</div>');
-                    
-                    setInner('countTodo', counts['TODO']);
-                    setInner('countDoing', counts['DOING']);
-                    setInner('countDone', counts['DONE']);
+                    // Add Column Card at the end of Kanban
+                    kanbanHtml += `
+                        <div onclick="app.openAddColumnModal()" class="min-w-[180px] md:min-w-[200px] flex flex-col items-center justify-center border-2 border-dashed border-slate-300 rounded-xl p-6 text-slate-500 hover:text-slate-800 hover:border-slate-500 cursor-pointer transition-colors bg-white/50">
+                            <span class="text-2xl mb-1">➕</span>
+                            <span class="font-bold text-xs">新增自定義欄位</span>
+                        </div>
+                    `;
+
+                    kanbanContainer.innerHTML = kanbanHtml;
                 }
+            },
+
+            // ================= 📋 看板自定義欄位與拖曳管理 =================
+            draggedTaskId: null,
+
+            onTaskDragStart(e, taskId) {
+                this.draggedTaskId = taskId;
+                e.dataTransfer.setData('text/plain', taskId);
+                e.dataTransfer.effectAllowed = 'move';
+            },
+
+            onTaskDrop(e, targetColId) {
+                e.preventDefault();
+                const taskId = this.draggedTaskId || e.dataTransfer.getData('text/plain');
+                if (!taskId || !targetColId) return;
+                this.updateTaskStatus(taskId, targetColId);
+                this.draggedTaskId = null;
+            },
+
+            getProjectTaskColumns(p) {
+                if (p && Array.isArray(p.taskColumns) && p.taskColumns.length > 0) {
+                    return p.taskColumns;
+                }
+                return [
+                    { id: 'TODO', title: '待處理 (TODO)', color: 'slate' },
+                    { id: 'DOING', title: '進行中 (DOING)', color: 'blue' },
+                    { id: 'DONE', title: '已完成 (DONE)', color: 'emerald' }
+                ];
+            },
+
+            openAddColumnModal() {
+                document.getElementById('customColumnEditId').value = '';
+                document.getElementById('customColumnTitleInput').value = '';
+                document.getElementById('customColumnModalTitle').innerText = '新增看板欄位';
+                document.getElementById('btnDeleteCustomCol')?.classList.add('hidden');
+                document.getElementById('customColumnModal')?.classList.remove('hidden');
+            },
+
+            openEditColumnModal(colId) {
+                const p = this.getCurrentProject();
+                if (!p) return;
+                const cols = this.getProjectTaskColumns(p);
+                const col = cols.find(c => c.id === colId);
+                if (!col) return;
+
+                document.getElementById('customColumnEditId').value = col.id;
+                document.getElementById('customColumnTitleInput').value = col.title || '';
+                document.getElementById('customColumnModalTitle').innerText = '編輯看板欄位';
+
+                const radios = document.getElementsByName('colColor');
+                radios.forEach(r => {
+                    r.checked = r.value === (col.color || 'slate');
+                });
+
+                const delBtn = document.getElementById('btnDeleteCustomCol');
+                if (delBtn) {
+                    delBtn.classList.remove('hidden');
+                }
+
+                document.getElementById('customColumnModal')?.classList.remove('hidden');
+            },
+
+            closeCustomColumnModal() {
+                document.getElementById('customColumnModal')?.classList.add('hidden');
+            },
+
+            saveCustomColumn() {
+                const editId = document.getElementById('customColumnEditId')?.value;
+                const title = document.getElementById('customColumnTitleInput')?.value.trim();
+                if (!title) {
+                    this.showToast('請輸入欄位名稱', 'error');
+                    return;
+                }
+
+                let selectedColor = 'slate';
+                const radios = document.getElementsByName('colColor');
+                radios.forEach(r => { if (r.checked) selectedColor = r.value; });
+
+                const p = this.getCurrentProject();
+                if (!p) return;
+
+                if (!Array.isArray(p.taskColumns) || p.taskColumns.length === 0) {
+                    p.taskColumns = [
+                        { id: 'TODO', title: '待處理 (TODO)', color: 'slate' },
+                        { id: 'DOING', title: '進行中 (DOING)', color: 'blue' },
+                        { id: 'DONE', title: '已完成 (DONE)', color: 'emerald' }
+                    ];
+                }
+
+                if (editId) {
+                    const col = p.taskColumns.find(c => c.id === editId);
+                    if (col) {
+                        col.title = title;
+                        col.color = selectedColor;
+                    }
+                } else {
+                    const newId = 'COL_' + Date.now().toString(36).toUpperCase();
+                    p.taskColumns.push({
+                        id: newId,
+                        title,
+                        color: selectedColor
+                    });
+                }
+
+                p.updatedAt = new Date().toISOString();
+                this.closeCustomColumnModal();
+                this.debouncedSaveAndSync();
+                this.renderExecution();
+                this.showToast('✅ 看板欄位已儲存');
+                this.playSound('click');
+            },
+
+            deleteCustomColumn() {
+                const editId = document.getElementById('customColumnEditId')?.value;
+                if (!editId) return;
+
+                if (!confirm('確定要刪除此欄位嗎？屬於此欄位的任務將自動移至待處理 (TODO)。')) return;
+
+                const p = this.getCurrentProject();
+                if (!p) return;
+
+                if (!Array.isArray(p.taskColumns)) return;
+                p.taskColumns = p.taskColumns.filter(c => c.id !== editId);
+
+                const fallbackId = p.taskColumns[0]?.id || 'TODO';
+                (p.tasks || []).forEach(t => {
+                    if (t.status === editId) t.status = fallbackId;
+                });
+
+                p.updatedAt = new Date().toISOString();
+                this.closeCustomColumnModal();
+                this.debouncedSaveAndSync();
+                this.renderExecution();
+                this.showToast('🗑️ 欄位已刪除');
             },
 
             // ================= 團隊協作管理方法 =================
@@ -5622,7 +6361,8 @@ graph TD
                 document.getElementById('newProjectModal')?.classList.remove('hidden');
             },
             closeModals() {
-                ['settingsModal', 'gasModal', 'newProjectModal', 'newDocModal', 'docHistoryModal', 'backupModal', 'editProjectModal', 'editTaskModal', 'insertImageModal', 'imageViewerModal', 'searchModal', 'teamModal', 'taskCommentsModal', 'fontModal', 'historyModal', 'projectPasswordModal'].forEach(id => {
+                this.closeCleanReader();
+                ['settingsModal', 'gasModal', 'newProjectModal', 'newDocModal', 'docHistoryModal', 'backupModal', 'editProjectModal', 'editTaskModal', 'insertImageModal', 'imageViewerModal', 'searchModal', 'teamModal', 'taskCommentsModal', 'fontModal', 'historyModal', 'projectPasswordModal', 'voiceMemoModal', 'cleanReaderOverlay', 'customColumnModal'].forEach(id => {
                     const el = document.getElementById(id);
                     if(el) el.classList.add('hidden');
                 });
