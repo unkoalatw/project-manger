@@ -36,7 +36,7 @@ function doGet(e) {
 }
 
 /**
- * 處理 POST 請求：寫入 JSON 資料並重新格式化試算表視覺頁面
+ * 處理 POST 請求：寫入 JSON 資料或執行雲端安全 AI 拆解代理
  */
 function doPost(e) {
   try {
@@ -48,9 +48,15 @@ function doPost(e) {
       throw new Error('未收到任何 POST 內容');
     }
 
-    // 驗證 JSON 格式
-    var projectsData = JSON.parse(contents);
+    var parsedPayload = JSON.parse(contents);
 
+    // ================= 🤖 安全 AI 任務拆解代理 (Cloud Groq Proxy) =================
+    if (parsedPayload && typeof parsedPayload === 'object' && parsedPayload.action === 'ai_decompose') {
+      return handleAiDecompositionProxy(parsedPayload);
+    }
+
+    // ================= 雲端同步與試算表寫入 =================
+    var projectsData = parsedPayload;
     var ss = getTargetSpreadsheet();
     
     // 1. 將 JSON 資料以分塊形式寫入 FlatSpecData (突破單格 50,000 字元上限)
@@ -73,11 +79,80 @@ function doPost(e) {
   } catch (err) {
     var errorResult = JSON.stringify({
       status: 'error',
-      message: '雲端寫入失敗: ' + err.toString()
+      message: '雲端寫入/處理失敗: ' + err.toString()
     });
 
     return ContentService.createTextOutput(errorResult)
       .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+/**
+ * 雲端安全 AI 任務拆解中繼函式 (金鑰安全存於 GAS 端，100% 絕不外露)
+ */
+function handleAiDecompositionProxy(payload) {
+  try {
+    var scriptProps = PropertiesService.getScriptProperties();
+    var apiKey = scriptProps.getProperty('GROQ_API_KEY') || payload.clientApiKey || '';
+
+    if (!apiKey) {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: 'error',
+        message: '雲端後端尚未配置 GROQ_API_KEY。請於 GAS 專案設定中的「指令碼屬性」加入 GROQ_API_KEY，或透過設定指令儲存。'
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    var systemPrompt = payload.systemPrompt || '你是一個敏捷專案管理專家。';
+    var userMessageContent = payload.userMessage || '';
+
+    var groqPayload = {
+      model: 'groq/compound-mini',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userMessageContent }
+      ],
+      temperature: 0.3,
+      max_tokens: 3500,
+      response_format: { type: 'json_object' }
+    };
+
+    var options = {
+      method: 'post',
+      contentType: 'application/json',
+      headers: {
+        'Authorization': 'Bearer ' + apiKey
+      },
+      payload: JSON.stringify(groqPayload),
+      muteHttpExceptions: true
+    };
+
+    var response = UrlFetchApp.fetch('https://api.groq.com/openai/v1/chat/completions', options);
+    var responseCode = response.getResponseCode();
+    var responseBody = response.getContentText();
+
+    if (responseCode !== 200) {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: 'error',
+        message: 'Groq API 回應錯誤 (HTTP ' + responseCode + '): ' + responseBody
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    var groqData = JSON.parse(responseBody);
+    var rawText = groqData.choices && groqData.choices[0] && groqData.choices[0].message ? groqData.choices[0].message.content : '{}';
+
+    var cleanedJson = rawText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+    var parsedStructure = JSON.parse(cleanedJson);
+
+    return ContentService.createTextOutput(JSON.stringify({
+      status: 'success',
+      data: parsedStructure
+    })).setMimeType(ContentService.MimeType.JSON);
+
+  } catch (proxyErr) {
+    return ContentService.createTextOutput(JSON.stringify({
+      status: 'error',
+      message: 'AI 雲端中繼代理發生異常: ' + proxyErr.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
   }
 }
 

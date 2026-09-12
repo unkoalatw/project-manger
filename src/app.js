@@ -9579,23 +9579,6 @@ this.closeModals();
                 const input = document.getElementById('aiDecomposePromptInput');
                 const userNotes = input ? input.value.trim() : '';
 
-                const apiKey = this.getGroqApiKey();
-                if (!apiKey) {
-                    const keyInput = document.getElementById('aiGroqApiKeyInput');
-                    if (keyInput && keyInput.value.trim()) {
-                        this.setGroqApiKey(keyInput.value.trim());
-                    } else {
-                        const enteredKey = prompt('請輸入您的 Groq API Key（例如：gsk_...）以進行全專案 AI 拆解：');
-                        if (enteredKey && enteredKey.trim()) {
-                            this.setGroqApiKey(enteredKey.trim());
-                            if (keyInput) keyInput.value = enteredKey.trim();
-                        } else {
-                            this.showToast('❌ 未提供 Groq API Key，無法執行拆解', 'error');
-                            return;
-                        }
-                    }
-                }
-
                 const loadingEl = document.getElementById('aiDecomposeLoading');
                 const resultsEl = document.getElementById('aiDecomposeResultsContainer');
                 const footerEl = document.getElementById('aiDecomposeFooter');
@@ -9621,7 +9604,7 @@ this.closeModals();
                 } catch(err) {
                     if (loadingEl) loadingEl.classList.add('hidden');
                     console.error('AI Decompose Error:', err);
-                    this.showToast(`❌ 拆解失敗：${err.message || 'Groq API 請求異常'}`, 'error');
+                    this.showToast(`❌ 拆解失敗：${err.message || 'AI 雲端代理服務異常'}`, 'error');
                 } finally {
                     if (btnStart) {
                         btnStart.disabled = false;
@@ -9677,11 +9660,54 @@ JSON 格式規範如下：
                     (userNotes ? `【使用者的補充指示/重點聚焦】：\n${userNotes}\n\n` : '') +
                     `請依據上述全專案內容，為我深度規劃並拆解出三階段任務（前期準備、進行時順序步驟、善後交付）。`;
 
+                const clientKey = this.getGroqApiKey();
+
+                // 優先使用 GAS 雲端安全代理（完全保護金鑰，全裝置免輸入）
+                if (this.state.gasUrl) {
+                    try {
+                        const proxyResponse = await fetch(this.state.gasUrl, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'text/plain;charset=utf-8'
+                            },
+                            body: JSON.stringify({
+                                action: 'ai_decompose',
+                                systemPrompt: systemPrompt,
+                                userMessage: userMessageContent,
+                                clientApiKey: clientKey
+                            }),
+                            redirect: 'follow'
+                        });
+
+                        if (proxyResponse.ok) {
+                            const proxyResult = await proxyResponse.json();
+                            if (proxyResult.status === 'success' && proxyResult.data) {
+                                const parsed = proxyResult.data;
+                                return {
+                                    summary: parsed.summary || '',
+                                    preTasks: Array.isArray(parsed.preTasks) ? parsed.preTasks : [],
+                                    inProgressTasks: Array.isArray(parsed.inProgressTasks) ? parsed.inProgressTasks : [],
+                                    postTasks: Array.isArray(parsed.postTasks) ? parsed.postTasks : []
+                                };
+                            } else if (proxyResult.status === 'error' && proxyResult.message && !clientKey) {
+                                console.warn('GAS proxy notice:', proxyResult.message);
+                            }
+                        }
+                    } catch (proxyErr) {
+                        console.warn('GAS proxy failed, fallback to direct if key available:', proxyErr);
+                    }
+                }
+
+                // 本機 Direct 呼叫 Fallback (若本機已有 clientKey)
+                if (!clientKey) {
+                    throw new Error('雲端 AI 後端尚未配置完成。請先確認 GAS 雲端連線正常。');
+                }
+
                 const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${this.getGroqApiKey()}`
+                        'Authorization': `Bearer ${clientKey}`
                     },
                     body: JSON.stringify({
                         model: 'groq/compound-mini',
