@@ -7748,8 +7748,14 @@ ${rawHtml}
                                         <span class="px-1.5 py-0.5 text-[9px] font-mono font-bold uppercase bg-slate-200 text-slate-700 rounded">${typeBadge}</span>
                                     </div>
                                     <div class="flex items-center gap-1.5">
+                                        <button type="button" onclick="app.zoomInlineMermaid(this, 0.2)" class="mermaid-btn" title="放大圖表尺寸 (+20%)">
+                                            <span>➕</span> <span>放大</span>
+                                        </button>
+                                        <button type="button" onclick="app.zoomInlineMermaid(this, -0.2)" class="mermaid-btn" title="縮小圖表尺寸 (-20%)">
+                                            <span>➖</span> <span>縮小</span>
+                                        </button>
                                         <button type="button" onclick="app.openMermaidModal(this)" class="mermaid-btn" title="全螢幕放大檢視與自由平移縮放">
-                                            <span>🔍</span> <span>放大</span>
+                                            <span>🔍</span> <span>全螢幕</span>
                                         </button>
                                         <button type="button" onclick="app.exportMermaidSvg(this)" class="mermaid-btn" title="匯出高解析度 SVG 向量圖檔">
                                             <span>💾</span> <span>匯出 SVG</span>
@@ -8519,6 +8525,24 @@ ${rawHtml}
                 startY: 0
             },
 
+            zoomInlineMermaid(btn, delta) {
+                const card = btn.closest('.mermaid-diagram-card');
+                if (!card) return;
+                const svgEl = card.querySelector('.mermaid svg');
+                if (!svgEl) return;
+                let currentScale = parseFloat(svgEl.dataset.zoomScale || '1');
+                if (delta === 0) {
+                    currentScale = 1;
+                } else {
+                    currentScale = Math.max(0.6, Math.min(2.5, currentScale + delta));
+                }
+                svgEl.dataset.zoomScale = currentScale;
+                svgEl.style.transform = currentScale === 1 ? '' : `scale(${currentScale})`;
+                svgEl.style.transformOrigin = 'center top';
+                this.showToast(`🔍 圖表縮放比例：${Math.round(currentScale * 100)}%`);
+                this.playSound('click');
+            },
+
             openMermaidModal(btnOrCard) {
                 const card = btnOrCard.closest ? btnOrCard.closest('.mermaid-diagram-card') : btnOrCard;
                 if (!card) return;
@@ -8704,7 +8728,7 @@ ${rawHtml}
                             fontFamily: "'Plus Jakarta Sans', 'Noto Sans TC', sans-serif",
                             themeVariables: {
                                 fontFamily: "'Plus Jakarta Sans', 'Noto Sans TC', sans-serif",
-                                fontSize: '13px',
+                                fontSize: '14.5px',
                                 primaryColor: '#ffffff',
                                 primaryTextColor: '#0f172a',
                                 primaryBorderColor: '#0f172a',
@@ -8729,24 +8753,24 @@ ${rawHtml}
                             flowchart: {
                                 htmlLabels: true,
                                 curve: 'basis',
-                                nodeSpacing: 25,
-                                rankSpacing: 30,
-                                padding: 8,
+                                nodeSpacing: 35,
+                                rankSpacing: 42,
+                                padding: 12,
                                 useMaxWidth: false
                             },
                             sequence: {
-                                actorMargin: 40,
-                                messageMargin: 30,
-                                boxMargin: 8,
-                                boxTextMargin: 4,
-                                noteMargin: 8,
+                                actorMargin: 45,
+                                messageMargin: 35,
+                                boxMargin: 10,
+                                boxTextMargin: 6,
+                                noteMargin: 10,
                                 messageFontFamily: "'Plus Jakarta Sans', 'Noto Sans TC', sans-serif"
                             },
                             gantt: {
-                                titleTopMargin: 20,
-                                barHeight: 18,
-                                barGap: 4,
-                                topPadding: 40,
+                                titleTopMargin: 25,
+                                barHeight: 22,
+                                barGap: 5,
+                                topPadding: 45,
                                 sidePadding: 50
                             }
                         });
@@ -8763,18 +8787,26 @@ ${rawHtml}
                             node.innerHTML = svg;
                             node.setAttribute('data-processed', 'true');
                             
-                            // 修正 SVG 尺寸過大問題：保留自然寬高，避免單欄流程圖被強制拉伸到 100% 容器寬度
+                            // 優化 SVG 呈現尺寸：針對垂直狹長型流程圖自動放寬至清晰易讀尺寸，避免過小或過大
                             const svgEl = node.querySelector('svg');
                             if (svgEl) {
-                                svgEl.style.width = 'auto';
                                 svgEl.style.height = 'auto';
                                 const viewBox = svgEl.getAttribute('viewBox');
                                 if (viewBox) {
                                     const parts = viewBox.split(/[\s,]+/).map(Number);
                                     if (parts.length === 4 && parts[2] > 0) {
                                         const naturalWidth = parts[2];
-                                        svgEl.style.maxWidth = `${Math.min(naturalWidth, 680)}px`;
+                                        // 垂直狹長流程圖自動放大至 480px~750px，確保節點字體清晰大方
+                                        const optimalWidth = Math.min(Math.max(naturalWidth * 1.35, 480), 850);
+                                        svgEl.style.width = '100%';
+                                        svgEl.style.maxWidth = `${optimalWidth}px`;
+                                    } else {
+                                        svgEl.style.maxWidth = '100%';
+                                        svgEl.style.width = 'auto';
                                     }
+                                } else {
+                                    svgEl.style.maxWidth = '100%';
+                                    svgEl.style.width = 'auto';
                                 }
                             }
                         } catch (err) {
