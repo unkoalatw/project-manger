@@ -1986,6 +1986,12 @@
                 return !this.state.unlockedProjects.has(target.id);
             },
 
+            // 檢查專案是否啟用鎖定模式 (唯讀預覽模式，禁止編輯修改)
+            isProjectReadOnly(proj) {
+                const target = proj || this.getCurrentProject();
+                return !!(target && target.readOnly);
+            },
+
             // 請求開啟專案（若有密碼且未解鎖則彈出密碼視窗，否則直接切換並進入目標視圖）
             requestOpenProject(projectId, targetView = 'Docs') {
                 const proj = this.getProject(projectId);
@@ -2809,7 +2815,9 @@
                         localStorage.setItem('flatSpecLastDocFor_' + this.state.activeProjectId, docId);
                     }
                 } catch(e) {}
-                if (targetMode) {
+                if (this.isProjectReadOnly(p)) {
+                    this.state.docMode = 'preview';
+                } else if (targetMode) {
                     this.state.docMode = targetMode;
                 }
                 this.renderSidebar();
@@ -3393,7 +3401,11 @@
                 this.renderDocLinksPanel(doc);
                 this.renderDocToc();
                 this.renderDocAttachmentsBar(doc);
-                this.toggleDocMode(this.state.docMode || 'edit');
+                if (this.isProjectReadOnly(p)) {
+                    this.toggleDocMode('preview');
+                } else {
+                    this.toggleDocMode(this.state.docMode || 'edit');
+                }
             },
 
             printDocPreview() {
