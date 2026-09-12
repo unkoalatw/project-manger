@@ -9495,10 +9495,7 @@ this.closeModals();
                 if (!modal) return;
                 modal.classList.remove('hidden');
 
-                const keyInput = document.getElementById('aiGroqApiKeyInput');
-                if (keyInput) {
-                    keyInput.value = this.getGroqApiKey();
-                }
+                this.updateGroqApiKeyStatusUI();
 
                 const promptInput = document.getElementById('aiDecomposePromptInput');
                 if (promptInput) {
@@ -9509,6 +9506,32 @@ this.closeModals();
             closeAiTaskDecomposeModal() {
                 const modal = document.getElementById('aiTaskDecomposeModal');
                 if (modal) modal.classList.add('hidden');
+            },
+
+            updateGroqApiKeyStatusUI() {
+                const statusEl = document.getElementById('aiGroqApiKeyStatus');
+                if (!statusEl) return;
+                const key = this.getGroqApiKey();
+                if (key) {
+                    const masked = key.length > 8 ? `${key.slice(0, 4)}...${key.slice(-4)}` : '已配置';
+                    statusEl.innerHTML = `<span class="text-emerald-600 font-bold">● 已就緒 (${masked})</span>`;
+                } else {
+                    statusEl.innerHTML = `<span class="text-amber-600 font-bold">○ 尚未設定</span>`;
+                }
+            },
+
+            promptConfigureGroqApiKey() {
+                const current = this.getGroqApiKey();
+                const newKey = prompt('請輸入 Groq API Key（例如：gsk_...）：', current);
+                if (newKey !== null) {
+                    this.setGroqApiKey(newKey.trim());
+                    this.updateGroqApiKeyStatusUI();
+                    if (newKey.trim()) {
+                        this.showToast('✅ Groq API Key 已更新並儲存');
+                    } else {
+                        this.showToast('ℹ️ 已清除 Groq API Key');
+                    }
+                }
             },
 
             buildFullProjectAiContext() {

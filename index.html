@@ -1719,14 +1719,17 @@
 
                     <textarea id="aiDecomposePromptInput" rows="3" class="flat-input w-full p-3 text-xs leading-relaxed font-mono" placeholder="可輸入額外補充說明或重點方向（例如：聚焦於第三季影片拍攝時程、加強戶外展演的安全規範；若留空則預設根據全專案所有內容進行完整拆解）"></textarea>
 
-                    <!-- API Key 與選項 -->
+                    <!-- 操作按鈕與 Key 狀態列 -->
                     <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-1">
-                        <div class="flex items-center gap-2 flex-1">
-                            <span class="text-xs text-slate-500 font-bold shrink-0">🔑 API Key:</span>
-                            <input type="password" id="aiGroqApiKeyInput" placeholder="輸入 Groq API Key (gsk_...)" class="flat-input flex-1 p-1.5 text-xs font-mono" onchange="app.setGroqApiKey(this.value)">
+                        <div class="flex items-center gap-2">
+                            <span class="text-[11px] text-slate-500 font-mono flex items-center gap-1">
+                                <span>🔑 API Key：</span>
+                                <span id="aiGroqApiKeyStatus" class="font-bold text-slate-700">自動讀取已儲存金鑰</span>
+                            </span>
+                            <button type="button" onclick="app.promptConfigureGroqApiKey()" class="text-[10px] text-purple-600 hover:text-purple-800 underline font-mono" title="變更或重新設定 Groq API Key">修改 Key</button>
                         </div>
-                        <button type="button" id="btnStartAiDecompose" onclick="app.startAiTaskDecomposition()" class="px-5 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold text-xs rounded-lg shadow-sm flex items-center justify-center gap-1.5 transition-all shrink-0">
-                            <span>⚡</span> <span>分析全專案並開始拆解</span>
+                        <button type="button" id="btnStartAiDecompose" onclick="app.startAiTaskDecomposition()" class="px-6 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold text-xs rounded-lg shadow-sm flex items-center justify-center gap-1.5 transition-all shrink-0">
+                            <span>⚡</span> <span>深度分析全專案並開始拆解</span>
                         </button>
                     </div>
                 </div>
