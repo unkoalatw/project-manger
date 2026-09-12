@@ -6942,6 +6942,46 @@ ${rawHtml}
                 return html;
             },
 
+            sanitizeMermaidCode(code) {
+                if (!code || typeof code !== 'string') return '';
+                let raw = code.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+                
+                // 1. 全形空格替換為半形空格
+                raw = raw.replace(/\u3000/g, ' ');
+
+                // 2. 將開頭圖表宣告（如 flowchart TD，... 或 graph LR；...）分行
+                raw = raw.replace(/^([ \t]*(?:flowchart|graph)\s+[A-Za-z]+)[，,；; \t]+(.*)$/im, '$1\n$2');
+                raw = raw.replace(/^([ \t]*(?:sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|pie|gitGraph|mindmap|timeline))[，,；; \t]+(.*)$/im, '$1\n$2');
+
+                // 3. 逐行清理全形標點符號與連線語法
+                const lines = raw.split('\n');
+                const fixedLines = [];
+
+                for (let line of lines) {
+                    let l = line.trim();
+                    if (!l) {
+                        fixedLines.push('');
+                        continue;
+                    }
+
+                    // 處理圖表宣告後綴全形標點
+                    if (/^(flowchart|graph)\s+[A-Za-z]+[，,；;]/i.test(l)) {
+                        const parts = l.replace(/^((?:flowchart|graph)\s+[A-Za-z]+)[，,；;][ \t]*(.*)$/i, '$1\n$2').split('\n');
+                        fixedLines.push(...parts);
+                        continue;
+                    }
+
+                    // 修復全形箭頭
+                    l = l.replace(/－－＞|──＞|--\>/g, '-->')
+                         .replace(/＝＝＞|══＞|==\>/g, '==>')
+                         .replace(/－\.-|--\./g, '-.-');
+
+                    fixedLines.push(l);
+                }
+
+                return fixedLines.join('\n');
+            },
+
             preprocessMermaidDiagrams(text) {
                 if (!text || typeof text !== 'string') return text || '';
                 
@@ -6981,8 +7021,11 @@ ${rawHtml}
                     if (!inDiagram) {
                         if (diagramStartRegex.test(trimmed)) {
                             inDiagram = true;
-                            const cleanLine = trimmed.replace(/^`+|`+$/g, '').trim();
-                            diagramBuffer = [cleanLine];
+                            let cleanLine = trimmed.replace(/^`+|`+$/g, '').trim();
+                            // 如果開頭連接著中文標點或節點 (如 flowchart TD，A(...)) 則自動分行
+                            cleanLine = cleanLine.replace(/^([ \t]*(?:flowchart|graph)\s+[A-Za-z]+)[，,；; \t]+(.*)$/i, '$1\n$2');
+                            const subLines = cleanLine.split('\n');
+                            diagramBuffer = [...subLines];
                         } else {
                             resultLines.push(line);
                         }
@@ -6992,7 +7035,8 @@ ${rawHtml}
                             diagramBuffer.push('');
                         } else if (trimmed.startsWith('`') || 
                                    /^\s*(subgraph|end|style|class|click|direction|[A-Za-z0-9_\u4e00-\u9fa5]+|%%)/i.test(trimmed) || 
-                                   trimmed.includes('-->') || trimmed.includes('---') || trimmed.includes('==>') || trimmed.includes('-.-')) {
+                                   trimmed.includes('-->') || trimmed.includes('---') || trimmed.includes('==>') || trimmed.includes('-.-') ||
+                                   trimmed.includes('－－＞') || trimmed.includes('──＞')) {
                             const cleanLine = trimmed.replace(/^`+|`+$/g, '').trim();
                             diagramBuffer.push(cleanLine);
                         } else {
@@ -7040,7 +7084,8 @@ ${rawHtml}
 
                     nodes.forEach(async (node) => {
                         if (node.getAttribute('data-processed') === 'true') return;
-                        const code = node.textContent || '';
+                        let code = node.textContent || '';
+                        code = this.sanitizeMermaidCode(code);
                         const id = 'mermaid_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
                         try {
                             const { svg } = await mermaid.render(id, code);

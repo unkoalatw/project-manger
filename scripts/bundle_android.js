@@ -15,6 +15,10 @@ execSync('npm run build', { cwd: rootDir, stdio: 'inherit' });
 console.log('📦 2. Preparing Android www directory:', destDir);
 fs.mkdirSync(destDir, { recursive: true });
 fs.mkdirSync(path.join(destDir, 'libs'), { recursive: true });
+const destAssetsDir = path.join(destDir, 'assets');
+if (fs.existsSync(destAssetsDir)) {
+    fs.rmSync(destAssetsDir, { recursive: true, force: true });
+}
 
 // Copy dist contents to Android assets/www
 console.log('📦 3. Copying dist files to Android assets/www...');
