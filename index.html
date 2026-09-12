@@ -988,6 +988,15 @@
                             </div>
                         </div>
 
+                        <!-- 🔒 鎖定模式 (只讀預覽不可編輯) 設置 -->
+                        <div class="p-3 bg-white border border-zinc-300">
+                            <label class="flex items-center gap-2 cursor-pointer text-xs font-bold select-none">
+                                <input type="checkbox" id="editProjectReadOnlyToggle" class="accent-black">
+                                <span>🔒 啟用專案鎖定模式 (鎖定後僅供預覽閱讀，禁止編輯修改)</span>
+                            </label>
+                            <p class="text-[10px] text-slate-500 font-mono pl-5 mt-0.5">開啟後文檔將固定為唯讀預覽模式，並隱藏編輯工具列以防止誤觸修改。</p>
+                        </div>
+
                         <!-- 隱藏專案設置 -->
                         <div class="p-3 bg-white border border-zinc-300">
                             <label class="flex items-center gap-2 cursor-pointer text-xs font-bold select-none">
@@ -1127,6 +1136,12 @@
                     <div id="newProjectPasswordBox" class="hidden pt-1">
                         <input type="password" id="newProjectPasswordInput" class="flat-input w-full p-2 text-xs font-mono" placeholder="請設定專案密碼...">
                     </div>
+                </div>
+                <div class="p-3 bg-slate-50 border border-zinc-300">
+                    <label class="flex items-center gap-2 cursor-pointer text-xs font-bold select-none">
+                        <input type="checkbox" id="newProjectReadOnlyToggle" class="accent-black">
+                        <span>🔒 啟用專案鎖定模式 (僅供預覽閱讀，禁止編輯)</span>
+                    </label>
                 </div>
                 <div class="pt-1">
                     <label class="flex items-center gap-2 cursor-pointer text-xs font-bold text-zinc-700 select-none">

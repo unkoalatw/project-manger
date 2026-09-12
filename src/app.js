@@ -1726,7 +1726,8 @@
                                     </div>
                                     <div class="min-w-0 flex-1 pr-2 cursor-pointer" onclick="app.requestOpenProject('${safeId}', 'Docs')">
                                         <div class="font-bold flex items-center gap-1.5 truncate">
-                                            <span>${hasPassword ? '🔒' : (isCurrent ? '⭐' : '📁')}</span>
+                                            <span>${p.readOnly ? '<span class="text-xs px-1.5 py-0.5 font-bold bg-slate-100 text-slate-700 border border-slate-300 rounded" title="鎖定模式：僅供預覽閱讀">🔒 鎖定模式</span>' : ''}
+                                        ${hasPassword ? '🔒' : (isCurrent ? '⭐' : '📁')}</span>
                                             <span class="truncate">${safeTitle}</span>
                                             ${isCurrent ? '<span class="text-[10px] bg-white text-black px-1 font-black shrink-0">當前</span>' : ''}
                                         </div>
@@ -2660,12 +2661,16 @@
                 const isSearching = searchStr.length > 0;
                 const filteredDocs = isSearching ? docs.filter(d => (d.title || '').toLowerCase().includes(searchStr)) : docs;
                 
+                const isReadOnly = this.isProjectReadOnly(p);
+                
                 html += `
                     <div class="mb-4">
                         <div class="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-2 flex justify-between items-center bg-zinc-200/60 p-1.5 border border-zinc-300">
                             <span class="flex items-center gap-1 font-bold">
                                 <span>📚</span> <span>文檔清單 (${docs.length})</span>
+                                ${isReadOnly ? '<span class="text-[9px] bg-slate-200 text-slate-700 px-1 font-mono rounded">🔒 唯讀</span>' : ''}
                             </span>
+                            ${!isReadOnly ? `
                             <div class="flex items-center gap-1">
                                 <button onclick="app.createDocFolderPrompt(null, event)" class="p-1 px-1.5 bg-white hover:bg-zinc-100 border border-black font-bold text-xs flat-box flex items-center gap-0.5" title="新增資料夾">
                                     <span>📁＋</span>
@@ -2674,6 +2679,7 @@
                                     <span>＋📄</span>
                                 </button>
                             </div>
+                            ` : ''}
                         </div>
 
                         <!-- 支援拖曳至根目錄的放置區 -->
@@ -3530,6 +3536,18 @@
                 
                 if(!editorEl || !previewEl || !btnEdit || !btnPrev) return;
 
+                const isLockedReadOnly = this.isProjectReadOnly(p);
+                const editTabBtn = document.getElementById('btnEditMode');
+                const editActionBtn = document.querySelector('#docPreviewActions button[onclick*="edit"]');
+                if (isLockedReadOnly) {
+                    this.state.docMode = 'preview';
+                    if (editTabBtn) editTabBtn.classList.add('hidden');
+                    if (editActionBtn) editActionBtn.classList.add('hidden');
+                } else {
+                    if (editTabBtn) editTabBtn.classList.remove('hidden');
+                    if (editActionBtn) editActionBtn.classList.remove('hidden');
+                }
+
                 const content = doc?.content || editorEl.value || '';
                 if (wordCountBadge) {
                     wordCountBadge.innerText = `${content.length} 字`;
@@ -3545,7 +3563,7 @@
                     previewEl.classList.remove('hidden');
 
                     if (previewTitle && doc) previewTitle.innerText = doc.title || '未命名文檔';
-                    if (previewProj && p) previewProj.innerText = `專案：${p.title}`;
+                    if (previewProj && p) previewProj.innerText = `專案：${p.title}${isLockedReadOnly ? ' 🔒 (鎖定唯讀)' : ''}`;
                     if (previewDate && p) {
                         const d = p.updatedAt ? new Date(p.updatedAt).toLocaleDateString() : '';
                         previewDate.innerText = d ? `更新於 ${d}` : '';
