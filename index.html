@@ -471,6 +471,12 @@
                         <button type="button" onclick="app.openInsertImageModal()" class="px-2.5 py-1 bg-white hover:bg-slate-100 text-blue-700 font-semibold text-xs rounded-md border border-slate-200 shadow-xs flex items-center gap-1 shrink-0" title="插入圖片">
                             <span>🖼️</span> <span class="hidden sm:inline">圖片</span>
                         </button>
+                        <button type="button" onclick="app.openDocHistoryModal()" class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 font-semibold text-xs rounded-md border border-slate-200 shadow-xs flex items-center gap-1 shrink-0" title="檢視版本歷史記錄與 Diff 差異比對">
+                            <span>🕒</span> <span class="hidden sm:inline">歷史版本</span>
+                        </button>
+                        <button type="button" onclick="app.createManualSnapshotPrompt()" class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 font-semibold text-xs rounded-md border border-slate-200 shadow-xs flex items-center gap-1 shrink-0" title="為當前狀態建立命名快照存檔">
+                            <span>💾</span> <span class="hidden sm:inline">存為版本</span>
+                        </button>
                         <button type="button" onclick="app.printDocPreview()" class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 font-semibold text-xs rounded-md border border-slate-200 shadow-xs flex items-center gap-1 shrink-0" title="列印或另存為 PDF (預覽排版後版本)">
                             <span>🖨️</span> <span class="hidden sm:inline">列印預覽版</span>
                         </button>
@@ -1210,6 +1216,89 @@
             <div class="flex justify-end gap-2 mt-6 pt-3 border-t border-slate-100">
                 <button onclick="app.closeModals()" class="px-4 py-2 border border-slate-200 font-bold text-xs bg-slate-100 hover:bg-slate-200 rounded-md">取消</button>
                 <button onclick="app.createNewDoc()" class="px-4 py-2 border border-black font-bold text-xs bg-black text-white flat-box hover:bg-slate-800 rounded-md">＋ 建立文檔</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: 文檔歷史版本與 Diff 比較 -->
+    <div id="docHistoryModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-2 md:p-6 select-none">
+        <div class="bg-white border border-slate-200 rounded-2xl shadow-2xl flex flex-col w-full h-full max-w-6xl max-h-[92vh] overflow-hidden">
+            <!-- Header -->
+            <div class="bg-slate-50 border-b border-slate-200 px-5 py-3 flex items-center justify-between gap-3 shrink-0">
+                <div class="flex items-center gap-2.5">
+                    <span class="text-lg">🕒</span>
+                    <div>
+                        <h3 class="font-bold text-sm text-slate-800 tracking-tight flex items-center gap-2">
+                            <span>文檔歷史版本與 Diff 差異對比</span>
+                            <span id="docHistoryTargetTitle" class="font-mono text-xs text-slate-500 font-normal"></span>
+                        </h3>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="app.createManualSnapshotPrompt()" class="px-3 py-1 bg-white hover:bg-slate-100 text-slate-800 font-bold text-xs rounded border border-slate-200 flex items-center gap-1">
+                        <span>💾</span> <span>存為新快照</span>
+                    </button>
+                    <button type="button" onclick="app.closeDocHistoryModal()" class="px-3 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs rounded">
+                        ✕ 關閉
+                    </button>
+                </div>
+            </div>
+
+            <!-- Body Grid: Timeline List (Left) + Diff/Preview View (Right) -->
+            <div class="flex-1 flex flex-col md:flex-row overflow-hidden">
+                <!-- Left: Timeline Sidebar -->
+                <div class="w-full md:w-80 border-b md:border-b-0 md:border-r border-slate-200 bg-slate-50/50 flex flex-col shrink-0">
+                    <div class="p-3 border-b border-slate-200 bg-white flex items-center justify-between text-xs font-bold text-slate-600">
+                        <span class="flex items-center gap-1"><span>📜</span> <span>版本歷史清單</span></span>
+                        <span id="docHistoryCountBadge" class="text-[10px] bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded font-mono">0 個版本</span>
+                    </div>
+                    <div id="docHistoryTimelineList" class="flex-1 overflow-y-auto p-2 space-y-1.5 no-scrollbar">
+                        <!-- 動態載入版本清單 -->
+                    </div>
+                </div>
+
+                <!-- Right: Diff / Content Preview Area -->
+                <div class="flex-1 flex flex-col bg-white overflow-hidden">
+                    <!-- Action Toolbar above comparison -->
+                    <div class="p-3 border-b border-slate-200 bg-white flex flex-wrap items-center justify-between gap-2 shrink-0">
+                        <div class="flex items-center gap-2">
+                            <div class="flex bg-slate-100 p-0.5 rounded border border-slate-200">
+                                <button type="button" id="tabDocHistoryDiff" onclick="app.switchDocHistoryViewMode('diff')" class="px-3 py-1 font-bold text-xs bg-black text-white rounded transition-colors flex items-center gap-1">
+                                    <span>📊</span> <span>Diff 差異比對</span>
+                                </button>
+                                <button type="button" id="tabDocHistoryPreview" onclick="app.switchDocHistoryViewMode('preview')" class="px-3 py-1 font-bold text-xs text-slate-600 hover:text-slate-900 rounded transition-colors flex items-center gap-1">
+                                    <span>👁️</span> <span>歷史預覽</span>
+                                </button>
+                            </div>
+                            <span id="docHistoryStatsBadge" class="text-xs font-mono text-slate-500"></span>
+                        </div>
+
+                        <div class="flex items-center gap-1.5" id="docHistoryActionsContainer">
+                            <button type="button" id="btnRestoreSnapshot" onclick="app.restoreSelectedSnapshot()" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded flex items-center gap-1 shadow-xs" title="將文檔內容還原為此版本">
+                                <span>⏪</span> <span>還原至此版本</span>
+                            </button>
+                            <button type="button" onclick="app.cloneSelectedSnapshotAsNewDoc()" class="px-3 py-1 bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs rounded border border-slate-200 flex items-center gap-1" title="複製此歷史版本建立為獨立新文檔">
+                                <span>📋</span> <span>另存為新文檔</span>
+                            </button>
+                            <button type="button" onclick="app.labelSelectedSnapshotPrompt()" class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs rounded border border-slate-200" title="自定義版本標籤名稱">
+                                🏷️ 命名
+                            </button>
+                            <button type="button" onclick="app.deleteSelectedSnapshot()" class="px-2.5 py-1 bg-white hover:bg-rose-50 text-rose-600 font-bold text-xs rounded border border-rose-200" title="刪除此快照">
+                                🗑️
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Diff Container -->
+                    <div id="docHistoryDiffContainer" class="flex-1 overflow-auto p-4 font-mono text-xs leading-relaxed bg-slate-50/30 select-text">
+                        <!-- 動態渲染 Diff 逐行對比 -->
+                    </div>
+
+                    <!-- Preview Container -->
+                    <div id="docHistoryPreviewContainer" class="hidden flex-1 overflow-auto p-6 md:p-10 bg-white select-text prose prose-slate max-w-none">
+                        <!-- 動態渲染該版本的 Markdown 預覽 -->
+                    </div>
+                </div>
             </div>
         </div>
     </div>

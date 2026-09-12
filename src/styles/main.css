@@ -455,6 +455,50 @@
             cursor: grabbing;
         }
 
+        /* 文檔歷史版本 Diff 對比樣式 (Document History Diff Viewer) */
+        .diff-line {
+            display: flex;
+            align-items: flex-start;
+            padding: 2px 4px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .diff-line.diff-added {
+            background-color: #ecfdf5;
+            color: #065f46;
+            border-left: 3px solid #10b981;
+        }
+        .diff-line.diff-removed {
+            background-color: #fff1f2;
+            color: #9f1239;
+            text-decoration: line-through;
+            border-left: 3px solid #f43f5e;
+            opacity: 0.8;
+        }
+        .diff-line.diff-unchanged {
+            color: #475569;
+            background-color: transparent;
+        }
+        .diff-line-number {
+            width: 38px;
+            min-width: 38px;
+            text-align: right;
+            padding-right: 10px;
+            color: #94a3b8;
+            user-select: none;
+            font-size: 11px;
+        }
+        .diff-sign {
+            width: 18px;
+            min-width: 18px;
+            text-align: center;
+            font-weight: bold;
+            user-select: none;
+        }
+
         /* 列印預覽專屬樣式 (@media print) */
         @media print {
             *, *::before, *::after {

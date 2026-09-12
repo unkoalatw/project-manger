@@ -3811,8 +3811,414 @@ graph TD
                     }
                     this.renderDocLinksPanel(doc);
                     this.renderDocToc();
+                    this.recordDocSnapshotDebounced(doc);
                     this.debouncedSaveAndSync();
                 }
+            },
+
+            // ================= 📜 文檔版本歷史與 Diff 對比引擎 (Version History & Diff Engine) =================
+            _docHistoryState: {
+                activeSnapshotId: null,
+                viewMode: 'diff', // 'diff' | 'preview'
+                _debounceTimer: null
+            },
+
+            recordDocSnapshot(doc, note = '自動儲存', isManual = false) {
+                if (!doc) return;
+                if (!Array.isArray(doc.history)) doc.history = [];
+
+                const content = doc.content || '';
+                const title = doc.title || '未命名文檔';
+                const author = this.getMyProfile()?.name || '專案成員';
+                const now = Date.now();
+
+                // 檢查最後一筆快照，若非手動且內容完全相同，則不重複新增
+                const lastSnap = doc.history[doc.history.length - 1];
+                if (lastSnap && !isManual) {
+                    if (lastSnap.content === content && lastSnap.title === title) {
+                        return;
+                    }
+                    const timeDiff = now - new Date(lastSnap.timestamp).getTime();
+                    const charDiff = Math.abs(content.length - (lastSnap.charCount || 0));
+                    // 若時間小於 2 分鐘且字數變動小於 40 字，更新最後一筆而非一直新增
+                    if (timeDiff < 120000 && charDiff < 40 && lastSnap.note === '自動儲存') {
+                        lastSnap.content = content;
+                        lastSnap.title = title;
+                        lastSnap.timestamp = new Date().toISOString();
+                        lastSnap.charCount = content.length;
+                        return;
+                    }
+                }
+
+                const newSnapshot = {
+                    id: 'hist_' + now + '_' + Math.random().toString(36).substr(2, 4),
+                    timestamp: new Date().toISOString(),
+                    title: title,
+                    content: content,
+                    author: author,
+                    note: note,
+                    charCount: content.length
+                };
+
+                doc.history.push(newSnapshot);
+
+                // 上限保護：保留最新 30 筆版本快照
+                if (doc.history.length > 30) {
+                    doc.history = doc.history.slice(-30);
+                }
+            },
+
+            recordDocSnapshotDebounced(doc) {
+                if (!doc) return;
+                clearTimeout(this._docHistoryState._debounceTimer);
+                this._docHistoryState._debounceTimer = setTimeout(() => {
+                    this.recordDocSnapshot(doc, '自動儲存', false);
+                }, 3000);
+            },
+
+            createManualSnapshotPrompt() {
+                const p = this.getCurrentProject();
+                const doc = p?.docs?.find(d => d.id === this.state.activeDocId);
+                if (!doc) {
+                    this.showToast('找不到當前文檔', 'error');
+                    return;
+                }
+
+                const defaultName = `里程碑存檔 - ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+                const note = prompt('請為此版本快照輸入備註標籤：', defaultName);
+                if (note !== null) {
+                    const cleanNote = note.trim() || defaultName;
+                    this.recordDocSnapshot(doc, cleanNote, true);
+                    this.debouncedSaveAndSync();
+                    this.showToast(`💾 已成功建立版本快照：「${cleanNote}」！`);
+                    if (!document.getElementById('docHistoryModal')?.classList.contains('hidden')) {
+                        this.renderDocHistoryTimeline();
+                    }
+                }
+            },
+
+            openDocHistoryModal() {
+                const p = this.getCurrentProject();
+                const doc = p?.docs?.find(d => d.id === this.state.activeDocId);
+                if (!doc) {
+                    this.showToast('請先選取一份文檔', 'error');
+                    return;
+                }
+
+                if (!Array.isArray(doc.history) || doc.history.length === 0) {
+                    // 初始化時自動把當前文檔內容存為第一版初始快照
+                    this.recordDocSnapshot(doc, '初始版本', true);
+                }
+
+                const titleLabel = document.getElementById('docHistoryTargetTitle');
+                if (titleLabel) {
+                    titleLabel.textContent = `— ${doc.title || '未命名文檔'}`;
+                }
+
+                // 預設選取最新的一筆歷史快照
+                if (doc.history.length > 0) {
+                    this._docHistoryState.activeSnapshotId = doc.history[doc.history.length - 1].id;
+                }
+
+                document.getElementById('docHistoryModal')?.classList.remove('hidden');
+                this.renderDocHistoryTimeline();
+            },
+
+            closeDocHistoryModal() {
+                document.getElementById('docHistoryModal')?.classList.add('hidden');
+            },
+
+            switchDocHistoryViewMode(mode) {
+                this._docHistoryState.viewMode = mode;
+                const tabDiff = document.getElementById('tabDocHistoryDiff');
+                const tabPrev = document.getElementById('tabDocHistoryPreview');
+                const diffContainer = document.getElementById('docHistoryDiffContainer');
+                const prevContainer = document.getElementById('docHistoryPreviewContainer');
+
+                if (mode === 'diff') {
+                    if (tabDiff) tabDiff.className = 'px-3 py-1 font-bold text-xs bg-black text-white rounded transition-colors flex items-center gap-1';
+                    if (tabPrev) tabPrev.className = 'px-3 py-1 font-bold text-xs text-slate-600 hover:text-slate-900 rounded transition-colors flex items-center gap-1';
+                    if (diffContainer) diffContainer.classList.remove('hidden');
+                    if (prevContainer) prevContainer.classList.add('hidden');
+                } else {
+                    if (tabDiff) tabDiff.className = 'px-3 py-1 font-bold text-xs text-slate-600 hover:text-slate-900 rounded transition-colors flex items-center gap-1';
+                    if (tabPrev) tabPrev.className = 'px-3 py-1 font-bold text-xs bg-black text-white rounded transition-colors flex items-center gap-1';
+                    if (diffContainer) diffContainer.classList.add('hidden');
+                    if (prevContainer) prevContainer.classList.remove('hidden');
+                }
+
+                this.renderDocHistoryDetail();
+            },
+
+            renderDocHistoryTimeline() {
+                const p = this.getCurrentProject();
+                const doc = p?.docs?.find(d => d.id === this.state.activeDocId);
+                const listEl = document.getElementById('docHistoryTimelineList');
+                const countBadge = document.getElementById('docHistoryCountBadge');
+                if (!doc || !listEl) return;
+
+                const history = Array.isArray(doc.history) ? [...doc.history].reverse() : [];
+                if (countBadge) countBadge.textContent = `${history.length} 個版本`;
+
+                if (history.length === 0) {
+                    listEl.innerHTML = '<div class="p-6 text-center text-xs text-slate-400">尚無歷史版本紀錄</div>';
+                    return;
+                }
+
+                if (!this._docHistoryState.activeSnapshotId || !history.some(h => h.id === this._docHistoryState.activeSnapshotId)) {
+                    this._docHistoryState.activeSnapshotId = history[0].id;
+                }
+
+                let html = '';
+                history.forEach((snap, idx) => {
+                    const isSelected = snap.id === this._docHistoryState.activeSnapshotId;
+                    const dateObj = new Date(snap.timestamp);
+                    const timeStr = dateObj.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                    const dateStr = dateObj.toLocaleDateString();
+                    const isLatest = idx === 0;
+
+                    html += `
+                        <div onclick="app.selectDocHistorySnapshot('${snap.id}')" class="p-2.5 rounded-lg cursor-pointer transition-all border ${isSelected ? 'bg-blue-50/80 border-blue-500 shadow-sm' : 'bg-white hover:bg-slate-100/70 border-slate-200'}">
+                            <div class="flex items-center justify-between mb-1">
+                                <span class="font-bold text-xs text-slate-800 truncate max-w-[170px] flex items-center gap-1">
+                                    <span>${isLatest ? '🟢' : '⚪'}</span>
+                                    <span>${this.escapeHtml(snap.note || '歷史版本')}</span>
+                                </span>
+                                <span class="text-[10px] font-mono text-slate-400">${timeStr}</span>
+                            </div>
+                            <div class="flex items-center justify-between text-[11px] text-slate-500 font-medium">
+                                <span class="truncate max-w-[120px]">👤 ${this.escapeHtml(snap.author || '成員')}</span>
+                                <span class="font-mono text-[10px] bg-slate-100 text-slate-600 px-1 py-0.2 rounded">${snap.charCount || snap.content?.length || 0} 字</span>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                listEl.innerHTML = html;
+                this.renderDocHistoryDetail();
+            },
+
+            selectDocHistorySnapshot(snapshotId) {
+                this._docHistoryState.activeSnapshotId = snapshotId;
+                this.renderDocHistoryTimeline();
+            },
+
+            computeDocDiff(oldText, newText) {
+                const oldLines = (oldText || '').split('\n');
+                const newLines = (newText || '').split('\n');
+
+                const M = oldLines.length;
+                const N = newLines.length;
+                
+                // 大文檔保護
+                if (M * N > 4000000) {
+                    return [
+                        ...oldLines.map((line, idx) => ({ type: 'removed', oldLineNo: idx + 1, text: line })),
+                        ...newLines.map((line, idx) => ({ type: 'added', newLineNo: idx + 1, text: line }))
+                    ];
+                }
+
+                const dp = Array.from({ length: M + 1 }, () => new Int32Array(N + 1));
+                for (let i = 1; i <= M; i++) {
+                    for (let j = 1; j <= N; j++) {
+                        if (oldLines[i - 1] === newLines[j - 1]) {
+                            dp[i][j] = dp[i - 1][j - 1] + 1;
+                        } else {
+                            dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
+                        }
+                    }
+                }
+
+                let i = M, j = N;
+                const diff = [];
+                while (i > 0 || j > 0) {
+                    if (i > 0 && j > 0 && oldLines[i - 1] === newLines[j - 1]) {
+                        diff.unshift({ type: 'unchanged', oldLineNo: i, newLineNo: j, text: oldLines[i - 1] });
+                        i--;
+                        j--;
+                    } else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
+                        diff.unshift({ type: 'added', newLineNo: j, text: newLines[j - 1] });
+                        j--;
+                    } else if (i > 0 && (j === 0 || dp[i][j - 1] < dp[i - 1][j])) {
+                        diff.unshift({ type: 'removed', oldLineNo: i, text: oldLines[i - 1] });
+                        i--;
+                    }
+                }
+
+                return diff;
+            },
+
+            renderDocHistoryDetail() {
+                const p = this.getCurrentProject();
+                const doc = p?.docs?.find(d => d.id === this.state.activeDocId);
+                if (!doc || !Array.isArray(doc.history)) return;
+
+                const snap = doc.history.find(h => h.id === this._docHistoryState.activeSnapshotId) || doc.history[doc.history.length - 1];
+                if (!snap) return;
+
+                const currentContent = doc.content || '';
+                const historyContent = snap.content || '';
+
+                const statsBadge = document.getElementById('docHistoryStatsBadge');
+                const diffContainer = document.getElementById('docHistoryDiffContainer');
+                const prevContainer = document.getElementById('docHistoryPreviewContainer');
+
+                if (this._docHistoryState.viewMode === 'diff') {
+                    const diffItems = this.computeDocDiff(historyContent, currentContent);
+                    let addedCount = 0;
+                    let removedCount = 0;
+                    let diffHtml = '';
+
+                    diffItems.forEach((item) => {
+                        const escapedText = this.escapeHtml(item.text) || '&nbsp;';
+                        if (item.type === 'added') {
+                            addedCount++;
+                            diffHtml += `
+                                <div class="diff-line diff-added">
+                                    <div class="diff-line-number">+${item.newLineNo}</div>
+                                    <div class="diff-sign">+</div>
+                                    <div class="flex-1">${escapedText}</div>
+                                </div>
+                            `;
+                        } else if (item.type === 'removed') {
+                            removedCount++;
+                            diffHtml += `
+                                <div class="diff-line diff-removed">
+                                    <div class="diff-line-number">-${item.oldLineNo}</div>
+                                    <div class="diff-sign">-</div>
+                                    <div class="flex-1">${escapedText}</div>
+                                </div>
+                            `;
+                        } else {
+                            diffHtml += `
+                                <div class="diff-line diff-unchanged">
+                                    <div class="diff-line-number">${item.newLineNo || item.oldLineNo}</div>
+                                    <div class="diff-sign text-slate-300"> </div>
+                                    <div class="flex-1">${escapedText}</div>
+                                </div>
+                            `;
+                        }
+                    });
+
+                    if (diffContainer) {
+                        diffContainer.innerHTML = diffHtml || '<div class="p-8 text-center text-slate-400">此版本與當前版本完全一致，無任何差異。</div>';
+                    }
+                    if (statsBadge) {
+                        statsBadge.innerHTML = `<span class="text-emerald-700 font-bold">+${addedCount} 行新增</span> <span class="text-rose-700 font-bold ml-2">-${removedCount} 行刪除</span>`;
+                    }
+                } else {
+                    if (prevContainer) {
+                        prevContainer.innerHTML = this.parseMarkdown(historyContent);
+                        this.renderMermaidDiagrams(prevContainer);
+                    }
+                    if (statsBadge) {
+                        statsBadge.innerHTML = `<span class="text-slate-600 font-medium">${snap.title || '歷史版本'} (${historyContent.length} 字)</span>`;
+                    }
+                }
+            },
+
+            restoreSelectedSnapshot() {
+                const p = this.getCurrentProject();
+                const doc = p?.docs?.find(d => d.id === this.state.activeDocId);
+                if (!doc || !Array.isArray(doc.history)) return;
+
+                const snap = doc.history.find(h => h.id === this._docHistoryState.activeSnapshotId);
+                if (!snap) return;
+
+                const timeStr = new Date(snap.timestamp).toLocaleString();
+                if (!confirm(`確定要將文檔內容還原至 [${timeStr}] 的版本「${snap.note || '歷史版本'}」嗎？\n\n系統會在還原前自動為您當前的最新進度建立安全備份。`)) {
+                    return;
+                }
+
+                // 還原前先將當前進度自動存為快照
+                this.recordDocSnapshot(doc, '還原前自動快照', true);
+
+                doc.content = snap.content || '';
+                doc.title = snap.title || doc.title;
+                p.updatedAt = new Date().toISOString();
+
+                // 更新編輯器與預覽
+                const editorEl = document.getElementById('docEditor');
+                const titleEl = document.getElementById('docTitleInput');
+                if (editorEl) editorEl.value = doc.content;
+                if (titleEl) titleEl.value = doc.title;
+
+                this.closeDocHistoryModal();
+                this.debouncedSaveAndSync();
+                this.renderAll();
+                this.showToast(`🎉 已成功將文檔還原至「${snap.note || '歷史版本'}」！`);
+            },
+
+            cloneSelectedSnapshotAsNewDoc() {
+                const p = this.getCurrentProject();
+                const doc = p?.docs?.find(d => d.id === this.state.activeDocId);
+                if (!doc || !Array.isArray(doc.history)) return;
+
+                const snap = doc.history.find(h => h.id === this._docHistoryState.activeSnapshotId);
+                if (!snap) return;
+
+                const timeStr = new Date(snap.timestamp).toLocaleDateString();
+                const newTitle = `${snap.title || doc.title} (歷史副本 ${timeStr})`;
+
+                const newDoc = {
+                    id: 'doc_' + Date.now(),
+                    title: newTitle,
+                    content: snap.content || '',
+                    folderId: doc.folderId || null,
+                    history: []
+                };
+
+                p.docs.push(newDoc);
+                p.updatedAt = new Date().toISOString();
+                this.state.activeDocId = newDoc.id;
+
+                this.closeDocHistoryModal();
+                this.debouncedSaveAndSync();
+                this.renderSidebar();
+                this.renderDocs();
+                this.switchView('Docs');
+                this.showToast(`📋 已成功建立歷史版本獨立副本「${newTitle}」！`);
+            },
+
+            labelSelectedSnapshotPrompt() {
+                const p = this.getCurrentProject();
+                const doc = p?.docs?.find(d => d.id === this.state.activeDocId);
+                if (!doc || !Array.isArray(doc.history)) return;
+
+                const snap = doc.history.find(h => h.id === this._docHistoryState.activeSnapshotId);
+                if (!snap) return;
+
+                const newNote = prompt('請輸入新的版本備註名稱：', snap.note || '');
+                if (newNote !== null) {
+                    snap.note = newNote.trim() || '自定義快照';
+                    p.updatedAt = new Date().toISOString();
+                    this.debouncedSaveAndSync();
+                    this.renderDocHistoryTimeline();
+                    this.showToast('🏷️ 版本備註已更新！');
+                }
+            },
+
+            deleteSelectedSnapshot() {
+                const p = this.getCurrentProject();
+                const doc = p?.docs?.find(d => d.id === this.state.activeDocId);
+                if (!doc || !Array.isArray(doc.history) || doc.history.length <= 1) {
+                    this.showToast('至少需保留一份版本快照！', 'error');
+                    return;
+                }
+
+                const snap = doc.history.find(h => h.id === this._docHistoryState.activeSnapshotId);
+                if (!snap) return;
+
+                if (!confirm(`確定要刪除此版本快照「${snap.note || '歷史版本'}」嗎？`)) {
+                    return;
+                }
+
+                doc.history = doc.history.filter(h => h.id !== snap.id);
+                this._docHistoryState.activeSnapshotId = doc.history[doc.history.length - 1].id;
+                p.updatedAt = new Date().toISOString();
+                this.debouncedSaveAndSync();
+                this.renderDocHistoryTimeline();
+                this.showToast('🗑️ 快照已刪除');
             },
 
             toggleDocMode(mode) {
@@ -5216,7 +5622,7 @@ graph TD
                 document.getElementById('newProjectModal')?.classList.remove('hidden');
             },
             closeModals() {
-                ['settingsModal', 'gasModal', 'newProjectModal', 'newDocModal', 'backupModal', 'editProjectModal', 'editTaskModal', 'insertImageModal', 'imageViewerModal', 'searchModal', 'teamModal', 'taskCommentsModal', 'fontModal', 'historyModal', 'projectPasswordModal'].forEach(id => {
+                ['settingsModal', 'gasModal', 'newProjectModal', 'newDocModal', 'docHistoryModal', 'backupModal', 'editProjectModal', 'editTaskModal', 'insertImageModal', 'imageViewerModal', 'searchModal', 'teamModal', 'taskCommentsModal', 'fontModal', 'historyModal', 'projectPasswordModal'].forEach(id => {
                     const el = document.getElementById(id);
                     if(el) el.classList.add('hidden');
                 });
