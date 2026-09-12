@@ -1726,7 +1726,7 @@
                                     </div>
                                     <div class="min-w-0 flex-1 pr-2 cursor-pointer" onclick="app.requestOpenProject('${safeId}', 'Docs')">
                                         <div class="font-bold flex items-center gap-1.5 truncate">
-                                            <span>${p.readOnly ? '<span class="text-xs px-1.5 py-0.5 font-bold bg-slate-100 text-slate-700 border border-slate-300 rounded" title="鎖定模式：僅供預覽閱讀">🔒 鎖定模式</span>' : ''}
+                                            <span>${proj.readOnly ? '<span class="text-xs px-1.5 py-0.5 font-bold bg-slate-100 text-slate-700 border border-slate-300 rounded" title="鎖定模式：僅供預覽閱讀">🔒 鎖定模式</span>' : ''}
                                         ${hasPassword ? '🔒' : (isCurrent ? '⭐' : '📁')}</span>
                                             <span class="truncate">${safeTitle}</span>
                                             ${isCurrent ? '<span class="text-[10px] bg-white text-black px-1 font-black shrink-0">當前</span>' : ''}
@@ -2092,20 +2092,29 @@
                         if (p.category) categories.add(p.category);
                     });
                     const cats = Array.from(categories).sort();
-                    let optsHtml = `<option value="ALL" ${selectedCategory === 'ALL' ? 'selected' : ''}>🌟 所有分類</option>`;
+                    const hiddenCount = this.state.projects.filter(p => p.hidden).length;
+                    let optsHtml = `<option value="ALL" ${selectedCategory === 'ALL' ? 'selected' : ''}>🌟 所有公開專案</option>`;
                     cats.forEach(cat => {
                         optsHtml += `<option value="${this.escapeHtml(cat)}" ${cat === selectedCategory ? 'selected' : ''}>📁 ${this.escapeHtml(cat)}</option>`;
                     });
+                    if (hiddenCount > 0) {
+                        optsHtml += `<option value="__HIDDEN__" ${selectedCategory === '__HIDDEN__' ? 'selected' : ''}>👁️‍🗨️ 已隱藏專案 (${hiddenCount})</option>`;
+                    }
                     filterEl.innerHTML = optsHtml;
-                    if (selectedCategory !== 'ALL' && cats.includes(selectedCategory)) {
+                    if (selectedCategory !== 'ALL' && (cats.includes(selectedCategory) || selectedCategory === '__HIDDEN__')) {
                         filterEl.value = selectedCategory;
                     }
                 }
 
-                // 2. 篩選非隱藏專案
+                // 2. 篩選專案 (若選中 __HIDDEN__ 則顯示隱藏專案，否則顯示非隱藏專案)
+                const isViewingHidden = selectedCategory === '__HIDDEN__';
                 const displayProjects = this.state.projects.filter(p => {
-                    if (p.hidden) return false;
-                    if (selectedCategory !== 'ALL' && p.category !== selectedCategory) return false;
+                    if (isViewingHidden) {
+                        if (!p.hidden) return false;
+                    } else {
+                        if (p.hidden) return false;
+                        if (selectedCategory !== 'ALL' && p.category !== selectedCategory) return false;
+                    }
                     if (searchVal) {
                         const titleMatch = (p.title || '').toLowerCase().includes(searchVal);
                         const catMatch = (p.category || '').toLowerCase().includes(searchVal);
@@ -2142,16 +2151,24 @@
                     const safeTitle = this.escapeHtml(p.title || '未命名專案');
                     const safeCategory = this.escapeHtml(p.category || '預設');
                     const updatedStr = p.updatedAt ? new Date(p.updatedAt).toLocaleDateString() : '剛剛';
+                    const isHidden = !!p.hidden;
 
                     return `
-                        <div class="bg-white border border-slate-200 rounded-xl hover:border-slate-300 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between group overflow-hidden"
+                        <div class="bg-white border ${isHidden ? 'border-amber-400 ring-1 ring-amber-300' : 'border-slate-200'} rounded-xl hover:border-slate-300 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between group overflow-hidden"
                              onclick="app.requestOpenProject('${p.id}', 'Docs')">
                             <!-- 卡片頂部 -->
-                            <div class="p-5 border-b border-slate-100">
+                            <div class="p-5 border-b ${isHidden ? 'border-amber-100 bg-amber-50/40' : 'border-slate-100'}">
                                 <div class="flex items-start justify-between gap-2 mb-2">
-                                    <span class="text-[11px] font-mono font-black px-2 py-0.5 border border-black bg-zinc-100 uppercase">
-                                        🏷️ ${safeCategory}
-                                    </span>
+                                    <div class="flex items-center gap-1.5 flex-wrap">
+                                        <span class="text-[11px] font-mono font-black px-2 py-0.5 border border-black bg-zinc-100 uppercase">
+                                            🏷️ ${safeCategory}
+                                        </span>
+                                        ${isHidden ? `
+                                            <span class="text-[10px] font-bold px-1.5 py-0.5 bg-amber-200 text-amber-900 border border-amber-800 rounded">
+                                                👁️‍🗨️ 已隱藏
+                                            </span>
+                                        ` : ''}
+                                    </div>
                                     <div class="flex items-center gap-1">
                                         ${hasPassword ? `
                                             <span class="text-xs px-1.5 py-0.5 font-bold ${isUnlocked ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'} border border-black" title="${isUnlocked ? '已在此工作階段解鎖' : '受密碼保護'}">
