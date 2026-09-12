@@ -2137,10 +2137,10 @@
                     const updatedStr = p.updatedAt ? new Date(p.updatedAt).toLocaleDateString() : '剛剛';
 
                     return `
-                        <div class="bg-white border-2 border-black flat-box flat-shadow-md hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[2px_2px_0px_0px_#000] transition-all cursor-pointer flex flex-col justify-between group overflow-hidden"
+                        <div class="bg-white border border-slate-200 rounded-xl hover:border-slate-300 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between group overflow-hidden"
                              onclick="app.requestOpenProject('${p.id}', 'Docs')">
                             <!-- 卡片頂部 -->
-                            <div class="p-5 border-b-2 border-black">
+                            <div class="p-5 border-b border-slate-100">
                                 <div class="flex items-start justify-between gap-2 mb-2">
                                     <span class="text-[11px] font-mono font-black px-2 py-0.5 border border-black bg-zinc-100 uppercase">
                                         🏷️ ${safeCategory}
@@ -2189,7 +2189,7 @@
                             </div>
 
                             <!-- 卡片底部動作列 -->
-                            <div class="p-3 bg-zinc-100 border-t-2 border-black flex items-center justify-between">
+                            <div class="p-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
                                 <span class="text-xs font-bold text-zinc-600 group-hover:text-black">
                                     ${hasPassword && !isUnlocked ? '輸入密碼進入編輯 ➔' : '點擊開啟文檔編輯器 ➔'}
                                 </span>
@@ -2227,11 +2227,11 @@
                     const tabBtn = document.getElementById(`viewTab${v}`);
                     if (tabBtn) {
                         if (v === viewName) {
-                            tabBtn.className = 'px-4 py-1 border-2 border-black bg-black text-white transition-colors font-bold uppercase';
+                            tabBtn.className = 'px-3.5 py-1 bg-slate-900 text-white rounded-md transition-all text-xs font-semibold shadow-xs';
                         } else {
                             const isWizard = (v === 'Wizard');
                             const bgClass = isWizard ? 'bg-violet-200 hover:bg-violet-100' : 'bg-zinc-100 hover:bg-white';
-                            tabBtn.className = `px-4 py-1 border-2 border-black ${bgClass} transition-colors uppercase`;
+                            tabBtn.className = 'px-3.5 py-1 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-md transition-all text-xs font-medium';
                         }
                     }
                 });
@@ -2524,7 +2524,7 @@
             renderSidebarDocItem(doc, isSearching, canMoveUp, canMoveDown) {
                 const isActive = doc.id === this.state.activeDocId;
                 return `
-                    <div class="group relative flex items-center justify-between p-1.5 sm:p-2 cursor-pointer text-xs sm:text-sm font-bold border-2 ${isActive ? 'bg-white border-black shadow-[2px_2px_0px_0px_#000] translate-x-1' : 'border-transparent hover:border-zinc-300 hover:bg-zinc-200'} transition-all select-none"
+                    <div class="group relative flex items-center justify-between p-1.5 sm:p-2 cursor-pointer text-xs sm:text-sm font-bold border ${isActive ? 'bg-blue-50/70 border-blue-200 text-blue-700 font-semibold shadow-xs rounded-lg' : 'border-transparent hover:bg-slate-100 text-slate-700 rounded-lg'} transition-all select-none"
                         draggable="${!isSearching}"
                         data-doc-id="${this.escapeHtml(doc.id)}"
                         ondragstart="app.handleDocDragStart(event, '${this.escapeHtml(doc.id)}')"
@@ -2568,7 +2568,7 @@
 
                     html += `
                         <div class="folder-group mb-1" data-folder-id="${this.escapeHtml(folder.id)}">
-                            <div class="group relative flex items-center justify-between p-1.5 px-2 cursor-pointer text-xs sm:text-sm font-bold border-2 border-transparent hover:border-black hover:bg-zinc-200 transition-colors select-none"
+                            <div class="group relative flex items-center justify-between p-1.5 px-2 cursor-pointer text-xs sm:text-sm font-bold border border-transparent hover:bg-slate-100 rounded-lg transition-colors select-none"
                                 ondragover="app.handleFolderDragOver(event, '${this.escapeHtml(folder.id)}')"
                                 ondragleave="app.handleFolderDragLeave(event)"
                                 ondrop="app.handleFolderDrop(event, '${this.escapeHtml(folder.id)}')"
@@ -4167,7 +4167,7 @@
                             filteredTasks.map(t => {
                                 const commentCount = (t.comments || []).length;
                                 return `
-                                    <div id="task_${t.id}" class="bg-white border-2 border-black p-2.5 sm:p-3 flat-box flex items-center justify-between gap-2 ${t.status === 'DONE' ? 'opacity-60 bg-zinc-50' : ''}">
+                                    <div id="task_${t.id}" class="bg-white border border-slate-200 rounded-xl p-3 hover:border-slate-300 hover:shadow-sm transition-all flex items-center justify-between gap-3 ${t.status === 'DONE' ? 'opacity-60 bg-slate-50/70' : ''}">
                                         <div class="flex items-center gap-2 flex-1 min-w-0">
                                             <input type="checkbox" class="w-4 h-4 sm:w-5 sm:h-5 border-2 border-black accent-black cursor-pointer shrink-0" 
                                                 ${t.status === 'DONE' ? 'checked' : ''} 
@@ -4207,7 +4207,7 @@
                         const commentCount = (t.comments || []).length;
                         
                         const renderCard = `
-                            <div id="task_${t.id}" class="bg-white border-2 border-black p-3 flat-box text-sm font-bold flex flex-col gap-2">
+                            <div id="task_${t.id}" class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:border-slate-300 transition-all text-sm flex flex-col gap-2.5">
                                 <div class="flex justify-between items-start">
                                     <span onclick="app.openEditTaskModal('${t.id}')" class="leading-tight cursor-pointer hover:underline font-black" title="點擊編輯任務">${this.escapeHtml(t.title)}</span>
                                     <div class="flex items-center gap-1 shrink-0">
@@ -6212,12 +6212,12 @@ ${rawHtml}
                     }
 
                     return `
-                        <div class="neo-brutalist-table-wrapper overflow-x-auto my-4 border-2 border-black shadow-[3px_3px_0px_0px_#000] bg-white">
+                        <div class="doc-table-wrapper overflow-x-auto my-6 border border-slate-200 rounded-lg shadow-sm bg-white">
                             <table class="w-full text-left border-collapse text-xs md:text-sm font-sans">
-                                <thead class="bg-yellow-200 border-b-2 border-black">
+                                <thead class="bg-slate-50 border-b border-slate-200">
                                     ${headerHtml}
                                 </thead>
-                                <tbody class="divide-y-2 divide-black">
+                                <tbody class="divide-y divide-slate-200">
                                     ${bodyHtml}
                                 </tbody>
                             </table>
@@ -6234,9 +6234,9 @@ ${rawHtml}
                     const align = token.align;
                     const alignClass = align === 'center' ? 'text-center' : (align === 'right' ? 'text-right' : 'text-left');
                     if (token.header) {
-                        return `<th class="border-2 border-black px-3 py-2 font-black uppercase tracking-wider text-black ${alignClass}">${text}</th>`;
+                        return `<th class="border-b border-slate-200 px-4 py-2.5 font-semibold text-xs tracking-wider text-slate-700 ${alignClass}">${text}</th>`;
                     }
-                    return `<td class="border-2 border-black px-3 py-2 text-zinc-900 bg-white font-medium ${alignClass}">${text}</td>`;
+                    return `<td class="border-b border-slate-100 px-4 py-2.5 text-slate-700 bg-white text-xs leading-relaxed ${alignClass}">${text}</td>`;
                 };
 
                 // 2. 標題自動賦予 ID (供大綱跳轉)
@@ -6260,8 +6260,8 @@ ${rawHtml}
                         const cleanCode = code.trim();
                         const escaped = self.escapeHtml(cleanCode);
                         return `
-                            <div class="mermaid-diagram-card my-4 border-2 border-black bg-white shadow-[3px_3px_0px_0px_#000] flat-box overflow-hidden">
-                                <div class="bg-amber-100 text-amber-950 px-3 py-1.5 text-[11px] font-mono font-bold border-b-2 border-black flex justify-between items-center select-none">
+                            <div class="mermaid-diagram-card my-6 border border-slate-200 bg-white rounded-xl shadow-sm overflow-hidden">
+                                <div class="bg-slate-50 text-slate-700 px-4 py-2 text-[11px] font-mono font-medium border-b border-slate-200 flex justify-between items-center select-none">
                                     <span class="flex items-center gap-1.5 font-sans font-black tracking-wide">📊 流程圖 / 圖表視覺化 (Mermaid)</span>
                                     <div class="flex items-center gap-2">
                                         <button type="button" onclick="const codeEl = this.closest('.flat-box').querySelector('.mermaid-source'); codeEl.classList.toggle('hidden');" class="hover:underline cursor-pointer px-1.5 py-0.5 bg-amber-200 hover:bg-amber-300 border border-black rounded text-[10px] font-bold">切換原始碼</button>
@@ -6280,8 +6280,8 @@ ${rawHtml}
 
                     const escaped = self.escapeHtml(code);
                     return `
-                        <div class="my-3 border-2 border-black shadow-[3px_3px_0px_0px_#000] overflow-hidden bg-zinc-900">
-                            <div class="bg-zinc-800 text-zinc-300 px-3 py-1 text-[11px] font-mono font-bold border-b-2 border-black flex justify-between items-center select-none">
+                        <div class="my-4 border border-slate-800 rounded-xl overflow-hidden bg-slate-900 shadow-sm">
+                            <div class="bg-slate-800/80 text-slate-400 px-4 py-1.5 text-[11px] font-mono border-b border-slate-750 flex justify-between items-center select-none">
                                 <span>💻 ${lang ? lang.toUpperCase() : 'CODE'}</span>
                                 <button type="button" onclick="navigator.clipboard.writeText(this.closest('div').nextElementSibling.innerText); app.showToast('📋 代碼已複製至剪貼簿！');" class="hover:text-white cursor-pointer px-1.5 py-0.5 bg-zinc-700 hover:bg-zinc-600 rounded text-[10px]">複製代碼</button>
                             </div>
@@ -6312,12 +6312,12 @@ ${rawHtml}
                 // 6. 引言區塊 Blockquote
                 renderer.blockquote = function(token) {
                     const content = this.parser.parse(token.tokens || []);
-                    return `<blockquote class="border-l-4 border-black pl-3 py-2 my-3 bg-zinc-100 italic text-zinc-800 font-medium">${content}</blockquote>`;
+                    return `<blockquote class="border-l-2 border-slate-400 pl-4 py-2.5 my-4 bg-slate-50/60 rounded-r-lg text-slate-700 text-sm leading-relaxed">${content}</blockquote>`;
                 };
 
                 // 7. 分隔線 Horizontal Rule
                 renderer.hr = function() {
-                    return `<hr class="my-6 border-t-2 border-black" />`;
+                    return `<hr class="my-6 border-t border-slate-200" />`;
                 };
 
                 // 8. 圖片可點擊放大檢視 (支援 attachment:img_xxx 附件快速對應與全域搜尋)

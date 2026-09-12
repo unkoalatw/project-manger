@@ -31,17 +31,17 @@
     <!-- Mobile Backdrop -->
     <div id="mobileBackdrop" class="fixed inset-0 bg-black/50 z-40 hidden md:hidden" onclick="app.toggleSidebar()"></div>
     
-    <aside id="sidebar" class="bg-zinc-200 border-r-2 border-black w-72 flex-shrink-0 flex flex-col fixed md:relative z-50 h-full transform -translate-x-full md:translate-x-0 transition-transform duration-300">
+    <aside id="sidebar" class="bg-slate-50/80 border-r border-slate-200 w-72 flex-shrink-0 flex flex-col fixed md:relative z-50 h-full transform -translate-x-full md:translate-x-0 transition-transform duration-300 select-none">
         <!-- 側邊欄頭部 -->
-        <div class="p-4 border-b-2 border-black bg-zinc-300 flex items-center justify-between">
-            <h1 class="font-black text-lg tracking-tight uppercase flex items-center gap-2 cursor-pointer" onclick="app.switchView('Home')" title="返回專案首頁">
-                <span class="text-2xl">📁</span> FlatSpec
+        <div class="p-4 border-b border-slate-200 bg-white flex items-center justify-between">
+            <h1 class="font-bold text-base tracking-tight text-slate-800 flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity" onclick="app.switchView('Home')" title="返回專案首頁">
+                <span class="text-xl">📁</span> FlatSpec
             </h1>
             <div class="flex items-center gap-1">
-                <button onclick="app.switchView('Home')" class="p-1.5 px-2 bg-white hover:bg-zinc-100 border-2 border-black font-bold text-xs flat-box flex items-center gap-1 shadow-xs transition-colors" title="返回專案首頁">
+                <button onclick="app.switchView('Home')" class="p-1 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-md flex items-center gap-1 transition-colors" title="返回專案首頁">
                     🏠 首頁
                 </button>
-                <button onclick="app.toggleSidebar()" class="p-1.5 px-2 bg-white hover:bg-yellow-200 border-2 border-black font-bold text-xs flat-box flex items-center gap-1 shadow-xs transition-colors" title="收合側邊欄 (Ctrl+B)">
+                <button onclick="app.toggleSidebar()" class="p-1 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-md flex items-center gap-1 transition-colors" title="收合側邊欄 (Ctrl+B)">
                     <span class="md:hidden">✕</span>
                     <span class="hidden md:inline">◀</span>
                 </button>
@@ -49,31 +49,31 @@
         </div>
 
         <!-- 專案選擇器 -->
-        <div class="p-4 border-b-2 border-black bg-white">
-            <label class="text-xs font-bold uppercase text-zinc-500 mb-1 block">當前專案</label>
+        <div class="p-3.5 border-b border-slate-200 bg-white">
+            <label class="text-[11px] font-semibold text-slate-400 mb-1.5 block tracking-wider uppercase">當前專案</label>
             <div class="flex gap-1.5">
-                <select id="projectSelector" onchange="app.requestOpenProject(this.value, 'Docs')" class="flat-input w-full p-2 text-sm font-bold bg-zinc-100 cursor-pointer truncate">
+                <select id="projectSelector" onchange="app.requestOpenProject(this.value, 'Docs')" class="flat-input w-full p-1.5 text-xs font-semibold bg-slate-50 cursor-pointer truncate">
                     <!-- 動態載入 -->
                 </select>
-                <button onclick="app.openEditProjectModal()" class="bg-zinc-100 hover:bg-zinc-200 text-black px-2 border-2 border-black font-bold text-xs shrink-0 flat-box flex items-center gap-0.5" title="專案重新排列與設定">
+                <button onclick="app.openEditProjectModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 rounded-md font-semibold text-xs shrink-0 flex items-center gap-0.5 border border-slate-200" title="專案重新排列與設定">
                     <span>↕️</span>
                 </button>
-                <button onclick="app.openEditProjectModal()" class="bg-zinc-100 hover:bg-zinc-200 text-black px-2.5 border-2 border-black font-bold text-sm shrink-0 flat-box" title="專案設定與管理">⚙️</button>
-                <button onclick="app.openNewProjectModal()" class="bg-black text-white px-3 border-2 border-black font-bold text-lg hover:bg-zinc-800 focus:outline-none shrink-0" title="新建專案">+</button>
+                <button onclick="app.openEditProjectModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 rounded-md font-semibold text-xs shrink-0 border border-slate-200" title="專案設定與管理">⚙️</button>
+                <button onclick="app.openNewProjectModal()" class="bg-slate-900 text-white px-2.5 rounded-md font-bold text-sm hover:bg-slate-800 focus:outline-none shrink-0" title="新建專案">+</button>
             </div>
         </div>
 
         <!-- 搜尋列與文檔過濾 -->
-        <div class="p-3 border-b-2 border-black bg-zinc-100 space-y-2">
+        <div class="p-3 border-b border-slate-200 bg-slate-50/50 space-y-1.5">
             <div class="relative">
-                <input id="searchInput" type="text" oninput="app.renderSidebar()" placeholder="過濾文檔標題..." class="flat-input w-full p-1.5 pl-7 text-xs bg-white font-bold border-2 border-black flat-box shadow-xs" />
-                <span class="absolute left-2 top-2 text-xs pointer-events-none">🔍</span>
+                <input id="searchInput" type="text" oninput="app.renderSidebar()" placeholder="過濾文檔標題..." class="flat-input w-full p-1.5 pl-7 text-xs bg-white text-slate-800 placeholder-slate-400" />
+                <span class="absolute left-2 top-2 text-xs pointer-events-none text-slate-400">🔍</span>
             </div>
-            <div onclick="app.openSearchModal()" class="flat-input w-full p-1.5 text-xs bg-white cursor-pointer flex items-center justify-between hover:bg-yellow-50 text-zinc-600 font-bold border-2 border-black flat-box shadow-xs transition-colors" title="開啟全域搜尋 (Ctrl+K)">
+            <div onclick="app.openSearchModal()" class="flat-input w-full p-1.5 text-xs bg-white cursor-pointer flex items-center justify-between hover:bg-slate-100 text-slate-500 font-medium transition-colors" title="開啟全域搜尋 (Ctrl+K)">
                 <span class="flex items-center gap-1.5 truncate">
-                    <span>⚡</span> <span class="text-zinc-700">全域全文搜尋...</span>
+                    <span class="text-xs">⚡</span> <span class="text-slate-600">全域全文搜尋...</span>
                 </span>
-                <kbd class="hidden sm:inline-block bg-zinc-100 border border-zinc-400 px-1 text-[9px] font-mono text-zinc-600">Ctrl+K</kbd>
+                <kbd class="hidden sm:inline-block bg-slate-100 border border-slate-300 rounded px-1 text-[9px] font-mono text-slate-500">Ctrl+K</kbd>
             </div>
         </div>
 
@@ -83,122 +83,121 @@
         </div>
 
         <!-- 側邊欄底部快捷列 -->
-        <div class="p-2 border-t-2 border-black bg-zinc-300 grid grid-cols-4 gap-1">
-            <button onclick="app.openSettingsModal('backup')" class="p-1 hover:bg-zinc-100 border-2 border-transparent hover:border-black font-bold text-[10px] flex flex-col items-center gap-0.5 transition-colors flat-box" title="本機檔案備份與還原">
-                <span class="text-base">💾</span>
+        <div class="p-2 border-t border-slate-200 bg-white grid grid-cols-4 gap-1">
+            <button onclick="app.openSettingsModal('backup')" class="p-1 hover:bg-slate-100 rounded-md text-slate-600 font-medium text-[10px] flex flex-col items-center gap-0.5 transition-colors" title="本機檔案備份與還原">
+                <span class="text-sm">💾</span>
                 <span>備份</span>
             </button>
-            <button onclick="app.exportMasterMarkdown()" class="p-1 hover:bg-zinc-100 border-2 border-transparent hover:border-black font-bold text-[10px] flex flex-col items-center gap-0.5 transition-colors flat-box" title="匯出 Markdown 規格書">
-                <span class="text-base">📦</span>
+            <button onclick="app.exportMasterMarkdown()" class="p-1 hover:bg-slate-100 rounded-md text-slate-600 font-medium text-[10px] flex flex-col items-center gap-0.5 transition-colors" title="匯出 Markdown 規格書">
+                <span class="text-sm">📦</span>
                 <span>匯出</span>
             </button>
-            <button onclick="app.openSettingsModal('cloud')" class="p-1 hover:bg-zinc-100 border-2 border-transparent hover:border-black font-bold text-[10px] flex flex-col items-center gap-0.5 transition-colors flat-box" title="GAS 雲端同步設定">
-                <span class="text-base">☁️</span>
+            <button onclick="app.openSettingsModal('cloud')" class="p-1 hover:bg-slate-100 rounded-md text-slate-600 font-medium text-[10px] flex flex-col items-center gap-0.5 transition-colors" title="GAS 雲端同步設定">
+                <span class="text-sm">☁️</span>
                 <span>雲端</span>
             </button>
-            <button onclick="app.openSettingsModal('appearance')" class="p-1 hover:bg-zinc-100 border-2 border-transparent hover:border-black font-bold text-[10px] flex flex-col items-center gap-0.5 transition-colors flat-box" title="系統與專案設定 (外觀字體、音效、時光機、雲端等)">
-                <span class="text-base">⚙️</span>
+            <button onclick="app.openSettingsModal('appearance')" class="p-1 hover:bg-slate-100 rounded-md text-slate-600 font-medium text-[10px] flex flex-col items-center gap-0.5 transition-colors" title="系統與專案設定 (外觀字體、音效、時光機、雲端等)">
+                <span class="text-sm">⚙️</span>
                 <span>設定</span>
             </button>
         </div>
     </aside>
 
     <!-- 側邊欄拖曳手柄 (僅在桌機版顯示，支援流暢拖曳調整寬度與連點兩下重設) -->
-    <div id="sidebarResizer" class="hidden md:flex items-center justify-center w-1.5 hover:w-2 bg-transparent hover:bg-black/25 active:bg-black cursor-col-resize select-none shrink-0 z-40 transition-colors group relative" title="按住拖曳可調整側邊欄寬度 (連點兩下重設寬度)">
-        <div class="w-0.5 h-7 bg-zinc-400 group-hover:bg-black group-active:bg-white rounded-full transition-colors pointer-events-none"></div>
+    <div id="sidebarResizer" class="hidden md:flex items-center justify-center w-1 hover:w-1.5 bg-transparent hover:bg-slate-300 active:bg-slate-400 cursor-col-resize select-none shrink-0 z-40 transition-colors group relative" title="按住拖曳可調整側邊欄寬度 (連點兩下重設寬度)">
+        <div class="w-0.5 h-6 bg-slate-300 group-hover:bg-slate-600 rounded-full transition-colors pointer-events-none"></div>
     </div>
 
     <main class="flex-1 flex flex-col min-w-0 bg-white relative pb-16 md:pb-0 h-full overflow-hidden">
         
-        <!-- 頂部導覽列 (Header - 精簡俐落、收納設定) -->
         <!-- 頂部導覽列 (Header - 精簡俐落、自適應響應式防擁擠) -->
-        <header class="h-14 border-b-2 border-black bg-white flex items-center justify-between px-2 sm:px-4 shrink-0 shadow-sm z-10 gap-1 sm:gap-2">
-            <div class="flex items-center gap-1.5 sm:gap-2.5 min-w-0 flex-1 sm:flex-initial">
-                <button id="sidebarToggleBtn" onclick="app.toggleSidebar()" class="p-1.5 px-2 bg-zinc-100 hover:bg-yellow-200 border-2 border-black font-bold flat-box shrink-0 text-sm transition-colors" title="展開/收合側邊欄 (Ctrl+B)">
+        <header class="h-14 border-b border-slate-200 bg-white flex items-center justify-between px-3 sm:px-5 shrink-0 shadow-xs z-10 gap-1 sm:gap-2">
+            <div class="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 sm:flex-initial">
+                <button id="sidebarToggleBtn" onclick="app.toggleSidebar()" class="p-1.5 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-md shrink-0 text-sm transition-colors" title="展開/收合側邊欄 (Ctrl+B)">
                     ☰
                 </button>
-                <button onclick="app.switchView('Home')" class="hidden md:flex p-1.5 px-2.5 bg-black text-white hover:bg-zinc-800 border-2 border-black font-black text-xs flat-box items-center gap-1 shrink-0 shadow-[2px_2px_0px_0px_#000]" title="返回專案首頁 (選擇所有專案)">
+                <button onclick="app.switchView('Home')" class="hidden md:flex p-1.5 px-2.5 bg-slate-900 text-white hover:bg-slate-800 rounded-md font-semibold text-xs items-center gap-1.5 shrink-0 shadow-xs transition-colors" title="返回專案首頁 (選擇所有專案)">
                     <span>🏠</span> <span class="hidden lg:inline">首頁</span>
                 </button>
                 <!-- 專案進度迷你儀表 (點擊可快速開啟專案設定) -->
                 <div class="flex flex-col min-w-0 max-w-[120px] sm:max-w-[150px] md:max-w-[180px] lg:max-w-xs cursor-pointer group" onclick="app.openSettingsModal('project')" title="點擊開啟專案設定">
-                    <div class="text-xs font-black truncate uppercase group-hover:underline" id="headerProjectName">未選擇專案</div>
-                    <div class="w-20 sm:w-28 md:w-32 h-1.5 sm:h-2 bg-zinc-200 border border-black mt-0.5 relative">
-                        <div id="headerProgressBar" class="h-full bg-green-400 border-r border-black" style="width: 0%"></div>
+                    <div class="text-xs font-bold text-slate-800 truncate uppercase group-hover:text-blue-600 transition-colors" id="headerProjectName">未選擇專案</div>
+                    <div class="w-20 sm:w-28 md:w-32 h-1.5 bg-slate-100 border border-slate-200 rounded-full mt-1 overflow-hidden relative">
+                        <div id="headerProgressBar" class="h-full bg-emerald-500 rounded-full transition-all duration-300" style="width: 0%"></div>
                     </div>
                 </div>
             </div>
 
-            <!-- 視圖切換 Tabs (桌機版) -->
-            <div class="hidden xl:flex gap-1.5 font-mono text-xs font-bold shrink-0">
-                <button id="viewTabHome" onclick="app.switchView('Home')" class="px-2.5 py-1 border-2 border-black bg-zinc-100 hover:bg-white transition-colors uppercase">🏠 首頁</button>
-                <button id="viewTabDashboard" onclick="app.switchView('Dashboard')" class="px-2.5 py-1 border-2 border-black bg-zinc-100 hover:bg-white transition-colors uppercase">📊 總覽</button>
-                <button id="viewTabDocs" onclick="app.switchView('Docs')" class="px-2.5 py-1 border-2 border-black bg-zinc-100 hover:bg-white transition-colors uppercase">📄 文檔</button>
-                <button id="viewTabExecution" onclick="app.switchView('Execution')" class="px-2.5 py-1 border-2 border-black bg-zinc-100 hover:bg-white transition-colors uppercase">✅ 任務</button>
-                <button id="viewTabWizard" onclick="app.switchView('Wizard')" class="px-2.5 py-1 border-2 border-black bg-violet-200 hover:bg-violet-100 transition-colors uppercase">✨ 精靈</button>
+            <!-- 視圖切換 Tabs (桌機版 - Google Docs / 飛書風格導覽列) -->
+            <div class="hidden xl:flex gap-1 font-sans text-xs font-semibold shrink-0 bg-slate-100/80 p-1 rounded-lg border border-slate-200/80">
+                <button id="viewTabHome" onclick="app.switchView('Home')" class="px-3 py-1 rounded-md text-slate-600 hover:text-slate-900 hover:bg-white/80 transition-all uppercase">🏠 首頁</button>
+                <button id="viewTabDashboard" onclick="app.switchView('Dashboard')" class="px-3 py-1 rounded-md text-slate-600 hover:text-slate-900 hover:bg-white/80 transition-all uppercase">📊 總覽</button>
+                <button id="viewTabDocs" onclick="app.switchView('Docs')" class="px-3 py-1 rounded-md text-slate-600 hover:text-slate-900 hover:bg-white/80 transition-all uppercase">📄 文檔</button>
+                <button id="viewTabExecution" onclick="app.switchView('Execution')" class="px-3 py-1 rounded-md text-slate-600 hover:text-slate-900 hover:bg-white/80 transition-all uppercase">✅ 任務</button>
+                <button id="viewTabWizard" onclick="app.switchView('Wizard')" class="px-3 py-1 rounded-md text-violet-700 hover:text-violet-900 hover:bg-violet-50 transition-all uppercase">✨ 精靈</button>
             </div>
 
             <!-- 右側協作、搜尋與設定 -->
-            <div class="flex items-center gap-1 sm:gap-1.5 shrink-0">
+            <div class="flex items-center gap-1.5 shrink-0">
                 <!-- AI 助手快捷按鈕 -->
-                <button onclick="app.toggleChatSidebar()" class="p-1.5 px-2 bg-purple-200 hover:bg-purple-300 text-purple-950 border-2 border-black font-black text-xs flat-box flex items-center gap-1 shadow-[2px_2px_0px_0px_#000] shrink-0" title="開啟 AI 助手對話框">
+                <button onclick="app.toggleChatSidebar()" class="p-1.5 px-2.5 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 font-semibold text-xs rounded-md flex items-center gap-1 shadow-xs transition-colors shrink-0" title="開啟 AI 助手對話框">
                     <span class="text-sm">🤖</span>
                     <span class="hidden md:inline">AI</span>
                 </button>
 
                 <!-- 全域搜尋按鈕 (Ctrl+K) -->
-                <button onclick="app.openSearchModal()" class="p-1.5 px-2 bg-zinc-100 hover:bg-yellow-200 border-2 border-black font-bold text-xs flat-box flex items-center gap-1 transition-colors shrink-0" title="快速全域搜尋 (Ctrl+K)">
+                <button onclick="app.openSearchModal()" class="p-1.5 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-md flex items-center gap-1 transition-colors shrink-0 border border-slate-200" title="快速全域搜尋 (Ctrl+K)">
                     <span class="text-sm">🔍</span>
-                    <span class="hidden md:inline text-zinc-800">搜尋</span>
+                    <span class="hidden md:inline text-slate-700">搜尋</span>
                 </button>
 
-                <!-- ⚙️ 系統設定整合按鈕 (包含字體、音效、時光機、備份、雲端、專案等) -->
-                <button onclick="app.openSettingsModal()" class="p-1.5 px-2 bg-zinc-100 hover:bg-zinc-200 border-2 border-black font-bold text-xs flat-box flex items-center gap-1 transition-colors shrink-0" title="開啟系統與專案設定">
+                <!-- ⚙️ 系統設定整合按鈕 -->
+                <button onclick="app.openSettingsModal()" class="p-1.5 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-md flex items-center gap-1 transition-colors shrink-0 border border-slate-200" title="開啟系統與專案設定">
                     <span class="text-sm">⚙️</span>
                     <span class="hidden md:inline">設定</span>
                 </button>
 
                 <!-- 雲端連線狀態燈 (點擊開啟雲端同步設定) -->
-                <div id="syncStatusBadge" onclick="app.openSettingsModal('cloud')" class="cursor-pointer px-1.5 sm:px-2 py-1.5 border-2 border-black font-bold text-[10px] md:text-xs flex items-center gap-1 bg-zinc-100 flat-shadow-sm hover:translate-y-px transition-transform shrink-0" title="點擊開啟雲端同步設定">
-                    <span id="syncDot" class="w-2 h-2 rounded-full bg-zinc-400 border border-black shrink-0"></span>
-                    <span id="syncText" class="hidden sm:inline max-w-[55px] md:max-w-none truncate">已連線</span>
+                <div id="syncStatusBadge" onclick="app.openSettingsModal('cloud')" class="cursor-pointer px-2 py-1.5 border border-slate-200 rounded-md font-semibold text-[11px] flex items-center gap-1.5 bg-slate-50 hover:bg-slate-100 transition-colors shrink-0" title="點擊開啟雲端同步設定">
+                    <span id="syncDot" class="w-2 h-2 rounded-full bg-slate-400 shrink-0"></span>
+                    <span id="syncText" class="hidden sm:inline max-w-[55px] md:max-w-none truncate text-slate-600">已連線</span>
                 </div>
             </div>
         </header>
 
-        <div class="flex-1 overflow-y-auto relative no-scrollbar bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:16px_16px]">
+        <div class="flex-1 overflow-y-auto relative no-scrollbar bg-slate-50/50">
             
             <!-- 視圖 0: 專案首頁 (Home Portal) -->
             <div id="viewHome" class="hidden p-4 md:p-8 max-w-6xl mx-auto space-y-6">
                 <!-- 首頁 Banner -->
-                <div class="bg-black text-white p-6 border-2 border-black flat-shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div class="bg-slate-900 text-white p-6 md:p-8 rounded-xl border border-slate-800 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                     <div>
-                        <div class="flex items-center gap-2 mb-1">
-                            <span class="text-3xl">📁</span>
-                            <h2 class="text-2xl md:text-3xl font-black uppercase tracking-tight">FlatSpec 專案工作台</h2>
+                        <div class="flex items-center gap-2 mb-1.5">
+                            <span class="text-2xl md:text-3xl">📁</span>
+                            <h2 class="text-2xl md:text-3xl font-bold tracking-tight">FlatSpec 專案工作台</h2>
                         </div>
-                        <p class="text-xs md:text-sm text-zinc-300 font-medium">
+                        <p class="text-xs md:text-sm text-slate-300 font-normal">
                             選擇專案直接進入文檔編輯器，支援密碼隱私保護與雲端即時同步。
                         </p>
                     </div>
                     <div class="flex items-center gap-2 w-full md:w-auto">
-                        <button onclick="app.openNewProjectModal()" class="w-full md:w-auto bg-yellow-300 hover:bg-yellow-400 text-black border-2 border-black font-black px-4 py-2.5 text-sm flat-box flex items-center justify-center gap-1.5 shadow-[2px_2px_0px_0px_#fff]">
+                        <button onclick="app.openNewProjectModal()" class="w-full md:w-auto bg-white hover:bg-slate-100 text-slate-900 font-bold px-4 py-2.5 text-xs md:text-sm rounded-lg flex items-center justify-center gap-1.5 shadow-sm transition-colors">
                             <span>＋</span> <span>建立新專案</span>
                         </button>
                     </div>
                 </div>
 
                 <!-- 搜尋與統計欄 -->
-                <div class="bg-white border-2 border-black p-4 flat-box flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+                <div class="bg-white border border-slate-200 rounded-xl p-3.5 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                     <div class="relative flex-1">
-                        <input id="homeProjectSearch" type="text" oninput="app.renderHomeView()" placeholder="搜尋專案名稱、分類標籤..." class="flat-input w-full p-2 pl-8 text-sm font-bold bg-zinc-50 border-2 border-black" />
-                        <span class="absolute left-2.5 top-2.5 text-xs pointer-events-none">🔍</span>
+                        <input id="homeProjectSearch" type="text" oninput="app.renderHomeView()" placeholder="搜尋專案名稱、分類標籤..." class="flat-input w-full p-2 pl-8 text-xs md:text-sm bg-slate-50 border border-slate-200" />
+                        <span class="absolute left-2.5 top-2.5 text-xs pointer-events-none text-slate-400">🔍</span>
                     </div>
                     <div class="flex items-center gap-2 shrink-0">
-                        <select id="homeCategoryFilter" onchange="app.renderHomeView()" class="flat-input p-2 text-xs font-bold bg-zinc-100 border-2 border-black cursor-pointer">
+                        <select id="homeCategoryFilter" onchange="app.renderHomeView()" class="flat-input p-2 text-xs font-semibold bg-slate-50 border border-slate-200 cursor-pointer">
                             <option value="ALL">🌟 所有分類</option>
                         </select>
-                        <span id="homeProjectCountBadge" class="text-xs font-mono font-black bg-zinc-100 border-2 border-black px-2.5 py-2">0 個專案</span>
+                        <span id="homeProjectCountBadge" class="text-xs font-mono font-bold bg-slate-100 text-slate-700 rounded-md px-2.5 py-2">0 個專案</span>
                     </div>
                 </div>
 
@@ -212,63 +211,63 @@
             <div id="viewDashboard" class="hidden p-4 md:p-8 max-w-5xl mx-auto space-y-6">
                 <!-- 數據卡片 -->
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div class="bg-white border-2 border-black p-4 flat-box">
-                        <div class="text-zinc-500 font-bold text-xs uppercase mb-1">專案總進度</div>
-                        <div class="text-3xl font-black font-mono" id="dashProgress">0%</div>
+                    <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
+                        <div class="text-slate-400 font-semibold text-[11px] uppercase tracking-wider mb-1">專案總進度</div>
+                        <div class="text-2xl md:text-3xl font-bold font-mono text-slate-900" id="dashProgress">0%</div>
                     </div>
-                    <div class="bg-white border-2 border-black p-4 flat-box">
-                        <div class="text-zinc-500 font-bold text-xs uppercase mb-1">待辦任務</div>
-                        <div class="text-3xl font-black font-mono text-blue-600" id="dashTodo">0</div>
+                    <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
+                        <div class="text-slate-400 font-semibold text-[11px] uppercase tracking-wider mb-1">待辦任務</div>
+                        <div class="text-2xl md:text-3xl font-bold font-mono text-blue-600" id="dashTodo">0</div>
                     </div>
-                    <div class="bg-white border-2 border-black p-4 flat-box">
-                        <div class="text-zinc-500 font-bold text-xs uppercase mb-1">已完成</div>
-                        <div class="text-3xl font-black font-mono text-green-600" id="dashDone">0</div>
+                    <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
+                        <div class="text-slate-400 font-semibold text-[11px] uppercase tracking-wider mb-1">已完成</div>
+                        <div class="text-2xl md:text-3xl font-bold font-mono text-emerald-600" id="dashDone">0</div>
                     </div>
-                    <div class="bg-white border-2 border-black p-4 flat-box">
-                        <div class="text-zinc-500 font-bold text-xs uppercase mb-1">文檔總數</div>
-                        <div class="text-3xl font-black font-mono" id="dashDocs">0</div>
+                    <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
+                        <div class="text-slate-400 font-semibold text-[11px] uppercase tracking-wider mb-1">文檔總數</div>
+                        <div class="text-2xl md:text-3xl font-bold font-mono text-slate-900" id="dashDocs">0</div>
                     </div>
                 </div>
                 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <!-- 專案概況 -->
-                    <div class="md:col-span-2 bg-white border-2 border-black flat-shadow-sm p-5 space-y-4">
-                        <div class="flex items-center justify-between border-b-2 border-black pb-2">
-                            <h2 class="font-black uppercase text-lg">📌 專案願景與目標</h2>
-                            <button onclick="app.switchView('Wizard')" class="text-xs bg-black text-white px-2 py-1 font-bold">編輯精靈</button>
+                    <div class="md:col-span-2 bg-white border border-slate-200 rounded-xl shadow-xs p-6 space-y-4">
+                        <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+                            <h2 class="font-bold text-base text-slate-800">📌 專案願景與目標</h2>
+                            <button onclick="app.switchView('Wizard')" class="text-xs bg-slate-900 hover:bg-slate-800 text-white px-2.5 py-1 rounded-md font-semibold transition-colors">編輯精靈</button>
                         </div>
-                        <div id="dashVision" class="prose prose-sm font-medium text-zinc-700 min-h-[100px]">
+                        <div id="dashVision" class="prose prose-sm font-normal text-slate-600 min-h-[100px]">
                             <!-- 動態載入願景 -->
                         </div>
                     </div>
                     <!-- 快捷文檔庫 -->
-                    <div class="bg-violet-50 border-2 border-black flat-shadow-sm p-5 flex flex-col">
-                        <h2 class="font-black uppercase text-lg border-b-2 border-black pb-2 mb-3">📄 快速文件存取</h2>
+                    <div class="bg-slate-50 border border-slate-200 rounded-xl shadow-xs p-6 flex flex-col">
+                        <h2 class="font-bold text-base text-slate-800 border-b border-slate-200 pb-3 mb-3">📄 快速文件存取</h2>
                         <div id="dashDocList" class="flex-1 space-y-2 overflow-y-auto">
                             <!-- 動態載入 -->
                         </div>
-                        <button onclick="app.openNewDocModal()" class="w-full mt-4 bg-white border-2 border-black py-2 font-bold text-sm flat-box hover:bg-zinc-100">+ 新增文檔</button>
+                        <button onclick="app.openNewDocModal()" class="w-full mt-4 bg-white border border-slate-200 rounded-lg py-2 font-semibold text-xs text-slate-700 hover:bg-slate-100 transition-colors shadow-xs">+ 新增文檔</button>
                     </div>
                 </div>
             </div>
 
             <!-- 視圖 2: 文檔編輯器 / 純檢視閱讀器 (Docs) -->
-            <div id="viewDocs" class="hidden min-h-full flex flex-col p-4 md:p-6 max-w-5xl mx-auto space-y-4 pb-28 md:pb-12">
+            <div id="viewDocs" class="hidden min-h-full flex flex-col p-3 md:p-8 max-w-4xl mx-auto space-y-4 pb-28 md:pb-16">
                 
                 <!-- 模式切換頂欄 (常駐於上方) -->
-                <div id="docModeSwitchBar" class="flex flex-wrap items-center justify-between gap-2 mb-2 border-b-2 border-black pb-2">
-                    <div class="flex items-center gap-1.5 flex-wrap">
-                        <!-- 模式切換按鈕組 -->
-                        <div class="flex items-center border-2 border-black bg-white shadow-[2px_2px_0px_0px_#000]">
-                            <button id="btnEditMode" type="button" onclick="app.toggleDocMode('edit')" class="px-2.5 py-1 bg-black text-white font-bold text-xs transition-colors flex items-center gap-1 shrink-0" title="切換至編輯模式">
+                <div id="docModeSwitchBar" class="flex flex-wrap items-center justify-between gap-2 mb-1 border-b border-slate-200 pb-3">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <!-- 模式切換按鈕組 (飛書/Google Docs 藥丸按鈕) -->
+                        <div class="flex items-center p-0.5 bg-slate-100 rounded-lg border border-slate-200/80">
+                            <button id="btnEditMode" type="button" onclick="app.toggleDocMode('edit')" class="px-3 py-1 bg-white text-slate-900 font-semibold text-xs rounded-md shadow-xs transition-all flex items-center gap-1.5 shrink-0" title="切換至編輯模式">
                                 <span>✏️</span> <span>編輯</span>
                             </button>
-                            <button id="btnPreviewMode" type="button" onclick="app.toggleDocMode('preview')" class="px-2.5 py-1 bg-zinc-100 text-black font-bold text-xs transition-colors hover:bg-zinc-200 flex items-center gap-1 shrink-0" title="切換至純檢視 (預覽) 模式">
+                            <button id="btnPreviewMode" type="button" onclick="app.toggleDocMode('preview')" class="px-3 py-1 bg-transparent text-slate-600 font-semibold text-xs rounded-md hover:text-slate-900 transition-all flex items-center gap-1.5 shrink-0" title="切換至純檢視 (預覽) 模式">
                                 <span>📖</span> <span>預覽</span>
                             </button>
                         </div>
-                        <span id="docWordCountBadge" class="hidden sm:inline-block px-2 py-0.5 bg-zinc-100 border border-zinc-300 text-[11px] font-bold text-zinc-600 font-mono"></span>
-                        <span id="docLivePresenceBadge" class="hidden px-2 py-0.5 bg-emerald-100 border border-emerald-500 text-[10px] sm:text-[11px] font-bold text-emerald-900 flex items-center gap-1 animate-pulse">
+                        <span id="docWordCountBadge" class="hidden sm:inline-block px-2 py-0.5 bg-slate-100 border border-slate-200 rounded text-[11px] font-medium text-slate-500 font-mono"></span>
+                        <span id="docLivePresenceBadge" class="hidden px-2 py-0.5 bg-emerald-50 border border-emerald-200 rounded-full text-[10px] sm:text-[11px] font-medium text-emerald-700 flex items-center gap-1 animate-pulse">
                             <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                             <span id="docLivePresenceText">1人在線</span>
                         </span>
@@ -276,22 +275,22 @@
 
                     <!-- 右側操作按鈕區 (大綱目錄、搜尋取代、純檢視專屬按鈕) -->
                     <div class="flex items-center gap-1.5 shrink-0">
-                        <button type="button" id="btnToggleFindReplace" onclick="app.toggleDocFindReplace()" class="px-2 py-1 bg-white hover:bg-yellow-200 border-2 border-black font-bold text-xs flex items-center gap-1 flat-box shadow-[1px_1px_0px_0px_#000]" title="在文檔中尋找與取代 (Ctrl+F)">
+                        <button type="button" id="btnToggleFindReplace" onclick="app.toggleDocFindReplace()" class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 font-semibold text-xs rounded-md flex items-center gap-1 transition-colors shadow-xs" title="在文檔中尋找與取代 (Ctrl+F)">
                             <span>🔍</span> <span class="hidden sm:inline">尋找</span>
                         </button>
-                        <button type="button" id="btnToggleToc" onclick="app.toggleDocToc()" class="px-2 py-1 bg-white hover:bg-zinc-100 border-2 border-black font-bold text-xs flex items-center gap-1 flat-box shadow-[1px_1px_0px_0px_#000]" title="展開文檔大綱目錄">
-                            <span>🗂️</span> <span class="hidden sm:inline">大綱</span> <span id="docTocCountBadge" class="bg-black text-white px-1 py-0.2 text-[9px] font-mono font-black">0</span>
+                        <button type="button" id="btnToggleToc" onclick="app.toggleDocToc()" class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 font-semibold text-xs rounded-md flex items-center gap-1 transition-colors shadow-xs" title="展開文檔大綱目錄">
+                            <span>🗂️</span> <span class="hidden sm:inline">大綱</span> <span id="docTocCountBadge" class="bg-slate-900 text-white rounded px-1.5 py-0.2 text-[9px] font-mono font-bold">0</span>
                         </button>
 
                         <!-- 純檢視模式專屬頂部操作 -->
                         <div id="docPreviewActions" class="hidden flex items-center gap-1.5">
-                            <button type="button" onclick="app.printDocPreview()" class="px-2 py-1 bg-white hover:bg-yellow-200 border-2 border-black font-bold text-xs flex items-center gap-1 flat-box shadow-[1px_1px_0px_0px_#000]" title="列印或另存為 PDF (預覽排版後版本)">
+                            <button type="button" onclick="app.printDocPreview()" class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 font-semibold text-xs rounded-md flex items-center gap-1 shadow-xs transition-colors" title="列印或另存為 PDF (預覽排版後版本)">
                                 <span>🖨️</span> <span class="hidden sm:inline">列印</span>
                             </button>
-                            <button type="button" onclick="app.copyDocContent()" class="px-2 py-1 bg-white hover:bg-zinc-100 border-2 border-black font-bold text-xs flex items-center gap-1 flat-box shadow-[1px_1px_0px_0px_#000]" title="複製內容">
+                            <button type="button" onclick="app.copyDocContent()" class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 font-semibold text-xs rounded-md flex items-center gap-1 shadow-xs transition-colors" title="複製內容">
                                 <span>📋</span> <span class="hidden sm:inline">複製</span>
                             </button>
-                            <button type="button" onclick="app.toggleDocMode('edit')" class="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white border-2 border-black font-bold text-xs flex items-center gap-1 flat-box shadow-[1px_1px_0px_0px_#000]" title="進入編輯此文檔">
+                            <button type="button" onclick="app.toggleDocMode('edit')" class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-md flex items-center gap-1 shadow-xs transition-colors" title="進入編輯此文檔">
                                 <span>✏️</span> <span>編輯</span>
                             </button>
                         </div>
@@ -299,13 +298,13 @@
                 </div>
 
                 <!-- 浮動文檔大綱目錄 (TOC Floating Drawer) -->
-                <div id="docTocDrawer" class="hidden fixed top-16 right-4 w-72 max-w-[calc(100vw-2rem)] bg-white border-2 border-black shadow-[6px_6px_0px_0px_#000] z-40 p-4 space-y-3 max-h-[75vh] flex flex-col">
-                    <div class="flex items-center justify-between border-b-2 border-black pb-2">
-                        <div class="flex items-center gap-1.5 font-black text-sm uppercase">
+                <div id="docTocDrawer" class="hidden fixed top-16 right-4 w-72 max-w-[calc(100vw-2rem)] bg-white border border-slate-200 rounded-xl shadow-lg z-40 p-4 space-y-3 max-h-[75vh] flex flex-col">
+                    <div class="flex items-center justify-between border-b border-slate-200 pb-2">
+                        <div class="flex items-center gap-1.5 font-bold text-sm text-slate-800">
                             <span>🗂️ 文檔大綱目錄</span>
-                            <span id="docTocDrawerCount" class="text-xs text-zinc-500 font-mono">(0)</span>
+                            <span id="docTocDrawerCount" class="text-xs text-slate-400 font-mono">(0)</span>
                         </div>
-                        <button type="button" onclick="app.toggleDocToc(false)" class="text-lg font-bold hover:text-red-600 px-1">&times;</button>
+                        <button type="button" onclick="app.toggleDocToc(false)" class="text-lg font-bold text-slate-400 hover:text-slate-800 px-1">&times;</button>
                     </div>
                     <div id="docTocList" class="flex-1 overflow-y-auto no-scrollbar space-y-1 text-xs">
                         <!-- 動態注入大綱項目 -->
@@ -313,221 +312,221 @@
                 </div>
 
                 <!-- 編輯模式專屬 Header (可改名、刪除) -->
-                <div id="docEditHeader" class="flex justify-between items-center mb-1 gap-2 sm:gap-4 border-b-2 border-zinc-200 pb-2">
-                    <div class="flex items-center gap-1.5 sm:gap-2 flex-1 min-w-0">
+                <div id="docEditHeader" class="flex justify-between items-center mb-1 gap-2 sm:gap-4 border-b border-slate-200 pb-2">
+                    <div class="flex items-center gap-2 flex-1 min-w-0">
                         <span class="text-xl sm:text-2xl shrink-0">📄</span>
-                        <input type="text" id="docTitleInput" class="text-xl sm:text-2xl md:text-3xl font-black bg-transparent border-b-2 border-transparent hover:border-zinc-300 focus:border-black focus:bg-zinc-50 focus:outline-none w-full px-1 py-0.5 transition-colors truncate" placeholder="輸入文檔名稱..." oninput="app.updateDocTitle(this.value)" title="點擊即可直接修改文檔名稱">
+                        <input type="text" id="docTitleInput" class="text-xl sm:text-2xl md:text-3xl font-bold bg-transparent border-b border-transparent hover:border-slate-300 focus:border-slate-800 focus:bg-slate-50 focus:outline-none w-full px-1 py-0.5 rounded transition-colors text-slate-900 truncate" placeholder="輸入文檔名稱..." oninput="app.updateDocTitle(this.value)" title="點擊即可直接修改文檔名稱">
                     </div>
-                    <button onclick="app.deleteCurrentDoc()" class="shrink-0 px-2 py-1 text-red-600 hover:bg-red-100 border-2 border-transparent hover:border-red-600 font-bold text-xs sm:text-sm transition-colors" title="刪除文檔">🗑️ 刪除</button>
+                    <button onclick="app.deleteCurrentDoc()" class="shrink-0 px-2.5 py-1 text-red-600 hover:bg-red-50 rounded-md font-semibold text-xs sm:text-sm transition-colors" title="刪除文檔">🗑️ 刪除</button>
                 </div>
 
                 <!-- 純檢視模式專屬 Header (無輸入框、純淨文章大標題排版) -->
-                <div id="docPreviewHeader" class="hidden mb-2 pb-2 border-b-2 border-zinc-200">
-                    <div class="flex items-center gap-2 mb-1">
+                <div id="docPreviewHeader" class="hidden mb-2 pb-2 border-b border-slate-200">
+                    <div class="flex items-center gap-2 mb-1.5">
                         <span class="text-2xl">📄</span>
-                        <h1 id="docPreviewTitle" class="text-xl sm:text-2xl md:text-3xl font-black text-black leading-tight"></h1>
+                        <h1 id="docPreviewTitle" class="text-xl sm:text-2xl md:text-3xl font-bold text-slate-900 leading-tight"></h1>
                     </div>
-                    <div class="flex flex-wrap items-center gap-2 text-xs text-zinc-500 font-bold">
-                        <span id="docPreviewProjectLabel" class="bg-zinc-200 text-zinc-800 px-1.5 py-0.5"></span>
+                    <div class="flex flex-wrap items-center gap-2 text-xs text-slate-500 font-medium">
+                        <span id="docPreviewProjectLabel" class="bg-slate-100 text-slate-700 rounded px-2 py-0.5 font-semibold"></span>
                         <span id="docPreviewDateLabel"></span>
-                        <span class="bg-green-100 text-green-800 border border-green-300 px-1.5 py-0.2 text-[10px]">👁️ 純檢視中</span>
+                        <span class="bg-emerald-50 text-emerald-700 border border-emerald-200 rounded px-1.5 py-0.2 text-[10px] font-semibold">👁️ 純檢視中</span>
                     </div>
                 </div>
 
                 <!-- 尋找與取代工具列 (In-Doc Find & Replace Bar) -->
-                <div id="docFindReplaceBar" class="hidden p-2.5 bg-yellow-50 border-2 border-black shadow-[3px_3px_0px_0px_#000] space-y-2 text-xs">
+                <div id="docFindReplaceBar" class="hidden p-3 bg-slate-50 border border-slate-200 rounded-xl shadow-xs space-y-2 text-xs">
                     <!-- 第一行：搜尋關鍵字、導航、選項 -->
                     <div class="flex flex-wrap items-center justify-between gap-2">
                         <div class="flex flex-wrap items-center gap-1.5 flex-1 min-w-0">
                             <div class="relative flex-1 min-w-[140px] max-w-sm">
                                 <input type="text" id="docFindInput" placeholder="在文檔中尋找... (按 Enter 跳至下一個)" class="flat-input w-full p-1.5 pr-14 text-xs font-mono bg-white" oninput="app.handleDocFindInput(this.value)" onkeydown="app.handleDocFindKeydown(event)">
-                                <span id="docFindCountBadge" class="absolute right-1.5 top-1.5 text-[10px] font-mono font-bold text-zinc-500 bg-zinc-100 px-1 border border-zinc-300">0 / 0</span>
+                                <span id="docFindCountBadge" class="absolute right-1.5 top-1.5 text-[10px] font-mono font-semibold text-slate-500 bg-slate-100 px-1 rounded border border-slate-200">0 / 0</span>
                             </div>
-                            <div class="flex items-center border border-black bg-white shrink-0">
-                                <button type="button" onclick="app.jumpDocFindMatch(-1)" class="p-1 px-2 hover:bg-zinc-200 font-bold border-r border-black" title="上一個匹配 (Shift+Enter)">▲</button>
-                                <button type="button" onclick="app.jumpDocFindMatch(1)" class="p-1 px-2 hover:bg-zinc-200 font-bold" title="下一個匹配 (Enter)">▼</button>
+                            <div class="flex items-center border border-slate-200 rounded-md bg-white overflow-hidden shrink-0">
+                                <button type="button" onclick="app.jumpDocFindMatch(-1)" class="p-1 px-2 hover:bg-slate-100 font-bold border-r border-slate-200 text-slate-600" title="上一個匹配 (Shift+Enter)">▲</button>
+                                <button type="button" onclick="app.jumpDocFindMatch(1)" class="p-1 px-2 hover:bg-slate-100 font-bold text-slate-600" title="下一個匹配 (Enter)">▼</button>
                             </div>
-                            <button type="button" id="btnFindMatchCase" onclick="app.toggleFindOption('matchCase')" class="px-2 py-1 border border-black bg-white hover:bg-zinc-100 font-mono font-bold text-[11px] shrink-0" title="大小寫須相符 (Match Case)">Aa</button>
-                            <button type="button" id="btnFindWholeWord" onclick="app.toggleFindOption('wholeWord')" class="px-2 py-1 border border-black bg-white hover:bg-zinc-100 font-mono font-bold text-[11px] shrink-0" title="全字匹配 (Whole Word)">\b</button>
+                            <button type="button" id="btnFindMatchCase" onclick="app.toggleFindOption('matchCase')" class="px-2 py-1 border border-slate-200 rounded-md bg-white hover:bg-slate-100 font-mono font-bold text-[11px] text-slate-700 shrink-0" title="大小寫須相符 (Match Case)">Aa</button>
+                            <button type="button" id="btnFindWholeWord" onclick="app.toggleFindOption('wholeWord')" class="px-2 py-1 border border-slate-200 rounded-md bg-white hover:bg-slate-100 font-mono font-bold text-[11px] text-slate-700 shrink-0" title="全字匹配 (Whole Word)">\b</button>
                         </div>
-                        <button type="button" onclick="app.closeDocFindReplace()" class="text-zinc-500 hover:text-black font-bold text-sm px-1.5 shrink-0">✕</button>
+                        <button type="button" onclick="app.closeDocFindReplace()" class="text-slate-400 hover:text-slate-700 font-bold text-sm px-1.5 shrink-0">✕</button>
                     </div>
 
                     <!-- 第二行：取代文字與按鈕 -->
-                    <div id="docReplaceRow" class="flex flex-wrap items-center gap-1.5 pt-1 border-t border-yellow-200">
+                    <div id="docReplaceRow" class="flex flex-wrap items-center gap-1.5 pt-1.5 border-t border-slate-200">
                         <input type="text" id="docReplaceInput" placeholder="取代為..." class="flat-input flex-1 min-w-[140px] max-w-sm p-1.5 text-xs font-mono bg-white" onkeydown="if(event.key==='Enter') app.replaceCurrentDocFindMatch()">
-                        <button type="button" onclick="app.replaceCurrentDocFindMatch()" class="px-2.5 py-1 bg-white hover:bg-zinc-100 border-2 border-black font-bold text-xs flat-box shrink-0">替換</button>
-                        <button type="button" onclick="app.replaceAllDocFindMatches()" class="px-2.5 py-1 bg-black text-white hover:bg-zinc-800 font-bold text-xs flat-box shrink-0">全部替換</button>
+                        <button type="button" onclick="app.replaceCurrentDocFindMatch()" class="px-3 py-1 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-md font-semibold text-xs shrink-0 shadow-xs">替換</button>
+                        <button type="button" onclick="app.replaceAllDocFindMatches()" class="px-3 py-1 bg-slate-900 text-white hover:bg-slate-800 rounded-md font-semibold text-xs shrink-0 shadow-xs">全部替換</button>
                     </div>
                 </div>
 
-                <!-- 編輯工具列 (僅在編輯模式顯示，手機端與桌機端皆能自動換行不超出工具列) -->
-                <div id="docEditToolbar" class="flex flex-wrap items-center justify-between gap-1.5 p-1.5 sm:p-2 bg-zinc-100 border-2 border-black overflow-visible relative z-20">
+                <!-- 編輯工具列 (Feishu / Google Docs 質感懸浮式工具列) -->
+                <div id="docEditToolbar" class="flex flex-wrap items-center justify-between gap-1.5 p-1.5 sm:p-2 bg-white border border-slate-200 rounded-lg shadow-xs overflow-visible relative z-20">
                     <div class="flex flex-wrap items-center gap-1 sm:gap-1.5 w-full">
                         <!-- 引用文檔下拉選單 -->
                         <div class="relative inline-block shrink-0" id="docLinkPickerContainer">
-                            <button type="button" onclick="app.toggleDocLinkDropdown(event)" class="px-2 py-1 bg-white hover:bg-zinc-200 border-2 border-black font-bold text-xs flex items-center gap-1 flat-box shrink-0" title="在游標處引用專案內其他文檔">
+                            <button type="button" onclick="app.toggleDocLinkDropdown(event)" class="px-2.5 py-1 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-md font-semibold text-xs text-slate-700 flex items-center gap-1 shrink-0" title="在游標處引用專案內其他文檔">
                                 <span>🔗 引用</span>
-                                <span class="text-[9px]">▼</span>
+                                <span class="text-[9px] text-slate-400">▼</span>
                             </button>
-                            <div id="docLinkDropdown" class="hidden absolute left-0 top-full mt-1 w-64 max-w-[calc(100vw-2rem)] bg-white border-2 border-black shadow-[4px_4px_0px_0px_#000] z-50 max-h-56 overflow-y-auto no-scrollbar p-1">
+                            <div id="docLinkDropdown" class="hidden absolute left-0 top-full mt-1 w-64 max-w-[calc(100vw-2rem)] bg-white border border-slate-200 rounded-lg shadow-lg z-50 max-h-56 overflow-y-auto no-scrollbar p-1">
                                 <!-- 動態注入文檔清單 -->
                             </div>
                         </div>
 
                         <!-- 螢光筆/字體色彩/徽章選單按鈕 -->
                         <div class="relative inline-block shrink-0" id="docColorPickerContainer">
-                            <button type="button" onclick="app.toggleDocColorDropdown(event)" class="px-2 py-1 bg-white hover:bg-yellow-200 border-2 border-black font-bold text-xs flex items-center gap-1 flat-box shrink-0" title="彩色標記、字體顏色與徽章標籤">
+                            <button type="button" onclick="app.toggleDocColorDropdown(event)" class="px-2.5 py-1 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-md font-semibold text-xs text-slate-700 flex items-center gap-1 shrink-0" title="彩色標記、字體顏色與徽章標籤">
                                 <span>🎨</span>
-                                <span class="text-[9px]">▼</span>
+                                <span class="text-[9px] text-slate-400">▼</span>
                             </button>
-                            <div id="docColorDropdown" class="hidden absolute left-0 top-full mt-1 w-56 max-w-[calc(100vw-2rem)] bg-white border-2 border-black shadow-[4px_4px_0px_0px_#000] z-50 p-2 space-y-2 text-xs">
+                            <div id="docColorDropdown" class="hidden absolute left-0 top-full mt-1 w-56 max-w-[calc(100vw-2rem)] bg-white border border-slate-200 rounded-lg shadow-lg z-50 p-2.5 space-y-2 text-xs">
                                 <div>
-                                    <div class="font-black text-[10px] text-zinc-500 uppercase mb-1">🖍️ 螢光筆高亮</div>
+                                    <div class="font-bold text-[10px] text-slate-400 uppercase mb-1 tracking-wider">🖍️ 螢光筆高亮</div>
                                     <div class="grid grid-cols-4 gap-1">
-                                        <button type="button" onclick="app.applyHighlightColor('yellow')" class="h-6 bg-yellow-200 border border-black hover:scale-105 font-bold text-[10px]" title="黃色高亮">黃</button>
-                                        <button type="button" onclick="app.applyHighlightColor('red')" class="h-6 bg-red-200 border border-black hover:scale-105 font-bold text-[10px]" title="紅色高亮">紅</button>
-                                        <button type="button" onclick="app.applyHighlightColor('green')" class="h-6 bg-green-200 border border-black hover:scale-105 font-bold text-[10px]" title="綠色高亮">綠</button>
-                                        <button type="button" onclick="app.applyHighlightColor('blue')" class="h-6 bg-blue-200 border border-black hover:scale-105 font-bold text-[10px]" title="藍色高亮">藍</button>
-                                        <button type="button" onclick="app.applyHighlightColor('purple')" class="h-6 bg-purple-200 border border-black hover:scale-105 font-bold text-[10px]" title="紫色高亮">紫</button>
-                                        <button type="button" onclick="app.applyHighlightColor('orange')" class="h-6 bg-orange-200 border border-black hover:scale-105 font-bold text-[10px]" title="橙色高亮">橙</button>
-                                        <button type="button" onclick="app.applyHighlightColor('cyan')" class="h-6 bg-cyan-200 border border-black hover:scale-105 font-bold text-[10px]" title="青色高亮">青</button>
-                                        <button type="button" onclick="app.applyHighlightColor('pink')" class="h-6 bg-pink-200 border border-black hover:scale-105 font-bold text-[10px]" title="粉色高亮">粉</button>
+                                        <button type="button" onclick="app.applyHighlightColor('yellow')" class="h-6 bg-yellow-200 rounded hover:opacity-80 font-semibold text-[10px] text-yellow-900" title="黃色高亮">黃</button>
+                                        <button type="button" onclick="app.applyHighlightColor('red')" class="h-6 bg-red-200 rounded hover:opacity-80 font-semibold text-[10px] text-red-900" title="紅色高亮">紅</button>
+                                        <button type="button" onclick="app.applyHighlightColor('green')" class="h-6 bg-green-200 rounded hover:opacity-80 font-semibold text-[10px] text-green-900" title="綠色高亮">綠</button>
+                                        <button type="button" onclick="app.applyHighlightColor('blue')" class="h-6 bg-blue-200 rounded hover:opacity-80 font-semibold text-[10px] text-blue-900" title="藍色高亮">藍</button>
+                                        <button type="button" onclick="app.applyHighlightColor('purple')" class="h-6 bg-purple-200 rounded hover:opacity-80 font-semibold text-[10px] text-purple-900" title="紫色高亮">紫</button>
+                                        <button type="button" onclick="app.applyHighlightColor('orange')" class="h-6 bg-orange-200 rounded hover:opacity-80 font-semibold text-[10px] text-orange-900" title="橙色高亮">橙</button>
+                                        <button type="button" onclick="app.applyHighlightColor('cyan')" class="h-6 bg-cyan-200 rounded hover:opacity-80 font-semibold text-[10px] text-cyan-900" title="青色高亮">青</button>
+                                        <button type="button" onclick="app.applyHighlightColor('pink')" class="h-6 bg-pink-200 rounded hover:opacity-80 font-semibold text-[10px] text-pink-900" title="粉色高亮">粉</button>
                                     </div>
                                 </div>
-                                <div class="border-t border-zinc-200 pt-1.5">
-                                    <div class="font-black text-[10px] text-zinc-500 uppercase mb-1">🔤 文字顏色</div>
+                                <div class="border-t border-slate-100 pt-1.5">
+                                    <div class="font-bold text-[10px] text-slate-400 uppercase mb-1 tracking-wider">🔤 文字顏色</div>
                                     <div class="grid grid-cols-4 gap-1">
-                                        <button type="button" onclick="app.applyTextColor('red')" class="h-6 bg-white text-red-600 border border-black hover:bg-red-50 font-bold text-[10px]" title="紅色文字">紅</button>
-                                        <button type="button" onclick="app.applyTextColor('green')" class="h-6 bg-white text-green-600 border border-black hover:bg-green-50 font-bold text-[10px]" title="綠色文字">綠</button>
-                                        <button type="button" onclick="app.applyTextColor('blue')" class="h-6 bg-white text-blue-600 border border-black hover:bg-blue-50 font-bold text-[10px]" title="藍色文字">藍</button>
-                                        <button type="button" onclick="app.applyTextColor('purple')" class="h-6 bg-white text-purple-600 border border-black hover:bg-purple-50 font-bold text-[10px]" title="紫色文字">紫</button>
-                                        <button type="button" onclick="app.applyTextColor('orange')" class="h-6 bg-white text-orange-600 border border-black hover:bg-orange-50 font-bold text-[10px]" title="橙色文字">橙</button>
-                                        <button type="button" onclick="app.applyTextColor('yellow')" class="h-6 bg-white text-yellow-600 border border-black hover:bg-yellow-50 font-bold text-[10px]" title="黃色文字">黃</button>
-                                        <button type="button" onclick="app.applyTextColor('pink')" class="h-6 bg-white text-pink-600 border border-black hover:bg-pink-50 font-bold text-[10px]" title="粉色文字">粉</button>
-                                        <button type="button" onclick="app.applyTextColor('cyan')" class="h-6 bg-white text-cyan-600 border border-black hover:bg-cyan-50 font-bold text-[10px]" title="青色文字">青</button>
+                                        <button type="button" onclick="app.applyTextColor('red')" class="h-6 bg-slate-50 text-red-600 rounded hover:bg-red-50 font-bold text-[10px]" title="紅色文字">紅</button>
+                                        <button type="button" onclick="app.applyTextColor('green')" class="h-6 bg-slate-50 text-green-600 rounded hover:bg-green-50 font-bold text-[10px]" title="綠色文字">綠</button>
+                                        <button type="button" onclick="app.applyTextColor('blue')" class="h-6 bg-slate-50 text-blue-600 rounded hover:bg-blue-50 font-bold text-[10px]" title="藍色文字">藍</button>
+                                        <button type="button" onclick="app.applyTextColor('purple')" class="h-6 bg-slate-50 text-purple-600 rounded hover:bg-purple-50 font-bold text-[10px]" title="紫色文字">紫</button>
+                                        <button type="button" onclick="app.applyTextColor('orange')" class="h-6 bg-slate-50 text-orange-600 rounded hover:bg-orange-50 font-bold text-[10px]" title="橙色文字">橙</button>
+                                        <button type="button" onclick="app.applyTextColor('yellow')" class="h-6 bg-slate-50 text-yellow-600 rounded hover:bg-yellow-50 font-bold text-[10px]" title="黃色文字">黃</button>
+                                        <button type="button" onclick="app.applyTextColor('pink')" class="h-6 bg-slate-50 text-pink-600 rounded hover:bg-pink-50 font-bold text-[10px]" title="粉色文字">粉</button>
+                                        <button type="button" onclick="app.applyTextColor('cyan')" class="h-6 bg-slate-50 text-cyan-600 rounded hover:bg-cyan-50 font-bold text-[10px]" title="青色文字">青</button>
                                     </div>
                                 </div>
-                                <div class="border-t border-zinc-200 pt-1.5">
-                                    <div class="font-black text-[10px] text-zinc-500 uppercase mb-1">🏷️ 膠囊徽章</div>
+                                <div class="border-t border-slate-100 pt-1.5">
+                                    <div class="font-bold text-[10px] text-slate-400 uppercase mb-1 tracking-wider">🏷️ 膠囊徽章</div>
                                     <div class="grid grid-cols-4 gap-1">
-                                        <button type="button" onclick="app.insertBadgeSyntax('blue')" class="h-6 bg-blue-100 text-blue-900 border border-black hover:scale-105 font-bold text-[10px]">藍</button>
-                                        <button type="button" onclick="app.insertBadgeSyntax('green')" class="h-6 bg-green-100 text-green-900 border border-black hover:scale-105 font-bold text-[10px]">綠</button>
-                                        <button type="button" onclick="app.insertBadgeSyntax('red')" class="h-6 bg-red-100 text-red-900 border border-black hover:scale-105 font-bold text-[10px]">紅</button>
-                                        <button type="button" onclick="app.insertBadgeSyntax('purple')" class="h-6 bg-purple-100 text-purple-900 border border-black hover:scale-105 font-bold text-[10px]">紫</button>
+                                        <button type="button" onclick="app.insertBadgeSyntax('blue')" class="h-6 bg-blue-100 text-blue-800 rounded font-semibold text-[10px] hover:opacity-80">藍</button>
+                                        <button type="button" onclick="app.insertBadgeSyntax('green')" class="h-6 bg-emerald-100 text-emerald-800 rounded font-semibold text-[10px] hover:opacity-80">綠</button>
+                                        <button type="button" onclick="app.insertBadgeSyntax('red')" class="h-6 bg-rose-100 text-rose-800 rounded font-semibold text-[10px] hover:opacity-80">紅</button>
+                                        <button type="button" onclick="app.insertBadgeSyntax('purple')" class="h-6 bg-purple-100 text-purple-800 rounded font-semibold text-[10px] hover:opacity-80">紫</button>
                                     </div>
                                 </div>
-                                <div class="border-t border-zinc-200 pt-1.5">
-                                    <div class="font-black text-[10px] text-zinc-500 uppercase mb-1">💬 GitHub 警示框</div>
+                                <div class="border-t border-slate-100 pt-1.5">
+                                    <div class="font-bold text-[10px] text-slate-400 uppercase mb-1 tracking-wider">💬 提示框</div>
                                     <div class="grid grid-cols-3 gap-1">
-                                        <button type="button" onclick="app.insertCalloutSyntax('NOTE')" class="p-1 bg-blue-50 border border-blue-500 text-blue-900 font-bold text-[9px]">ℹ️ NOTE</button>
-                                        <button type="button" onclick="app.insertCalloutSyntax('TIP')" class="p-1 bg-emerald-50 border border-emerald-500 text-emerald-900 font-bold text-[9px]">💡 TIP</button>
-                                        <button type="button" onclick="app.insertCalloutSyntax('WARNING')" class="p-1 bg-amber-50 border border-amber-500 text-amber-900 font-bold text-[9px]">⚠️ WARN</button>
-                                        <button type="button" onclick="app.insertCalloutSyntax('IMPORTANT')" class="p-1 bg-violet-50 border border-violet-500 text-violet-900 font-bold text-[9px]">📌 IMP</button>
-                                        <button type="button" onclick="app.insertCalloutSyntax('CAUTION')" class="p-1 bg-red-50 border border-red-500 text-red-900 font-bold text-[9px]">🚨 CAUT</button>
-                                        <button type="button" onclick="app.insertCalloutSyntax('SUCCESS')" class="p-1 bg-green-50 border border-green-500 text-green-900 font-bold text-[9px]">✅ SUCC</button>
+                                        <button type="button" onclick="app.insertCalloutSyntax('NOTE')" class="p-1 bg-blue-50 border border-blue-200 text-blue-800 rounded font-semibold text-[9px]">ℹ️ NOTE</button>
+                                        <button type="button" onclick="app.insertCalloutSyntax('TIP')" class="p-1 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded font-semibold text-[9px]">💡 TIP</button>
+                                        <button type="button" onclick="app.insertCalloutSyntax('WARNING')" class="p-1 bg-amber-50 border border-amber-200 text-amber-800 rounded font-semibold text-[9px]">⚠️ WARN</button>
+                                        <button type="button" onclick="app.insertCalloutSyntax('IMPORTANT')" class="p-1 bg-violet-50 border border-violet-200 text-violet-800 rounded font-semibold text-[9px]">📌 IMP</button>
+                                        <button type="button" onclick="app.insertCalloutSyntax('CAUTION')" class="p-1 bg-rose-50 border border-rose-200 text-rose-800 rounded font-semibold text-[9px]">🚨 CAUT</button>
+                                        <button type="button" onclick="app.insertCalloutSyntax('SUCCESS')" class="p-1 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded font-semibold text-[9px]">✅ SUCC</button>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="h-4 w-px bg-zinc-400 mx-0.5 hidden sm:block"></div>
+                        <div class="h-4 w-px bg-slate-200 mx-0.5 hidden sm:block"></div>
 
-                        <button type="button" onclick="app.insertMarkdown('**', '**')" class="px-2 py-1 bg-white hover:bg-zinc-200 border-2 border-black font-black text-xs shrink-0" title="粗體">B</button>
-                        <button type="button" onclick="app.insertMarkdown('## ', '')" class="px-2 py-1 bg-white hover:bg-zinc-200 border-2 border-black font-bold text-xs shrink-0" title="標題 H2">H2</button>
-                        <button type="button" onclick="app.insertMarkdown('- ', '')" class="px-2 py-1 bg-white hover:bg-zinc-200 border-2 border-black font-bold text-xs shrink-0" title="清單項目">• 清單</button>
-                        <button type="button" onclick="app.insertMarkdown('- [ ] ', '')" class="px-2 py-1 bg-white hover:bg-zinc-200 border-2 border-black font-bold text-xs shrink-0" title="待辦任務">☑ 任務</button>
-                        <button type="button" onclick="app.insertMarkdown('`', '`')" class="px-2 py-1 bg-white hover:bg-zinc-200 border-2 border-black font-mono text-xs shrink-0" title="行內代碼">&lt;/&gt;</button>
-                        <button type="button" onclick="app.insertMarkdown('> ', '')" class="px-2 py-1 bg-white hover:bg-zinc-200 border-2 border-black font-bold text-xs shrink-0" title="引言">&gt;</button>
-                        <button type="button" onclick="app.centerCurrentLineOrSelection()" class="px-2 py-1 bg-white hover:bg-zinc-200 border-2 border-black font-bold text-xs flex items-center gap-1 flat-box shrink-0" title="將當前行或選取文字置中 (語法 ->文字<-)">
+                        <button type="button" onclick="app.insertMarkdown('**', '**')" class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-800 font-bold text-xs rounded-md border border-slate-200 shadow-xs shrink-0" title="粗體">B</button>
+                        <button type="button" onclick="app.insertMarkdown('## ', '')" class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-800 font-semibold text-xs rounded-md border border-slate-200 shadow-xs shrink-0" title="標題 H2">H2</button>
+                        <button type="button" onclick="app.insertMarkdown('- ', '')" class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-800 font-medium text-xs rounded-md border border-slate-200 shadow-xs shrink-0" title="清單項目">• 清單</button>
+                        <button type="button" onclick="app.insertMarkdown('- [ ] ', '')" class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-800 font-medium text-xs rounded-md border border-slate-200 shadow-xs shrink-0" title="待辦任務">☑ 任務</button>
+                        <button type="button" onclick="app.insertMarkdown('`', '`')" class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-800 font-mono text-xs rounded-md border border-slate-200 shadow-xs shrink-0" title="行內代碼">&lt;/&gt;</button>
+                        <button type="button" onclick="app.insertMarkdown('> ', '')" class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-800 font-medium text-xs rounded-md border border-slate-200 shadow-xs shrink-0" title="引言">&gt;</button>
+                        <button type="button" onclick="app.centerCurrentLineOrSelection()" class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-800 font-medium text-xs rounded-md border border-slate-200 shadow-xs flex items-center gap-1 shrink-0" title="將當前行或選取文字置中 (語法 ->文字<-)">
                             <span>≡</span> <span>置中</span>
                         </button>
                         
-                        <!-- 插入分頁符號與切換開關 (Neo-Brutalist) -->
+                        <!-- 插入分頁符號與切換開關 -->
                         <div class="relative inline-block shrink-0" id="docPageBreakContainer">
-                            <button type="button" onclick="app.toggleDocPageBreakMenu(event)" class="px-2 py-1 bg-white hover:bg-zinc-200 border-2 border-black font-bold text-xs flex items-center gap-1 flat-box shrink-0" title="在游標或選取處插入分頁符號，可設定段落移至下一頁">
+                            <button type="button" onclick="app.toggleDocPageBreakMenu(event)" class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-800 font-medium text-xs rounded-md border border-slate-200 shadow-xs flex items-center gap-1 shrink-0" title="在游標或選取處插入分頁符號，可設定段落移至下一頁">
                                 <span>📄 分頁</span>
-                                <span class="text-[9px]">▼</span>
+                                <span class="text-[9px] text-slate-400">▼</span>
                             </button>
-                            <div id="docPageBreakDropdown" class="hidden absolute left-0 top-full mt-1 w-60 max-w-[calc(100vw-2rem)] bg-white border-2 border-black shadow-[4px_4px_0px_0px_#000] z-50 p-2 space-y-2 text-xs">
+                            <div id="docPageBreakDropdown" class="hidden absolute left-0 top-full mt-1 w-60 max-w-[calc(100vw-2rem)] bg-white border border-slate-200 rounded-lg shadow-lg z-50 p-2.5 space-y-2 text-xs">
                                 <div>
-                                    <div class="font-black text-[10px] text-zinc-500 uppercase mb-1">📄 換頁控制 (Page Break)</div>
-                                    <button type="button" onclick="app.insertPageBreak(); app.closeDocPageBreakMenu();" class="w-full text-left px-2 py-1.5 bg-zinc-50 hover:bg-yellow-100 font-bold flex items-center gap-1.5 border border-black mb-1.5" title="將當前段落或選取內容移至新頁面">
+                                    <div class="font-bold text-[10px] text-slate-400 uppercase mb-1 tracking-wider">📄 換頁控制 (Page Break)</div>
+                                    <button type="button" onclick="app.insertPageBreak(); app.closeDocPageBreakMenu();" class="w-full text-left px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 font-medium flex items-center gap-1.5 rounded border border-slate-200 mb-1.5" title="將當前段落或選取內容移至新頁面">
                                         <span>✂️</span> <span>在游標/選取處插入分頁</span>
                                     </button>
                                 </div>
-                                <div class="border-t border-zinc-200 pt-1.5 flex items-center justify-between">
-                                    <span class="font-bold text-zinc-700">啟用分頁功能</span>
-                                    <button type="button" id="btnTogglePageBreaks" onclick="app.togglePageBreaksState()" class="px-2 py-0.5 font-black text-xs border border-black bg-black text-white">
+                                <div class="border-t border-slate-100 pt-1.5 flex items-center justify-between">
+                                    <span class="font-semibold text-slate-700">啟用分頁功能</span>
+                                    <button type="button" id="btnTogglePageBreaks" onclick="app.togglePageBreaksState()" class="px-2.5 py-0.5 font-bold text-xs rounded bg-slate-900 text-white">
                                         已開啟
                                     </button>
                                 </div>
-                                <div class="text-[10px] text-zinc-500 font-normal leading-tight">
+                                <div class="text-[10px] text-slate-400 font-normal leading-tight">
                                     開啟後列印或預覽時將自動在此處換頁；關閉時則連續顯示。
                                 </div>
                             </div>
                         </div>
 
-                        <div class="h-4 w-px bg-zinc-400 mx-0.5 hidden sm:block"></div>
-                        <button type="button" onclick="app.openInsertImageModal()" class="px-2 py-1 bg-white hover:bg-zinc-200 border-2 border-black font-bold text-xs flex items-center gap-1 flat-box text-blue-900 shrink-0" title="插入圖片">
+                        <div class="h-4 w-px bg-slate-200 mx-0.5 hidden sm:block"></div>
+                        <button type="button" onclick="app.openInsertImageModal()" class="px-2.5 py-1 bg-white hover:bg-slate-100 text-blue-700 font-semibold text-xs rounded-md border border-slate-200 shadow-xs flex items-center gap-1 shrink-0" title="插入圖片">
                             <span>🖼️</span> <span class="hidden sm:inline">圖片</span>
                         </button>
-                        <button type="button" onclick="app.printDocPreview()" class="px-2 py-1 bg-white hover:bg-yellow-200 border-2 border-black font-bold text-xs flex items-center gap-1 flat-box shrink-0" title="列印或另存為 PDF (預覽排版後版本)">
+                        <button type="button" onclick="app.printDocPreview()" class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 font-semibold text-xs rounded-md border border-slate-200 shadow-xs flex items-center gap-1 shrink-0" title="列印或另存為 PDF (預覽排版後版本)">
                             <span>🖨️</span> <span class="hidden sm:inline">列印預覽版</span>
                         </button>
                     </div>
 
-                    <div class="text-[11px] font-bold text-zinc-600 hidden lg:flex items-center gap-1">
+                    <div class="text-[11px] font-normal text-slate-400 hidden lg:flex items-center gap-1">
                         <span>💡 語法：輸入 <code>[[文檔名稱]]</code> 即可點擊連結跳轉</span>
                     </div>
                 </div>
 
-                <!-- 內容區域：編輯文字框 vs 純檢視文章卡片 -->
+                <!-- 內容區域：編輯文字框 vs 純檢視文章卡片 (Google Docs / 飛書紙張風格) -->
                 <div class="w-full flex flex-col">
-                    <textarea id="docEditor" oninput="app.updateDocContent(this.value)" class="w-full flat-input bg-white p-4 font-mono text-sm leading-relaxed shadow-inner min-h-[300px] md:min-h-[420px] resize-y" placeholder="支援 Markdown 語法與 [[文檔名稱]] 引用連結..."></textarea>
+                    <textarea id="docEditor" oninput="app.updateDocContent(this.value)" class="w-full bg-white p-6 md:p-10 font-mono text-sm leading-relaxed border border-slate-200 rounded-xl shadow-sm min-h-[360px] md:min-h-[500px] resize-y text-slate-800 focus:border-slate-400 focus:outline-none" placeholder="支援 Markdown 語法與 [[文檔名稱]] 引用連結..."></textarea>
                     
                     <!-- 📎 文檔附件與縮圖快速列 -->
-                    <div id="docAttachmentsBar" class="hidden my-2 p-2.5 bg-zinc-100 border-2 border-black flex flex-wrap items-center gap-2 text-xs shadow-[2px_2px_0px_0px_#000]">
+                    <div id="docAttachmentsBar" class="hidden my-2 p-3 bg-slate-50 border border-slate-200 rounded-xl flex flex-wrap items-center gap-2 text-xs shadow-xs">
                         <!-- 動態渲染圖片縮圖卡片 -->
                     </div>
 
-                    <div id="docPreview" class="hidden w-full border-2 border-black bg-white p-6 md:p-8 prose prose-zinc max-w-none shadow-[4px_4px_0px_0px_#000] min-h-[300px] md:min-h-[420px]">
+                    <div id="docPreview" class="hidden w-full border border-slate-200 rounded-xl bg-white p-8 md:p-12 prose prose-slate max-w-none shadow-sm min-h-[360px] md:min-h-[500px]">
                         <!-- 純檢視 Markdown Preview -->
                     </div>
                 </div>
 
                 <!-- 雙向連結網絡面板 (Outgoing Links & Backlinks) -->
-                <div id="docLinksPanel" class="p-4 bg-zinc-100 border-2 border-black text-xs shadow-[3px_3px_0px_0px_#000] mb-8">
+                <div id="docLinksPanel" class="p-4 bg-slate-50 border border-slate-200 rounded-xl text-xs shadow-xs mb-8">
                     <!-- 動態載入 -->
                 </div>
             </div>
 
             <!-- 視圖 3: 專案精靈 (Wizard) -->
             <div id="viewWizard" class="hidden p-4 md:p-8 max-w-3xl mx-auto space-y-8">
-                <div class="bg-violet-100 border-2 border-black p-6 flat-shadow-lg text-center space-y-2">
-                    <h2 class="text-2xl font-black uppercase">✨ 專案架構精靈</h2>
-                    <p class="text-sm font-bold text-violet-800">填寫以下維度，系統將自動為您生成可執行的任務清單！</p>
+                <div class="bg-violet-50 border border-violet-200 rounded-xl p-6 shadow-xs text-center space-y-2">
+                    <h2 class="text-2xl font-bold text-violet-900">✨ 專案架構精靈</h2>
+                    <p class="text-xs md:text-sm font-medium text-violet-700">填寫以下維度，系統將自動為您生成可執行的任務清單！</p>
                 </div>
 
                 <div class="space-y-6">
-                    <div class="bg-white border-2 border-black p-5">
-                        <label class="block font-black text-lg mb-2 uppercase">1. 🎯 核心願景與痛點</label>
-                        <p class="text-xs text-zinc-500 font-bold mb-2">這個專案要解決什麼問題？最終目標是什麼？</p>
+                    <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-xs">
+                        <label class="block font-bold text-base text-slate-800 mb-1">1. 🎯 核心願景與痛點</label>
+                        <p class="text-xs text-slate-400 font-medium mb-3">這個專案要解決什麼問題？最終目標是什麼？</p>
                         <textarea id="wizardVision" class="flat-input w-full p-3 h-24 text-sm font-mono" oninput="app.saveWizard()"></textarea>
                     </div>
-                    <div class="bg-white border-2 border-black p-5">
-                        <label class="block font-black text-lg mb-2 uppercase">2. ⚙️ MVP 核心功能 (一條一行)</label>
-                        <p class="text-xs text-zinc-500 font-bold mb-2">最小可行性產品必須具備的功能清單</p>
-                        <textarea id="wizardFeatures" class="flat-input w-full p-3 h-32 text-sm font-mono leading-relaxed placeholder-zinc-300" placeholder="- 使用者登入系統&#10;- 資料庫儲存功能&#10;- 響應式前端介面" oninput="app.saveWizard()"></textarea>
+                    <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-xs">
+                        <label class="block font-bold text-base text-slate-800 mb-1">2. ⚙️ MVP 核心功能 (一條一行)</label>
+                        <p class="text-xs text-slate-400 font-medium mb-3">最小可行性產品必須具備的功能清單</p>
+                        <textarea id="wizardFeatures" class="flat-input w-full p-3 h-32 text-sm font-mono leading-relaxed placeholder-slate-300" placeholder="- 使用者登入系統&#10;- 資料庫儲存功能&#10;- 響應式前端介面" oninput="app.saveWizard()"></textarea>
                     </div>
-                    <div class="bg-white border-2 border-black p-5">
-                        <label class="block font-black text-lg mb-2 uppercase">3. 🛠️ 技術選型與資源</label>
-                        <p class="text-xs text-zinc-500 font-bold mb-2">預計使用哪些前端、後端框架或 API？</p>
+                    <div class="bg-white border border-slate-200 rounded-xl p-6 shadow-xs">
+                        <label class="block font-bold text-base text-slate-800 mb-1">3. 🛠️ 技術選型與資源</label>
+                        <p class="text-xs text-slate-400 font-medium mb-3">預計使用哪些前端、後端框架或 API？</p>
                         <textarea id="wizardTech" class="flat-input w-full p-3 h-24 text-sm font-mono" oninput="app.saveWizard()"></textarea>
                     </div>
                 </div>
 
-                <button onclick="app.generateTasksFromWizard()" class="w-full bg-black text-white font-black text-lg py-4 border-2 border-black flat-box hover:bg-zinc-800 uppercase tracking-widest">
+                <button onclick="app.generateTasksFromWizard()" class="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold text-base py-3.5 rounded-xl shadow-sm transition-colors uppercase tracking-wider">
                     ⚡ 產生執行任務清單
                 </button>
             </div>
@@ -536,35 +535,35 @@
             <div id="viewExecution" class="hidden h-full flex flex-col p-4 md:p-6">
                 <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
                     <div>
-                        <h2 class="text-2xl font-black uppercase">✅ 執行控制台</h2>
-                        <p class="text-xs font-bold text-zinc-500 mt-1">追蹤與管理專案里程碑</p>
+                        <h2 class="text-xl md:text-2xl font-bold text-slate-900">✅ 執行控制台</h2>
+                        <p class="text-xs font-medium text-slate-400 mt-0.5">追蹤與管理專案里程碑</p>
                     </div>
-                    <div class="flex gap-2 w-full sm:w-auto">
-                        <button onclick="app.toggleExecutionView('list')" id="btnViewList" class="flex-1 sm:flex-none bg-black text-white px-4 py-2 border-2 border-black font-bold text-sm flat-box">清單模式</button>
-                        <button onclick="app.toggleExecutionView('kanban')" id="btnViewKanban" class="flex-1 sm:flex-none bg-zinc-100 text-black px-4 py-2 border-2 border-black font-bold text-sm flat-box">看板模式</button>
+                    <div class="flex gap-1.5 p-0.5 bg-slate-100 rounded-lg border border-slate-200/80 w-full sm:w-auto">
+                        <button onclick="app.toggleExecutionView('list')" id="btnViewList" class="flex-1 sm:flex-none bg-white text-slate-900 px-4 py-1.5 rounded-md font-semibold text-xs shadow-xs transition-all">清單模式</button>
+                        <button onclick="app.toggleExecutionView('kanban')" id="btnViewKanban" class="flex-1 sm:flex-none bg-transparent text-slate-600 px-4 py-1.5 rounded-md font-semibold text-xs transition-all hover:text-slate-900">看板模式</button>
                     </div>
                 </div>
 
                 <!-- 成員篩選與任務新增區 -->
                 <div class="space-y-3 mb-5">
                     <!-- 成員過濾 Chips -->
-                    <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 text-xs font-bold" id="taskMemberFilterBar">
+                    <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 text-xs font-medium" id="taskMemberFilterBar">
                         <!-- 動態載入成員過濾按鈕 -->
                     </div>
 
-                    <!-- 任務新增列 (手機端雙排整齊適配、桌機端整齊單排) -->
-                    <div class="flex flex-col sm:flex-row gap-2 bg-zinc-50 sm:bg-transparent p-2.5 sm:p-0 border-2 sm:border-0 border-black shadow-[2px_2px_0px_0px_#000] sm:shadow-none">
-                        <input type="text" id="newTaskInput" placeholder="輸入新任務名稱... (按 Enter 新增)" class="flat-input w-full sm:flex-1 p-2 sm:p-2.5 font-bold text-sm min-w-0" onkeypress="if(event.key==='Enter') app.addTask()">
+                    <!-- 任務新增列 -->
+                    <div class="flex flex-col sm:flex-row gap-2 bg-white p-2.5 rounded-xl border border-slate-200 shadow-xs">
+                        <input type="text" id="newTaskInput" placeholder="輸入新任務名稱... (按 Enter 新增)" class="flat-input w-full sm:flex-1 p-2 sm:p-2.5 font-medium text-sm min-w-0" onkeypress="if(event.key==='Enter') app.addTask()">
                         <div class="flex items-center gap-1.5 w-full sm:w-auto shrink-0">
-                            <select id="newTaskAssignee" class="flat-input p-2 sm:p-2.5 font-bold text-xs bg-white sm:bg-zinc-100 cursor-pointer flex-1 sm:w-32 min-w-0 shrink-0">
+                            <select id="newTaskAssignee" class="flat-input p-2 sm:p-2.5 font-medium text-xs bg-slate-50 cursor-pointer flex-1 sm:w-32 min-w-0 shrink-0">
                                 <!-- 動態載入指派成員 -->
                             </select>
-                            <select id="newTaskPriority" class="flat-input p-2 sm:p-2.5 font-bold text-xs bg-white sm:bg-zinc-100 cursor-pointer w-20 sm:w-24 shrink-0">
+                            <select id="newTaskPriority" class="flat-input p-2 sm:p-2.5 font-semibold text-xs bg-slate-50 cursor-pointer w-20 sm:w-24 shrink-0">
                                 <option value="HIGH">🔴 高</option>
                                 <option value="MED" selected>🟡 中</option>
                                 <option value="LOW">🔵 低</option>
                             </select>
-                            <button onclick="app.addTask()" class="bg-black text-white px-3.5 sm:px-5 py-2 sm:py-2.5 border-2 border-black font-bold text-xs flat-box whitespace-nowrap hover:bg-zinc-800 shrink-0">＋ 新增</button>
+                            <button onclick="app.addTask()" class="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 sm:py-2.5 rounded-lg font-semibold text-xs whitespace-nowrap shadow-xs transition-colors shrink-0">＋ 新增</button>
                         </div>
                     </div>
                 </div>
@@ -577,26 +576,26 @@
                 <!-- 看板模式 (Kanban View) -->
                 <div id="execKanbanView" class="hidden flex-1 overflow-x-auto overflow-y-hidden snap-x snap-mandatory flex gap-4 pb-4 no-scrollbar">
                     <!-- Todo -->
-                    <div class="min-w-[85vw] md:min-w-[300px] flex-1 flex flex-col bg-zinc-100 border-2 border-black snap-center">
-                        <div class="p-3 border-b-2 border-black bg-zinc-200 font-black uppercase flex justify-between">
+                    <div class="min-w-[85vw] md:min-w-[300px] flex-1 flex flex-col bg-slate-50 border border-slate-200 rounded-xl snap-center overflow-hidden">
+                        <div class="p-3 border-b border-slate-200 bg-white font-bold text-xs text-slate-700 flex justify-between items-center">
                             <span>待處理 (TODO)</span>
-                            <span id="countTodo" class="bg-black text-white px-2 py-0.5 text-xs">0</span>
+                            <span id="countTodo" class="bg-slate-100 text-slate-600 rounded px-2 py-0.5 text-xs font-mono">0</span>
                         </div>
                         <div class="flex-1 p-2 overflow-y-auto space-y-2" id="kanbanTodo"></div>
                     </div>
                     <!-- Doing -->
-                    <div class="min-w-[85vw] md:min-w-[300px] flex-1 flex flex-col bg-blue-50 border-2 border-blue-900 snap-center">
-                        <div class="p-3 border-b-2 border-blue-900 bg-blue-200 font-black uppercase flex justify-between">
-                            <span class="text-blue-900">進行中 (DOING)</span>
-                            <span id="countDoing" class="bg-blue-900 text-white px-2 py-0.5 text-xs">0</span>
+                    <div class="min-w-[85vw] md:min-w-[300px] flex-1 flex flex-col bg-blue-50/50 border border-blue-200 rounded-xl snap-center overflow-hidden">
+                        <div class="p-3 border-b border-blue-200 bg-white font-bold text-xs text-blue-800 flex justify-between items-center">
+                            <span class="text-blue-800">進行中 (DOING)</span>
+                            <span id="countDoing" class="bg-blue-100 text-blue-800 rounded px-2 py-0.5 text-xs font-mono">0</span>
                         </div>
                         <div class="flex-1 p-2 overflow-y-auto space-y-2" id="kanbanDoing"></div>
                     </div>
                     <!-- Done -->
-                    <div class="min-w-[85vw] md:min-w-[300px] flex-1 flex flex-col bg-green-50 border-2 border-green-900 snap-center">
-                        <div class="p-3 border-b-2 border-green-900 bg-green-200 font-black uppercase flex justify-between">
-                            <span class="text-green-900">已完成 (DONE)</span>
-                            <span id="countDone" class="bg-green-900 text-white px-2 py-0.5 text-xs">0</span>
+                    <div class="min-w-[85vw] md:min-w-[300px] flex-1 flex flex-col bg-emerald-50/50 border border-emerald-200 rounded-xl snap-center overflow-hidden">
+                        <div class="p-3 border-b border-emerald-200 bg-white font-bold text-xs text-emerald-800 flex justify-between items-center">
+                            <span class="text-emerald-800">已完成 (DONE)</span>
+                            <span id="countDone" class="bg-emerald-100 text-emerald-800 rounded px-2 py-0.5 text-xs font-mono">0</span>
                         </div>
                         <div class="flex-1 p-2 overflow-y-auto space-y-2" id="kanbanDone"></div>
                     </div>
@@ -606,26 +605,26 @@
         </div>
     </main>
 
-    <nav class="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white border-t-2 border-black z-40 flex justify-around items-center px-1 safe-area-pb">
-        <button onclick="app.switchView('Home')" class="flex flex-col items-center justify-center w-full h-full text-zinc-500 hover:text-black hover:bg-zinc-100 transition-colors" id="navBtnHome">
+    <nav class="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white/95 backdrop-blur border-t border-slate-200 z-40 flex justify-around items-center px-1 safe-area-pb">
+        <button onclick="app.switchView('Home')" class="flex flex-col items-center justify-center w-full h-full text-slate-500 hover:text-slate-900 transition-colors" id="navBtnHome">
             <span class="text-xl mb-0.5">🏠</span>
-            <span class="text-[10px] font-bold">首頁</span>
+            <span class="text-[10px] font-semibold">首頁</span>
         </button>
-        <button onclick="app.switchView('Dashboard')" class="flex flex-col items-center justify-center w-full h-full text-zinc-500 hover:text-black hover:bg-zinc-100 transition-colors" id="navBtnDashboard">
+        <button onclick="app.switchView('Dashboard')" class="flex flex-col items-center justify-center w-full h-full text-slate-500 hover:text-slate-900 transition-colors" id="navBtnDashboard">
             <span class="text-xl mb-0.5">📊</span>
-            <span class="text-[10px] font-bold">總覽</span>
+            <span class="text-[10px] font-semibold">總覽</span>
         </button>
-        <button onclick="app.switchView('Docs')" class="flex flex-col items-center justify-center w-full h-full text-zinc-500 hover:text-black hover:bg-zinc-100 transition-colors" id="navBtnDocs">
+        <button onclick="app.switchView('Docs')" class="flex flex-col items-center justify-center w-full h-full text-slate-500 hover:text-slate-900 transition-colors" id="navBtnDocs">
             <span class="text-xl mb-0.5">📄</span>
-            <span class="text-[10px] font-bold">文檔</span>
+            <span class="text-[10px] font-semibold">文檔</span>
         </button>
-        <button onclick="app.switchView('Execution')" class="flex flex-col items-center justify-center w-full h-full text-zinc-500 hover:text-black hover:bg-zinc-100 transition-colors" id="navBtnExecution">
+        <button onclick="app.switchView('Execution')" class="flex flex-col items-center justify-center w-full h-full text-slate-500 hover:text-slate-900 transition-colors" id="navBtnExecution">
             <span class="text-xl mb-0.5">✅</span>
-            <span class="text-[10px] font-bold">任務</span>
+            <span class="text-[10px] font-semibold">任務</span>
         </button>
-        <button onclick="app.switchView('Wizard')" class="flex flex-col items-center justify-center w-full h-full text-zinc-500 hover:text-violet-600 hover:bg-violet-50 transition-colors" id="navBtnWizard">
+        <button onclick="app.switchView('Wizard')" class="flex flex-col items-center justify-center w-full h-full text-slate-500 hover:text-violet-700 transition-colors" id="navBtnWizard">
             <span class="text-xl mb-0.5">✨</span>
-            <span class="text-[10px] font-bold">精靈</span>
+            <span class="text-[10px] font-semibold">精靈</span>
         </button>
     </nav>
 
@@ -633,7 +632,7 @@
     <div id="settingsModal" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-0" onclick="app.closeSettingsModal()">
         <div class="bg-white border-0 w-full h-full flex flex-col overflow-hidden" onclick="event.stopPropagation()">
             <!-- 標題欄 -->
-            <div class="p-3 md:p-4 border-b-2 border-black bg-zinc-100 flex items-center justify-between shrink-0">
+            <div class="p-3 md:p-4 border-b border-slate-200 bg-white flex items-center justify-between shrink-0 px-6 py-4">
                 <div class="flex items-center gap-2">
                     <span class="text-2xl">⚙️</span>
                     <div>
@@ -641,29 +640,29 @@
                         <p class="text-[11px] md:text-xs font-bold text-zinc-500">自訂外觀字體、操作音效、時光機、本機備份、雲端同步與專案管理</p>
                     </div>
                 </div>
-                <button onclick="app.closeSettingsModal()" class="p-1.5 px-3 bg-white hover:bg-red-500 hover:text-white border-2 border-black font-bold text-sm flat-box transition-colors flex items-center gap-1" title="關閉設定中心 (Esc)">
+                <button onclick="app.closeSettingsModal()" class="p-1.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition-colors flex items-center gap-1" title="關閉設定中心 (Esc)">
                     <span>✕</span> <span class="hidden sm:inline">關閉</span>
                 </button>
             </div>
 
             <!-- Tab 導覽列 (支援手機端水平滾動) -->
-            <div class="flex border-b-2 border-black bg-zinc-200 p-1 shrink-0 gap-1 text-xs font-bold overflow-x-auto no-scrollbar">
+            <div class="flex border-b border-slate-200 bg-slate-50/80 px-4 py-2 shrink-0 gap-1.5 text-xs font-medium overflow-x-auto no-scrollbar">
                 <button type="button" id="tabSettings_appearance" onclick="app.switchSettingsTab('appearance')" class="px-3 py-1.5 bg-black text-white flat-box shrink-0 flex items-center gap-1">
                     <span>🔤</span> <span>外觀字體</span>
                 </button>
-                <button type="button" id="tabSettings_preferences" onclick="app.switchSettingsTab('preferences')" class="px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 text-black flat-box shrink-0 flex items-center gap-1 transition-colors">
+                <button type="button" id="tabSettings_preferences" onclick="app.switchSettingsTab('preferences')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-black flat-box shrink-0 flex items-center gap-1 transition-colors">
                     <span>🔊</span> <span>音效偏好</span>
                 </button>
-                <button type="button" id="tabSettings_history" onclick="app.switchSettingsTab('history')" class="px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 text-black flat-box shrink-0 flex items-center gap-1 transition-colors">
+                <button type="button" id="tabSettings_history" onclick="app.switchSettingsTab('history')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-black flat-box shrink-0 flex items-center gap-1 transition-colors">
                     <span>🕒</span> <span>時光機</span>
                 </button>
-                <button type="button" id="tabSettings_backup" onclick="app.switchSettingsTab('backup')" class="px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 text-black flat-box shrink-0 flex items-center gap-1 transition-colors">
+                <button type="button" id="tabSettings_backup" onclick="app.switchSettingsTab('backup')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-black flat-box shrink-0 flex items-center gap-1 transition-colors">
                     <span>💾</span> <span>備份還原</span>
                 </button>
-                <button type="button" id="tabSettings_cloud" onclick="app.switchSettingsTab('cloud')" class="px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 text-black flat-box shrink-0 flex items-center gap-1 transition-colors">
+                <button type="button" id="tabSettings_cloud" onclick="app.switchSettingsTab('cloud')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-black flat-box shrink-0 flex items-center gap-1 transition-colors">
                     <span>☁️</span> <span>雲端同步</span>
                 </button>
-                <button type="button" id="tabSettings_project" onclick="app.switchSettingsTab('project')" class="px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 text-black flat-box shrink-0 flex items-center gap-1 transition-colors">
+                <button type="button" id="tabSettings_project" onclick="app.switchSettingsTab('project')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-black flat-box shrink-0 flex items-center gap-1 transition-colors">
                     <span>📁</span> <span>專案管理</span>
                 </button>
             </div>
@@ -675,7 +674,7 @@
                 <!-- Tab 1: 外觀與字體設定 (Appearance & Font) -->
                 <div id="panelSettings_appearance" class="space-y-4">
                     <!-- 套用範圍切換 -->
-                    <div class="bg-zinc-50 border-2 border-black p-3 space-y-2">
+                    <div class="bg-slate-50 border border-slate-200 p-3 space-y-2">
                         <label class="block text-xs font-black uppercase text-zinc-700">套用生效範圍</label>
                         <div class="grid grid-cols-2 gap-2">
                             <label class="flex items-center gap-2 cursor-pointer text-xs font-bold p-2 bg-white border border-black hover:bg-yellow-50">
@@ -690,7 +689,7 @@
                     </div>
 
                     <!-- 方式一：匯入本機字體 -->
-                    <div class="bg-white border-2 border-black p-3 space-y-2">
+                    <div class="bg-white border border-slate-200 p-3 space-y-2">
                         <div class="flex items-center justify-between">
                             <label class="text-xs font-black uppercase text-zinc-800 flex items-center gap-1">
                                 <span>📁</span> 方式一：匯入本機字體檔案
@@ -701,7 +700,7 @@
                             上傳字體後將自動轉存至本地離線快取，離線狀態與手機端亦能完美載入。
                         </p>
                         <div class="flex gap-2 items-center">
-                            <label class="flex-1 cursor-pointer bg-zinc-100 hover:bg-zinc-200 border-2 border-black py-2 px-3 text-xs font-bold text-center flat-box truncate">
+                            <label class="flex-1 cursor-pointer bg-slate-100 hover:bg-slate-200 border border-slate-200 py-2 px-3 text-xs font-bold text-center flat-box truncate">
                                 <span id="fontFileLabelText">📂 選擇字體檔案...</span>
                                 <input type="file" id="fontFileInput" accept=".ttf,.otf,.woff,.woff2" onchange="app.handleFontFileUpload(event)" class="hidden">
                             </label>
@@ -709,50 +708,50 @@
                     </div>
 
                     <!-- 方式二：線上字體 / Google Fonts -->
-                    <div class="bg-white border-2 border-black p-3 space-y-2">
+                    <div class="bg-white border border-slate-200 p-3 space-y-2">
                         <div class="flex items-center justify-between">
                             <label class="text-xs font-black uppercase text-zinc-800 flex items-center gap-1">
                                 <span>🌐</span> 方式二：線上字體 (Google Fonts / CSS URL)
                             </label>
                         </div>
                         <div class="space-y-1.5">
-                            <input type="text" id="fontOnlineUrlInput" placeholder="例如: https://fonts.googleapis.com/css2?family=Noto+Sans+TC&display=swap" class="flat-input w-full p-2 text-xs font-mono bg-zinc-50">
+                            <input type="text" id="fontOnlineUrlInput" placeholder="例如: https://fonts.googleapis.com/css2?family=Noto+Sans+TC&display=swap" class="flat-input w-full p-2 text-xs font-mono bg-slate-50">
                             <div class="flex gap-2">
-                                <input type="text" id="fontOnlineFamilyInput" placeholder="字體名稱 (例如: 'Noto Sans TC')" class="flat-input flex-1 p-2 text-xs bg-zinc-50">
-                                <button onclick="app.applyOnlineFontFromInput()" class="bg-black text-white hover:bg-zinc-800 text-xs font-bold px-3 border-2 border-black shrink-0">套用</button>
+                                <input type="text" id="fontOnlineFamilyInput" placeholder="字體名稱 (例如: 'Noto Sans TC')" class="flat-input flex-1 p-2 text-xs bg-slate-50">
+                                <button onclick="app.applyOnlineFontFromInput()" class="bg-black text-white hover:bg-slate-800 text-xs font-bold px-3 border border-slate-200 shrink-0">套用</button>
                             </div>
                         </div>
                     </div>
 
                     <!-- 方式三：常用系統字庫切換 -->
-                    <div class="bg-white border-2 border-black p-3 space-y-2">
+                    <div class="bg-white border border-slate-200 p-3 space-y-2">
                         <label class="block text-xs font-black uppercase text-zinc-800 flex items-center gap-1">
                             <span>⚡</span> 常用預設與系統字庫快速切換
                         </label>
                         <div class="grid grid-cols-2 sm:grid-cols-3 gap-1.5 text-xs font-bold">
-                            <button type="button" onclick="app.setQuickFont('Inter, -apple-system, BlinkMacSystemFont, sans-serif', '現代幾何無襯線 (Inter 預設)')" class="p-2 text-left bg-zinc-50 hover:bg-yellow-200 border border-black truncate">
+                            <button type="button" onclick="app.setQuickFont('Inter, -apple-system, BlinkMacSystemFont, sans-serif', '現代幾何無襯線 (Inter 預設)')" class="p-2 text-left bg-slate-50 hover:bg-yellow-200 border border-black truncate">
                                 Inter (預設黑體)
                             </button>
-                            <button type="button" onclick="app.setQuickFont('&quot;Microsoft JhengHei&quot;, &quot;微軟正黑體&quot;, sans-serif', '微軟正黑體 (系統)')" class="p-2 text-left bg-zinc-50 hover:bg-yellow-200 border border-black truncate font-sans">
+                            <button type="button" onclick="app.setQuickFont('&quot;Microsoft JhengHei&quot;, &quot;微軟正黑體&quot;, sans-serif', '微軟正黑體 (系統)')" class="p-2 text-left bg-slate-50 hover:bg-yellow-200 border border-black truncate font-sans">
                                 微軟正黑體
                             </button>
-                            <button type="button" onclick="app.loadPresetWebFont('Noto+Sans+TC', 'Noto Sans TC', '思源黑體 (Noto Sans TC)')" class="p-2 text-left bg-zinc-50 hover:bg-yellow-200 border border-black truncate">
+                            <button type="button" onclick="app.loadPresetWebFont('Noto+Sans+TC', 'Noto Sans TC', '思源黑體 (Noto Sans TC)')" class="p-2 text-left bg-slate-50 hover:bg-yellow-200 border border-black truncate">
                                 思源黑體 (繁體)
                             </button>
-                            <button type="button" onclick="app.loadPresetWebFont('Noto+Serif+TC', 'Noto Serif TC', '思源宋體 (Noto Serif TC)')" class="p-2 text-left bg-zinc-50 hover:bg-yellow-200 border border-black truncate font-serif">
+                            <button type="button" onclick="app.loadPresetWebFont('Noto+Serif+TC', 'Noto Serif TC', '思源宋體 (Noto Serif TC)')" class="p-2 text-left bg-slate-50 hover:bg-yellow-200 border border-black truncate font-serif">
                                 思源宋體 (優雅明體)
                             </button>
-                            <button type="button" onclick="app.loadPresetWebFont('LXGW+WenKai+TC', 'LXGW WenKai TC', '霞鶩文楷 (溫潤楷書)')" class="p-2 text-left bg-zinc-50 hover:bg-yellow-200 border border-black truncate">
+                            <button type="button" onclick="app.loadPresetWebFont('LXGW+WenKai+TC', 'LXGW WenKai TC', '霞鶩文楷 (溫潤楷書)')" class="p-2 text-left bg-slate-50 hover:bg-yellow-200 border border-black truncate">
                                 霞鶩文楷 (文青楷書)
                             </button>
-                            <button type="button" onclick="app.setQuickFont('ui-monospace, Consolas, monospace', '等寬程式碼字體 (Monospace)')" class="p-2 text-left bg-zinc-50 hover:bg-yellow-200 border border-black truncate font-mono">
+                            <button type="button" onclick="app.setQuickFont('ui-monospace, Consolas, monospace', '等寬程式碼字體 (Monospace)')" class="p-2 text-left bg-slate-50 hover:bg-yellow-200 border border-black truncate font-mono">
                                 等寬工整字體
                             </button>
                         </div>
                     </div>
 
                     <!-- 當前套用狀態與預覽 -->
-                    <div class="bg-yellow-50 border-2 border-black p-3 space-y-2">
+                    <div class="bg-yellow-50 border border-slate-200 p-3 space-y-2">
                         <div class="flex items-center justify-between">
                             <span class="text-xs font-black uppercase text-zinc-800">當前套用字體</span>
                             <span id="currentFontBadge" class="text-xs font-mono font-bold text-blue-900 bg-white px-2 py-0.5 border border-black truncate max-w-[200px]">Inter (系統預設)</span>
@@ -762,14 +761,14 @@
                         </div>
                     </div>
 
-                    <button onclick="app.resetDefaultFont()" class="bg-zinc-100 hover:bg-zinc-200 text-red-600 border-2 border-black font-bold text-xs px-3 py-2 flat-box">
+                    <button onclick="app.resetDefaultFont()" class="bg-slate-100 hover:bg-slate-200 text-red-600 border border-slate-200 font-bold text-xs px-3 py-2 flat-box">
                         🔄 恢復預設 Inter 字體
                     </button>
                 </div>
 
                 <!-- Tab 2: 音效與操作偏好 (Preferences) -->
                 <div id="panelSettings_preferences" class="hidden space-y-4">
-                    <div class="bg-white border-2 border-black p-4 space-y-3">
+                    <div class="bg-white border border-slate-200 p-4 space-y-3">
                         <div class="flex items-center justify-between">
                             <div>
                                 <h4 class="font-black text-sm uppercase flex items-center gap-1.5">
@@ -777,7 +776,7 @@
                                 </h4>
                                 <p class="text-xs text-zinc-600 mt-0.5">點擊按鈕、建立文檔、刪除任務或存檔時提供即時音效。</p>
                             </div>
-                            <button type="button" id="settingsSoundToggleBtn" onclick="app.toggleSound()" class="px-3 py-1.5 font-bold text-xs border-2 border-black bg-black text-white flat-box">
+                            <button type="button" id="settingsSoundToggleBtn" onclick="app.toggleSound()" class="px-3 py-1.5 font-bold text-xs border border-slate-200 bg-black text-white flat-box">
                                 🔊 音效已開啟
                             </button>
                         </div>
@@ -786,17 +785,17 @@
                         <div class="border-t border-zinc-200 pt-3">
                             <label class="block font-black text-xs uppercase text-zinc-600 mb-2">🎵 音效試聽</label>
                             <div class="flex flex-wrap gap-2">
-                                <button type="button" onclick="app.playSound('click')" class="px-2.5 py-1 bg-zinc-100 hover:bg-zinc-200 border border-black text-xs font-bold">🔘 點擊音</button>
+                                <button type="button" onclick="app.playSound('click')" class="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 border border-black text-xs font-bold">🔘 點擊音</button>
                                 <button type="button" onclick="app.playSound('create')" class="px-2.5 py-1 bg-green-100 hover:bg-green-200 text-green-900 border border-black text-xs font-bold">✨ 建立音</button>
                                 <button type="button" onclick="app.playSound('delete')" class="px-2.5 py-1 bg-red-100 hover:bg-red-200 text-red-900 border border-black text-xs font-bold">🗑️ 刪除音</button>
                                 <button type="button" onclick="app.playSound('success')" class="px-2.5 py-1 bg-yellow-100 hover:bg-yellow-200 text-yellow-900 border border-black text-xs font-bold">🎉 成功音</button>
-                                <button type="button" onclick="app.playSound('error')" class="px-2.5 py-1 bg-zinc-200 hover:bg-zinc-300 text-zinc-800 border border-black text-xs font-bold">⚠️ 警示音</button>
+                                <button type="button" onclick="app.playSound('error')" class="px-2.5 py-1 bg-slate-200 hover:bg-slate-200 text-zinc-800 border border-black text-xs font-bold">⚠️ 警示音</button>
                             </div>
                         </div>
                     </div>
 
                     <!-- 分頁標記開關 -->
-                    <div class="bg-white border-2 border-black p-4 space-y-2">
+                    <div class="bg-white border border-slate-200 p-4 space-y-2">
                         <div class="flex items-center justify-between">
                             <div>
                                 <h4 class="font-black text-sm uppercase flex items-center gap-1.5">
@@ -804,14 +803,14 @@
                                 </h4>
                                 <p class="text-xs text-zinc-600 mt-0.5">開啟時，文檔中的分頁符號會在預覽與列印時生效並自動換頁。</p>
                             </div>
-                            <button type="button" id="settingsPageBreaksToggleBtn" onclick="app.togglePageBreaksState()" class="px-3 py-1.5 font-bold text-xs border-2 border-black bg-black text-white flat-box">
+                            <button type="button" id="settingsPageBreaksToggleBtn" onclick="app.togglePageBreaksState()" class="px-3 py-1.5 font-bold text-xs border border-slate-200 bg-black text-white flat-box">
                                 已開啟
                             </button>
                         </div>
                     </div>
 
                     <!-- 🔗 文檔關聯網絡 (Links & Backlinks) 開關 -->
-                    <div class="bg-white border-2 border-black p-4 space-y-2">
+                    <div class="bg-white border border-slate-200 p-4 space-y-2">
                         <div class="flex items-center justify-between">
                             <div>
                                 <h4 class="font-black text-sm uppercase flex items-center gap-1.5">
@@ -819,7 +818,7 @@
                                 </h4>
                                 <p class="text-xs text-zinc-600 mt-0.5">控制文檔底部的「本文檔引用的文檔」與「引用本篇的其他文檔」關聯網絡面板是否顯示。</p>
                             </div>
-                            <button type="button" id="settingsDocLinksToggleBtn" onclick="app.toggleShowDocLinksState()" class="px-3 py-1.5 font-bold text-xs border-2 border-black bg-black text-white flat-box">
+                            <button type="button" id="settingsDocLinksToggleBtn" onclick="app.toggleShowDocLinksState()" class="px-3 py-1.5 font-bold text-xs border border-slate-200 bg-black text-white flat-box">
                                 已開啟
                             </button>
                         </div>
@@ -828,12 +827,12 @@
 
                 <!-- Tab 3: 本機歷史快照時光機 (History) -->
                 <div id="panelSettings_history" class="hidden space-y-4">
-                    <div class="p-3 bg-zinc-50 dark:bg-zinc-900 border-2 border-black dark:border-zinc-700 flex items-center justify-between">
+                    <div class="p-3 bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-700 flex items-center justify-between">
                         <div>
                             <h4 class="font-black text-xs uppercase text-zinc-800 dark:text-zinc-100">🕒 本機歷史快照時光機</h4>
                             <p class="text-[11px] text-zinc-500 dark:text-zinc-400 font-medium">系統每次存檔皆會自動記錄快照，可隨時倒帶回溯！</p>
                         </div>
-                        <button onclick="app.saveSnapshot('手動建立快照'); app.showToast('💾 已建立最新歷史快照');" class="px-3 py-1.5 bg-black dark:bg-white text-white dark:text-black font-bold text-xs flat-box hover:bg-zinc-800 dark:hover:bg-zinc-200 shrink-0">
+                        <button onclick="app.saveSnapshot('手動建立快照'); app.showToast('💾 已建立最新歷史快照');" class="px-3 py-1.5 bg-black dark:bg-white text-white dark:text-black font-bold text-xs flat-box hover:bg-slate-800 dark:hover:bg-slate-200 shrink-0">
                             ＋ 建立快照
                         </button>
                     </div>
@@ -842,7 +841,7 @@
                         <!-- 動態注入歷史快照 -->
                     </div>
 
-                    <div class="p-2.5 bg-blue-50 border-2 border-blue-900 text-xs font-bold text-blue-950 flex items-center justify-between">
+                    <div class="p-2.5 bg-blue-50 border border-blue-200 text-xs font-bold text-blue-950 flex items-center justify-between">
                         <span>📊 Google 試算表雲端版本記錄：可由試算表「檔案 ➔ 版本記錄」隨時倒帶</span>
                         <a href="javascript:void(0)" onclick="app.openGasUrlInBrowser()" class="underline text-blue-800">開啟試算表 ↗</a>
                     </div>
@@ -851,7 +850,7 @@
                 <!-- Tab 4: 本機檔案備份與還原 (Backup) -->
                 <div id="panelSettings_backup" class="hidden space-y-4">
                     <!-- 檔案匯出與匯入 (實體 JSON 檔案) -->
-                    <div class="p-4 bg-zinc-100 border-2 border-black space-y-3">
+                    <div class="p-4 bg-slate-100 border border-slate-200 space-y-3">
                         <h4 class="font-black text-sm uppercase flex items-center gap-1.5">
                             <span>📁</span> 本地實體 JSON 檔案 (安全離線備份)
                         </h4>
@@ -859,10 +858,10 @@
                             一鍵將所有專案、文檔與任務完整下載至電腦本機磁碟，或選取先前的 <code>.json</code> 備份檔進行還原。
                         </p>
                         <div class="flex flex-col sm:flex-row gap-2 pt-1">
-                            <button onclick="app.exportLocalJson()" class="flex-1 bg-black text-white font-bold py-2.5 px-3 border-2 border-black flat-box text-xs flex items-center justify-center gap-1.5">
+                            <button onclick="app.exportLocalJson()" class="flex-1 bg-black text-white font-bold py-2.5 px-3 border border-slate-200 flat-box text-xs flex items-center justify-center gap-1.5">
                                 <span>📥</span> 下載本機 JSON 備份檔
                             </button>
-                            <button onclick="app.triggerImportBackup()" class="flex-1 bg-white hover:bg-zinc-100 text-black font-bold py-2.5 px-3 border-2 border-black flat-box text-xs flex items-center justify-center gap-1.5">
+                            <button onclick="app.triggerImportBackup()" class="flex-1 bg-white hover:bg-slate-100 text-black font-bold py-2.5 px-3 border border-slate-200 flat-box text-xs flex items-center justify-center gap-1.5">
                                 <span>📤</span> 選取 JSON 檔案還原
                             </button>
                             <input type="file" id="importJsonInput" accept=".json" class="hidden" onchange="app.importLocalJson(event)">
@@ -870,7 +869,7 @@
                     </div>
 
                     <!-- 瀏覽器 LocalStorage 診斷與手動強制寫入 -->
-                    <div class="p-4 bg-amber-50 border-2 border-amber-900 space-y-3 text-amber-950">
+                    <div class="p-4 bg-amber-50 border border-amber-200 space-y-3 text-amber-950">
                         <div class="flex items-center justify-between">
                             <span class="font-black text-sm uppercase flex items-center gap-1.5">⚡ 瀏覽器 LocalStorage 狀態</span>
                             <span id="backupStorageSize" class="text-[11px] font-mono font-bold bg-amber-200 px-2 py-0.5 border border-amber-900">計算中...</span>
@@ -879,14 +878,14 @@
                             <!-- 動態載入 -->
                         </div>
                         <div class="flex gap-2">
-                            <button onclick="app.forceSaveToLocalWithToast()" class="flex-1 bg-amber-200 hover:bg-amber-300 text-amber-950 font-bold py-2 border-2 border-amber-950 flat-box text-xs">
+                            <button onclick="app.forceSaveToLocalWithToast()" class="flex-1 bg-amber-200 hover:bg-amber-300 text-amber-950 font-bold py-2 border border-amber-200 flat-box text-xs">
                                 💾 立即強制寫入 LocalStorage
                             </button>
                         </div>
                     </div>
 
                     <!-- 過時與過期 LocalStorage 快取清理工具 -->
-                    <div class="p-4 bg-red-50 border-2 border-red-900 space-y-3 text-red-950">
+                    <div class="p-4 bg-red-50 border border-red-200 space-y-3 text-red-950">
                         <div class="flex items-center justify-between">
                             <span class="font-black text-sm uppercase flex items-center gap-1.5">🧹 過時資料清理工具</span>
                             <span class="text-[10px] font-mono bg-red-200 px-2 py-0.5 border border-red-900 font-bold">快取管理</span>
@@ -895,10 +894,10 @@
                             可安全清除過期的本地快取資料（例如歷史測試暫存），並保留合法的最新專案。
                         </p>
                         <div class="flex flex-col sm:flex-row gap-2 pt-1">
-                            <button onclick="app.purgeOutdatedLocalData('2026-08-27T14:00:00+08:00')" class="flex-1 bg-white hover:bg-red-100 text-red-900 font-bold py-2 px-2 border-2 border-red-900 flat-box text-xs flex items-center justify-center gap-1" title="清理 2026/8/27 14:00 以前的本地專案">
+                            <button onclick="app.purgeOutdatedLocalData('2026-08-27T14:00:00+08:00')" class="flex-1 bg-white hover:bg-red-100 text-red-900 font-bold py-2 px-2 border border-red-200 flat-box text-xs flex items-center justify-center gap-1" title="清理 2026/8/27 14:00 以前的本地專案">
                                 <span>🧹</span> 清除 2026/8/27 14:00 以前資料
                             </button>
-                            <button onclick="app.resetLocalStorageAndPull()" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-2 border-2 border-black flat-box text-xs flex items-center justify-center gap-1" title="徹底清空本機快取並從 Google 試算表載入">
+                            <button onclick="app.resetLocalStorageAndPull()" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-bold py-2 px-2 border border-slate-200 flat-box text-xs flex items-center justify-center gap-1" title="徹底清空本機快取並從 Google 試算表載入">
                                 <span>🗑️</span> 重置本機並從雲端重新載入
                             </button>
                         </div>
@@ -908,7 +907,7 @@
                 <!-- Tab 5: 雲端同步與 GAS (Cloud) -->
                 <div id="panelSettings_cloud" class="hidden space-y-4">
                     <input type="hidden" id="gasUrlInput">
-                    <div class="p-3 bg-blue-50 border-2 border-blue-900 text-xs font-bold text-blue-950 flex items-center justify-between">
+                    <div class="p-3 bg-blue-50 border border-blue-200 text-xs font-bold text-blue-950 flex items-center justify-between">
                         <div class="flex items-center gap-2">
                             <span>☁️</span>
                             <span>Google Apps Script 雲端同步端點已內建配置就緒</span>
@@ -917,34 +916,34 @@
                     </div>
 
                     <!-- CORS 與連線檢測診斷面板 -->
-                    <div id="gasDiagResult" class="hidden p-3 bg-zinc-50 border-2 border-black space-y-1">
+                    <div id="gasDiagResult" class="hidden p-3 bg-slate-50 border border-slate-200 space-y-1">
                         <!-- 動態載入診斷結果 -->
                     </div>
 
-                    <div class="p-3 bg-zinc-100 border-2 border-black flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+                    <div class="p-3 bg-slate-100 border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                         <div>
                             <p class="text-xs font-bold font-mono">📊 您的視覺化試算表資料庫</p>
                             <p class="text-[10px] text-zinc-500 font-mono truncate max-w-[200px]">ID: 1WSViTq8yVVtOt...MZgmnU</p>
                         </div>
-                        <a href="https://docs.google.com/spreadsheets/d/1WSViTq8yVVtOt8ubh01l1441-HzgUWcJiiBD4MZgmnU/edit" target="_blank" class="w-full sm:w-auto px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white font-bold text-xs border-2 border-black flat-box text-center">
+                        <a href="https://docs.google.com/spreadsheets/d/1WSViTq8yVVtOt8ubh01l1441-HzgUWcJiiBD4MZgmnU/edit" target="_blank" class="w-full sm:w-auto px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white font-bold text-xs border border-slate-200 flat-box text-center">
                             🔗 開啟試算表
                         </a>
                     </div>
 
                     <div class="flex flex-col sm:flex-row gap-2 pt-1">
-                        <button onclick="app.testGasConnection()" class="flex-1 bg-black text-white font-bold py-2 border-2 border-black flat-box text-sm flex items-center justify-center gap-1.5">
+                        <button onclick="app.testGasConnection()" class="flex-1 bg-black text-white font-bold py-2 border border-slate-200 flat-box text-sm flex items-center justify-center gap-1.5">
                             <span>🧪</span> 測試連線與 CORS 雙向診斷
                         </button>
-                        <button onclick="app.promptChangeGasUrl()" class="bg-white hover:bg-zinc-100 text-black font-bold py-2 px-3 border-2 border-black flat-box text-xs flex items-center justify-center gap-1">
+                        <button onclick="app.promptChangeGasUrl()" class="bg-white hover:bg-slate-100 text-black font-bold py-2 px-3 border border-slate-200 flat-box text-xs flex items-center justify-center gap-1">
                             <span>⚙️</span> 變更雲端網址
                         </button>
                     </div>
                     
                     <div class="flex flex-col sm:flex-row gap-2 border-t-2 border-zinc-200 pt-3">
-                        <button onclick="app.pullFromCloud(true)" class="flex-1 bg-blue-100 text-blue-900 border-2 border-blue-900 font-bold py-2 flat-box text-sm flex items-center justify-center gap-1">
+                        <button onclick="app.pullFromCloud(true)" class="flex-1 bg-blue-100 text-blue-900 border border-blue-200 font-bold py-2 flat-box text-sm flex items-center justify-center gap-1">
                             <span>📥</span> 手動拉取最新雲端
                         </button>
-                        <button onclick="app.pushToCloud(true)" class="flex-1 bg-amber-100 text-amber-900 border-2 border-amber-900 font-bold py-2 flat-box text-sm flex items-center justify-center gap-1">
+                        <button onclick="app.pushToCloud(true)" class="flex-1 bg-amber-100 text-amber-900 border border-amber-200 font-bold py-2 flat-box text-sm flex items-center justify-center gap-1">
                             <span>📤</span> 手動覆蓋推送到雲端
                         </button>
                     </div>
@@ -964,7 +963,7 @@
                 <!-- Tab 6: 專案管理 (Project Settings) -->
                 <div id="panelSettings_project" class="hidden space-y-4">
                     <!-- 當前專案設定 -->
-                    <div class="p-4 bg-zinc-50 border-2 border-black space-y-3">
+                    <div class="p-4 bg-slate-50 border border-slate-200 space-y-3">
                         <h4 class="font-black text-xs uppercase text-zinc-700 flex items-center gap-1">
                             <span>✏️</span> <span>編輯當前專案資訊</span>
                         </h4>
@@ -998,10 +997,10 @@
                         </div>
 
                         <div class="flex gap-2 pt-1">
-                            <button onclick="app.saveProjectSettings()" class="flex-1 py-2 bg-black text-white border-2 border-black font-bold text-xs flat-box hover:bg-zinc-800">
+                            <button onclick="app.saveProjectSettings()" class="flex-1 py-2 bg-black text-white border border-slate-200 font-bold text-xs flat-box hover:bg-slate-800">
                                 💾 儲存專案設定
                             </button>
-                            <button onclick="app.deleteCurrentProject()" class="py-2 px-3 bg-red-100 text-red-700 hover:bg-red-200 border-2 border-red-700 font-bold text-xs flat-box">
+                            <button onclick="app.deleteCurrentProject()" class="py-2 px-3 bg-red-100 text-red-700 hover:bg-red-200 border border-red-200 font-bold text-xs flat-box">
                                 🗑️ 刪除當前專案
                             </button>
                         </div>
@@ -1018,13 +1017,13 @@
                             </div>
                             <button onclick="app.openNewProjectModal()" class="text-xs font-bold bg-black text-white px-2.5 py-1 shrink-0">+ 新建專案</button>
                         </div>
-                        <div id="editProjectModalList" class="space-y-1.5 max-h-56 overflow-y-auto border-2 border-black p-2 bg-zinc-100">
+                        <div id="editProjectModalList" class="space-y-1.5 max-h-56 overflow-y-auto border border-slate-200 p-2 bg-slate-100">
                             <!-- 動態載入公開專案項目與快速操作按鈕 -->
                         </div>
                     </div>
 
                     <!-- 👁️‍🗨️ 已隱藏專案管理清單 (可在此一鍵解除隱藏) -->
-                    <div class="p-3 bg-amber-50 border-2 border-amber-900 space-y-2">
+                    <div class="p-3 bg-amber-50 border border-amber-200 space-y-2">
                         <div class="flex items-center justify-between">
                             <h4 class="font-black text-xs uppercase text-amber-950 flex items-center gap-1.5">
                                 <span>👁️‍🗨️</span> <span>已隱藏專案專區 (<span id="hiddenProjectsTotalCount">0</span>)</span>
@@ -1034,7 +1033,7 @@
                         <p class="text-[11px] text-amber-900 font-medium">
                             以下為已設定隱藏的專案，未出現在首頁及側邊欄中。點擊「解除隱藏」可立即恢復顯示：
                         </p>
-                        <div id="hiddenProjectsModalList" class="space-y-1.5 max-h-48 overflow-y-auto border-2 border-amber-900 p-2 bg-white">
+                        <div id="hiddenProjectsModalList" class="space-y-1.5 max-h-48 overflow-y-auto border border-amber-200 p-2 bg-white">
                             <!-- 動態載入已隱藏專案項目 -->
                         </div>
                     </div>
@@ -1044,19 +1043,19 @@
             </div>
 
             <!-- 底部按鈕欄 -->
-            <div class="p-3 border-t-2 border-black bg-zinc-100 flex justify-between items-center shrink-0">
+            <div class="p-3 border-t border-slate-200 bg-slate-100 flex justify-between items-center shrink-0">
                 <div class="text-[11px] font-mono text-zinc-500 font-bold hidden sm:block">
                     FlatSpec Drive · 偏好設定自動儲存
                 </div>
-                <button onclick="app.closeSettingsModal()" class="px-5 py-2 border-2 border-black font-bold text-xs bg-black text-white flat-box hover:bg-zinc-800 ml-auto">完成關閉</button>
+                <button onclick="app.closeSettingsModal()" class="px-5 py-2 border border-slate-200 font-bold text-xs bg-black text-white flat-box hover:bg-slate-800 ml-auto">完成關閉</button>
             </div>
         </div>
     </div>
 
     <!-- Modal: 編輯任務 -->
     <div id="editTaskModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-        <div class="bg-white border-2 border-black p-6 w-full max-w-sm flat-shadow-lg">
-            <div class="flex items-center justify-between border-b-2 border-black pb-2 mb-4">
+        <div class="bg-white border border-slate-200 rounded-2xl p-6 w-full max-w-sm shadow-xl">
+            <div class="flex items-center justify-between border-b border-slate-200 pb-2 mb-4">
                 <h3 class="font-black text-lg uppercase flex items-center gap-1.5">✏️ 編輯任務</h3>
                 <button onclick="app.closeModals()" class="text-xl font-bold hover:text-red-600 px-2">&times;</button>
             </div>
@@ -1068,13 +1067,13 @@
                 </div>
                 <div>
                     <label class="block font-bold text-xs mb-1">負責成員 (Assignee)</label>
-                    <select id="editTaskAssigneeInput" class="flat-input w-full p-2 text-sm font-bold bg-zinc-100 cursor-pointer">
+                    <select id="editTaskAssigneeInput" class="flat-input w-full p-2 text-sm font-bold bg-slate-100 cursor-pointer">
                         <option value="">👤 未指派成員</option>
                     </select>
                 </div>
                 <div>
                     <label class="block font-bold text-xs mb-1">優先級</label>
-                    <select id="editTaskPriorityInput" class="flat-input w-full p-2 text-sm font-bold bg-zinc-100">
+                    <select id="editTaskPriorityInput" class="flat-input w-full p-2 text-sm font-bold bg-slate-100">
                         <option value="HIGH">🔴 高 (HIGH)</option>
                         <option value="MED">🟡 中 (MED)</option>
                         <option value="LOW">🔵 低 (LOW)</option>
@@ -1082,7 +1081,7 @@
                 </div>
                 <div>
                     <label class="block font-bold text-xs mb-1">狀態</label>
-                    <select id="editTaskStatusInput" class="flat-input w-full p-2 text-sm font-bold bg-zinc-100">
+                    <select id="editTaskStatusInput" class="flat-input w-full p-2 text-sm font-bold bg-slate-100">
                         <option value="TODO">待處理 (TODO)</option>
                         <option value="DOING">進行中 (DOING)</option>
                         <option value="DONE">已完成 (DONE)</option>
@@ -1095,10 +1094,10 @@
             </div>
             
             <div class="flex justify-between gap-2 mt-5 border-t-2 border-zinc-200 pt-4">
-                <button onclick="app.deleteTask(document.getElementById('editTaskId').value); app.closeModals();" class="px-3 py-2 bg-red-100 text-red-700 border-2 border-red-700 font-bold text-xs hover:bg-red-200">刪除任務</button>
+                <button onclick="app.deleteTask(document.getElementById('editTaskId').value); app.closeModals();" class="px-3 py-2 bg-red-100 text-red-700 border border-red-200 font-bold text-xs hover:bg-red-200">刪除任務</button>
                 <div class="flex gap-2">
-                    <button onclick="app.closeModals()" class="px-3 py-2 border-2 border-black font-bold text-xs bg-zinc-100 hover:bg-zinc-200">取消</button>
-                    <button onclick="app.saveTaskEdit()" class="px-4 py-2 border-2 border-black font-bold text-xs bg-black text-white flat-box hover:bg-zinc-800">儲存</button>
+                    <button onclick="app.closeModals()" class="px-3 py-2 border border-slate-200 font-bold text-xs bg-slate-100 hover:bg-slate-200">取消</button>
+                    <button onclick="app.saveTaskEdit()" class="px-4 py-2 border border-slate-200 font-bold text-xs bg-black text-white flat-box hover:bg-slate-800">儲存</button>
                 </div>
             </div>
         </div>
@@ -1106,8 +1105,8 @@
 
     <!-- Modal: 新建專案 -->
     <div id="newProjectModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-        <div class="bg-white border-2 border-black p-6 w-full max-w-sm flat-shadow-lg">
-            <div class="flex items-center justify-between border-b-2 border-black pb-2 mb-4">
+        <div class="bg-white border border-slate-200 rounded-2xl p-6 w-full max-w-sm shadow-xl">
+            <div class="flex items-center justify-between border-b border-slate-200 pb-2 mb-4">
                 <h3 class="font-black text-lg uppercase flex items-center gap-1.5">📁 新增專案</h3>
                 <button onclick="app.closeModals()" class="text-xl font-bold hover:text-red-600 px-2">&times;</button>
             </div>
@@ -1120,7 +1119,7 @@
                     <label class="block font-bold text-xs mb-1">分類標籤 (選填)</label>
                     <input type="text" id="newProjectCategory" class="flat-input w-full p-2 text-sm" placeholder="例如：工作、生活、軟體開發">
                 </div>
-                <div class="p-3 bg-zinc-50 border border-zinc-300 space-y-2">
+                <div class="p-3 bg-slate-50 border border-zinc-300 space-y-2">
                     <label class="flex items-center gap-2 cursor-pointer text-xs font-bold select-none">
                         <input type="checkbox" id="newProjectPasswordToggle" class="accent-black" onchange="document.getElementById('newProjectPasswordBox').classList.toggle('hidden', !this.checked)">
                         <span>🔒 啟用專案密碼保護 (需解鎖方可檢視)</span>
@@ -1137,15 +1136,15 @@
                 </div>
             </div>
             <div class="flex justify-end gap-2 mt-6">
-                <button onclick="app.closeModals()" class="px-4 py-2 border-2 border-black font-bold text-sm bg-zinc-100 hover:bg-zinc-200">取消</button>
-                <button onclick="app.createNewProject()" class="px-4 py-2 border-2 border-black font-bold text-sm bg-black text-white flat-box hover:bg-zinc-800">建立專案</button>
+                <button onclick="app.closeModals()" class="px-4 py-2 border border-slate-200 font-bold text-sm bg-slate-100 hover:bg-slate-200">取消</button>
+                <button onclick="app.createNewProject()" class="px-4 py-2 border border-slate-200 font-bold text-sm bg-black text-white flat-box hover:bg-slate-800">建立專案</button>
             </div>
         </div>
     </div>
 
     <!-- Modal: 專案密碼驗證解鎖 -->
     <div id="projectPasswordModal" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onclick="app.cancelUnlockProject()">
-        <div class="bg-white border-2 border-black p-6 w-full max-w-sm flat-shadow-lg relative" onclick="event.stopPropagation()">
+        <div class="bg-white border border-slate-200 rounded-2xl p-6 w-full max-w-sm shadow-xl relative" onclick="event.stopPropagation()">
             <button type="button" onclick="app.cancelUnlockProject()" class="absolute top-3 right-3 text-xl font-bold leading-none p-1 text-zinc-500 hover:text-black" title="取消">&times;</button>
             <div class="text-center space-y-2 mb-4">
                 <span class="text-4xl block">🔒</span>
@@ -1154,24 +1153,24 @@
             </div>
             <input type="hidden" id="pwdModalProjectId">
             <div class="space-y-3">
-                <input type="password" id="projectUnlockPasswordInput" class="flat-input w-full p-2.5 text-center text-sm font-mono tracking-widest border-2 border-black bg-zinc-50" placeholder="請輸入密碼..." onkeydown="if(event.key==='Enter') app.confirmUnlockProject()">
+                <input type="password" id="projectUnlockPasswordInput" class="flat-input w-full p-2.5 text-center text-sm font-mono tracking-widest border border-slate-200 bg-slate-50" placeholder="請輸入密碼..." onkeydown="if(event.key==='Enter') app.confirmUnlockProject()">
                 <div id="pwdModalError" class="hidden text-xs text-red-600 font-bold text-center">⚠️ 密碼錯誤，請重新輸入！</div>
             </div>
             <div class="flex gap-2 mt-6">
-                <button type="button" onclick="app.cancelUnlockProject()" class="flex-1 py-2.5 border-2 border-black font-bold text-xs bg-zinc-100 hover:bg-zinc-200">取消</button>
-                <button type="button" onclick="app.confirmUnlockProject()" class="flex-1 py-2.5 border-2 border-black font-bold text-xs bg-black text-white flat-box hover:bg-zinc-800">解鎖進入 ➔</button>
+                <button type="button" onclick="app.cancelUnlockProject()" class="flex-1 py-2.5 border border-slate-200 font-bold text-xs bg-slate-100 hover:bg-slate-200">取消</button>
+                <button type="button" onclick="app.confirmUnlockProject()" class="flex-1 py-2.5 border border-slate-200 font-bold text-xs bg-black text-white flat-box hover:bg-slate-800">解鎖進入 ➔</button>
             </div>
         </div>
     </div>
 
     <!-- Modal: 新建文檔 -->
     <div id="newDocModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-        <div class="bg-white border-2 border-black p-6 w-full max-w-sm flat-shadow-lg">
-            <h3 class="font-black text-lg uppercase mb-4 border-b-2 border-black pb-2">📄 新增文檔</h3>
+        <div class="bg-white border border-slate-200 rounded-2xl p-6 w-full max-w-sm shadow-xl">
+            <h3 class="font-black text-lg uppercase mb-4 border-b border-slate-200 pb-2">📄 新增文檔</h3>
             <div class="space-y-3">
                 <div>
                     <label class="block font-bold text-xs mb-1">所屬資料夾</label>
-                    <select id="newDocFolderSelect" class="flat-input w-full p-2 text-xs font-bold bg-zinc-50 cursor-pointer">
+                    <select id="newDocFolderSelect" class="flat-input w-full p-2 text-xs font-bold bg-slate-50 cursor-pointer">
                         <option value="">📁 根目錄 (無所屬資料夾)</option>
                     </select>
                 </div>
@@ -1181,37 +1180,37 @@
                 </div>
             </div>
             <div class="flex justify-end gap-2 mt-6">
-                <button onclick="app.closeModals()" class="px-4 py-2 border-2 border-black font-bold text-sm bg-zinc-100 hover:bg-zinc-200">取消</button>
-                <button onclick="app.createNewDoc()" class="px-4 py-2 border-2 border-black font-bold text-sm bg-black text-white flat-box hover:bg-zinc-800">新增</button>
+                <button onclick="app.closeModals()" class="px-4 py-2 border border-slate-200 font-bold text-sm bg-slate-100 hover:bg-slate-200">取消</button>
+                <button onclick="app.createNewDoc()" class="px-4 py-2 border border-slate-200 font-bold text-sm bg-black text-white flat-box hover:bg-slate-800">新增</button>
             </div>
         </div>
     </div>
 
     <!-- Modal: 插入圖片 -->
     <div id="insertImageModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
-        <div class="bg-white border-2 border-black p-6 w-full max-w-md flat-shadow-lg flex flex-col max-h-[90vh]">
-            <div class="flex items-center justify-between border-b-2 border-black pb-3 mb-4 shrink-0">
+        <div class="bg-white border border-slate-200 rounded-2xl p-6 w-full max-w-md shadow-xl flex flex-col max-h-[90vh]">
+            <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4 shrink-0">
                 <h3 class="font-black text-lg uppercase flex items-center gap-2">🖼️ 插入圖片</h3>
                 <button onclick="app.closeModals()" class="text-xl font-bold hover:text-red-600 px-2">&times;</button>
             </div>
             
-            <div class="flex border-2 border-black mb-4 bg-zinc-100 p-0.5 shrink-0">
+            <div class="flex border border-slate-200 mb-4 bg-slate-100 p-0.5 shrink-0">
                 <button type="button" id="tabImgUpload" onclick="app.switchImageTab('upload')" class="flex-1 py-1.5 font-bold text-xs bg-black text-white transition-colors">📁 上傳本機 / 拍照</button>
-                <button type="button" id="tabImgUrl" onclick="app.switchImageTab('url')" class="flex-1 py-1.5 font-bold text-xs bg-zinc-100 text-black hover:bg-zinc-200 transition-colors">🌐 圖片網址 (URL)</button>
+                <button type="button" id="tabImgUrl" onclick="app.switchImageTab('url')" class="flex-1 py-1.5 font-bold text-xs bg-slate-100 text-black hover:bg-slate-200 transition-colors">🌐 圖片網址 (URL)</button>
             </div>
 
             <!-- Tab 1: 本機上傳 / 拍照 -->
             <div id="panelImgUpload" class="space-y-3 overflow-y-auto no-scrollbar">
-                <div class="border-2 border-dashed border-zinc-400 p-5 text-center bg-zinc-50 hover:bg-zinc-100 cursor-pointer flat-box" onclick="document.getElementById('imageFileInput').click()">
+                <div class="border border-dashed border-slate-300 rounded-xl p-5 text-center bg-slate-50 hover:bg-slate-100 cursor-pointer flat-box" onclick="document.getElementById('imageFileInput').click()">
                     <span class="text-3xl block mb-1">📷</span>
                     <p class="font-bold text-xs text-zinc-700">點擊選取圖片 或 開啟相機拍照</p>
                     <p class="text-[10px] text-zinc-500 mt-1">支援 PNG, JPG, GIF, WebP (自動智慧壓縮最適大小)</p>
                     <input type="file" id="imageFileInput" accept="image/*" class="hidden" onchange="app.handleImageFileSelect(event)">
                 </div>
 
-                <div id="imageUploadPreviewContainer" class="hidden border-2 border-black p-2 bg-white flex flex-col items-center gap-1.5">
+                <div id="imageUploadPreviewContainer" class="hidden border border-slate-200 p-2 bg-white flex flex-col items-center gap-1.5">
                     <img id="imageUploadPreview" class="max-h-40 max-w-full object-contain border border-zinc-300" src="" alt="預覽">
-                    <span id="imageUploadSizeBadge" class="text-[10px] font-mono font-bold bg-zinc-100 px-2 py-0.5 border border-zinc-400 text-zinc-600"></span>
+                    <span id="imageUploadSizeBadge" class="text-[10px] font-mono font-bold bg-slate-100 px-2 py-0.5 border border-zinc-400 text-zinc-600"></span>
                 </div>
 
                 <div>
@@ -1233,15 +1232,15 @@
             </div>
 
             <div class="flex justify-end gap-2 mt-5 border-t-2 border-zinc-200 pt-4 shrink-0">
-                <button onclick="app.closeModals()" class="px-4 py-2 border-2 border-black font-bold text-sm bg-zinc-100 hover:bg-zinc-200">取消</button>
-                <button onclick="app.confirmInsertImage()" class="px-4 py-2 border-2 border-black font-bold text-sm bg-black text-white flat-box hover:bg-zinc-800">確認插入文檔</button>
+                <button onclick="app.closeModals()" class="px-4 py-2 border border-slate-200 font-bold text-sm bg-slate-100 hover:bg-slate-200">取消</button>
+                <button onclick="app.confirmInsertImage()" class="px-4 py-2 border border-slate-200 font-bold text-sm bg-black text-white flat-box hover:bg-slate-800">確認插入文檔</button>
             </div>
         </div>
     </div>
 
     <!-- Modal: 圖片放大檢視燈箱 -->
     <div id="imageViewerModal" class="hidden fixed inset-0 bg-black/80 z-50 flex flex-col items-center justify-center p-4" onclick="app.closeImageViewer()">
-        <div class="relative max-w-4xl max-h-[90vh] flex flex-col items-center bg-white p-2 border-2 border-black shadow-[8px_8px_0px_0px_#000]" onclick="event.stopPropagation()">
+        <div class="relative max-w-4xl max-h-[90vh] flex flex-col items-center bg-white p-2 border border-slate-200 shadow-2xl" onclick="event.stopPropagation()">
             <div class="w-full flex justify-between items-center border-b border-zinc-300 pb-1 mb-2 px-1">
                 <span id="imageViewerCaption" class="text-xs font-bold text-zinc-700 truncate max-w-[300px]">📷 圖片檢視</span>
                 <button onclick="app.closeImageViewer()" class="text-lg font-bold hover:text-red-600 px-2 leading-none">&times;</button>
@@ -1252,21 +1251,21 @@
 
     <!-- Modal: 全域搜尋與 Command Palette (Ctrl+K) -->
     <div id="searchModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-start justify-center p-3 md:p-6 pt-8 md:pt-16" onclick="app.closeSearchModal()">
-        <div class="bg-white border-2 border-black w-full max-w-2xl flat-shadow-lg flex flex-col max-h-[82vh] overflow-hidden" onclick="event.stopPropagation()">
+        <div class="bg-white border border-slate-200 rounded-2xl w-full max-w-2xl shadow-2xl flex flex-col max-h-[82vh] overflow-hidden" onclick="event.stopPropagation()">
             <!-- 搜尋輸入框 -->
-            <div class="p-3 md:p-4 border-b-2 border-black bg-zinc-100 flex items-center gap-2.5 shrink-0">
+            <div class="p-3 md:p-4 border-b border-slate-200 bg-slate-100 flex items-center gap-2.5 shrink-0">
                 <span class="text-xl shrink-0">🔍</span>
                 <input type="text" id="globalSearchInput" placeholder="搜尋專案、文檔標題、內文或任務... (↑↓ 選擇, Enter 開啟)" class="flat-input w-full p-2 text-sm md:text-base font-bold bg-white focus:bg-yellow-50" oninput="app.handleGlobalSearch(this.value)" onkeydown="app.handleSearchKeyNavigation(event)" autocomplete="off">
-                <button onclick="app.closeSearchModal()" class="px-2.5 py-1.5 border-2 border-black font-bold text-xs bg-white hover:bg-zinc-200 flat-box shrink-0">ESC</button>
+                <button onclick="app.closeSearchModal()" class="px-2.5 py-1.5 border border-slate-200 font-bold text-xs bg-white hover:bg-slate-200 flat-box shrink-0">ESC</button>
             </div>
 
             <!-- 分類過濾 Chips -->
-            <div class="px-3 md:px-4 py-2 bg-zinc-200 border-b-2 border-black flex items-center gap-1.5 overflow-x-auto no-scrollbar shrink-0 text-xs font-bold">
+            <div class="px-3 md:px-4 py-2 bg-slate-200 border-b border-slate-200 flex items-center gap-1.5 overflow-x-auto no-scrollbar shrink-0 text-xs font-bold">
                 <span class="text-zinc-600 shrink-0 font-mono text-[11px]">篩選:</span>
                 <button type="button" id="searchFilterAll" onclick="app.setSearchFilter('all')" class="px-2.5 py-1 bg-black text-white border border-black font-bold transition-colors shrink-0">🌟 全部 (<span id="searchCountAll">0</span>)</button>
-                <button type="button" id="searchFilterDocs" onclick="app.setSearchFilter('docs')" class="px-2.5 py-1 bg-white text-black border border-black hover:bg-zinc-100 font-bold transition-colors shrink-0">📄 文檔 (<span id="searchCountDocs">0</span>)</button>
-                <button type="button" id="searchFilterTasks" onclick="app.setSearchFilter('tasks')" class="px-2.5 py-1 bg-white text-black border border-black hover:bg-zinc-100 font-bold transition-colors shrink-0">✅ 任務 (<span id="searchCountTasks">0</span>)</button>
-                <button type="button" id="searchFilterProjects" onclick="app.setSearchFilter('projects')" class="px-2.5 py-1 bg-white text-black border border-black hover:bg-zinc-100 font-bold transition-colors shrink-0">📁 專案 (<span id="searchCountProjects">0</span>)</button>
+                <button type="button" id="searchFilterDocs" onclick="app.setSearchFilter('docs')" class="px-2.5 py-1 bg-white text-black border border-black hover:bg-slate-100 font-bold transition-colors shrink-0">📄 文檔 (<span id="searchCountDocs">0</span>)</button>
+                <button type="button" id="searchFilterTasks" onclick="app.setSearchFilter('tasks')" class="px-2.5 py-1 bg-white text-black border border-black hover:bg-slate-100 font-bold transition-colors shrink-0">✅ 任務 (<span id="searchCountTasks">0</span>)</button>
+                <button type="button" id="searchFilterProjects" onclick="app.setSearchFilter('projects')" class="px-2.5 py-1 bg-white text-black border border-black hover:bg-slate-100 font-bold transition-colors shrink-0">📁 專案 (<span id="searchCountProjects">0</span>)</button>
                 
                 <div class="ml-auto flex items-center gap-1 shrink-0 text-[11px] text-zinc-700 pl-2">
                     <label class="flex items-center gap-1 cursor-pointer select-none">
@@ -1282,7 +1281,7 @@
             </div>
 
             <!-- 底部提示列 -->
-            <div class="p-2 md:p-2.5 border-t-2 border-black bg-zinc-100 text-[11px] text-zinc-600 flex items-center justify-between font-mono shrink-0">
+            <div class="p-2 md:p-2.5 border-t border-slate-200 bg-slate-100 text-[11px] text-zinc-600 flex items-center justify-between font-mono shrink-0">
                 <div class="hidden sm:flex items-center gap-3">
                     <span><kbd class="bg-white border border-zinc-400 px-1 py-0.5 font-bold">↑</kbd> <kbd class="bg-white border border-zinc-400 px-1 py-0.5 font-bold">↓</kbd> 選擇</span>
                     <span><kbd class="bg-white border border-zinc-400 px-1.5 py-0.5 font-bold">Enter</kbd> 開啟</span>
@@ -1297,8 +1296,8 @@
 
     <!-- Modal: 任務討論串與留言 -->
     <div id="taskCommentsModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-3 md:p-6" onclick="app.closeTaskCommentsModal()">
-        <div class="bg-white border-2 border-black w-full max-w-lg flat-shadow-lg flex flex-col max-h-[85vh] overflow-hidden" onclick="event.stopPropagation()">
-            <div class="p-3 md:p-4 border-b-2 border-black bg-zinc-100 flex items-center justify-between shrink-0">
+        <div class="bg-white border border-slate-200 rounded-2xl w-full max-w-lg shadow-xl flex flex-col max-h-[85vh] overflow-hidden" onclick="event.stopPropagation()">
+            <div class="p-3 md:p-4 border-b border-slate-200 bg-slate-100 flex items-center justify-between shrink-0">
                 <div class="min-w-0 pr-2">
                     <span class="text-[10px] font-black text-zinc-500 uppercase tracking-widest block">💬 任務討論串</span>
                     <h3 id="commentTaskTitle" class="font-black text-base truncate"></h3>
@@ -1307,15 +1306,15 @@
             </div>
 
             <!-- 留言清單 -->
-            <div id="taskCommentsList" class="flex-1 overflow-y-auto p-4 space-y-3 min-h-[160px] bg-zinc-50">
+            <div id="taskCommentsList" class="flex-1 overflow-y-auto p-4 space-y-3 min-h-[160px] bg-slate-50">
                 <!-- 動態注入留言 -->
             </div>
 
             <!-- 新增留言輸入區 -->
-            <div class="p-3 border-t-2 border-black bg-white space-y-2 shrink-0">
+            <div class="p-3 border-t border-slate-200 bg-white space-y-2 shrink-0">
                 <div class="flex gap-2">
                     <input type="text" id="newTaskCommentInput" placeholder="寫下留言、進度更新或備註... (按 Enter 發布)" class="flat-input flex-1 p-2 text-sm" onkeypress="if(event.key==='Enter') app.addTaskComment()">
-                    <button onclick="app.addTaskComment()" class="px-4 py-2 bg-black text-white font-bold text-xs flat-box hover:bg-zinc-800 shrink-0">發布</button>
+                    <button onclick="app.addTaskComment()" class="px-4 py-2 bg-black text-white font-bold text-xs flat-box hover:bg-slate-800 shrink-0">發布</button>
                 </div>
             </div>
         </div>
@@ -1323,8 +1322,8 @@
 
     <!-- 跨裝置離線版本衝突決策對話框 (Conflict Resolver Modal) -->
     <div id="conflictModal" class="hidden fixed inset-0 bg-black/80 z-[110] flex items-center justify-center p-3 md:p-6">
-        <div class="bg-white border-4 border-black p-5 md:p-6 max-w-2xl w-full shadow-[8px_8px_0px_0px_#000] flex flex-col max-h-[92vh] space-y-4">
-            <div class="flex items-center justify-between border-b-2 border-black pb-3 shrink-0 bg-amber-100 p-3 -m-5 md:-m-6 mb-2 border-b-2 border-black">
+        <div class="bg-white border border-slate-200 rounded-2xl p-6 max-w-2xl w-full shadow-2xl flex flex-col max-h-[92vh] space-y-4">
+            <div class="flex items-center justify-between border-b border-amber-200 pb-3 shrink-0 bg-amber-50 p-4 -m-6 mb-2 rounded-t-2xl">
                 <div class="flex items-center gap-2">
                     <span class="text-2xl">⚡</span>
                     <div>
@@ -1336,14 +1335,14 @@
 
             <div class="overflow-y-auto space-y-4 pr-1 no-scrollbar flex-1 py-1">
                 <!-- 專案與文檔提示 -->
-                <div id="conflictDocInfo" class="text-xs font-bold text-zinc-700 bg-zinc-100 p-2.5 border-2 border-black">
+                <div id="conflictDocInfo" class="text-xs font-bold text-zinc-700 bg-slate-100 p-2.5 border border-slate-200">
                     <!-- 動態注入衝突文檔與時間 -->
                 </div>
 
                 <!-- 雙版本對比卡片 -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <!-- 雲端版本 -->
-                    <div class="border-2 border-black bg-blue-50 p-3 flex flex-col space-y-2">
+                    <div class="border border-slate-200 bg-blue-50 p-3 flex flex-col space-y-2">
                         <div class="flex items-center justify-between border-b border-blue-900 pb-1 text-blue-950 font-black text-xs">
                             <span>🖥️ 雲端最新版 (電腦端/其他裝置)</span>
                             <span id="conflictCloudTime" class="text-[10px] font-mono"></span>
@@ -1352,7 +1351,7 @@
                     </div>
 
                     <!-- 本機版本 -->
-                    <div class="border-2 border-black bg-emerald-50 p-3 flex flex-col space-y-2">
+                    <div class="border border-slate-200 bg-emerald-50 p-3 flex flex-col space-y-2">
                         <div class="flex items-center justify-between border-b border-emerald-900 pb-1 text-emerald-950 font-black text-xs">
                             <span>📱 本機離線版 (此裝置最新修改)</span>
                             <span id="conflictLocalTime" class="text-[10px] font-mono"></span>
@@ -1367,21 +1366,21 @@
                     
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
                         <!-- 選項 1: 採用雲端 -->
-                        <button onclick="app.resolveConflict('cloud')" class="p-3 bg-blue-100 hover:bg-blue-200 border-2 border-black font-bold text-xs flat-box flex flex-col items-center justify-center gap-1 shadow-[2px_2px_0px_0px_#000]">
+                        <button onclick="app.resolveConflict('cloud')" class="p-3 bg-blue-100 hover:bg-blue-200 border border-slate-200 font-bold text-xs flat-box flex flex-col items-center justify-center gap-1 shadow-sm">
                             <span class="text-base">🖥️</span>
                             <span class="font-black text-blue-950">採用雲端版本</span>
                             <span class="text-[10px] text-blue-900 text-center font-normal">以電腦端雲端內容為準 (本地自動備份至歷史)</span>
                         </button>
 
                         <!-- 選項 2: 強制採用本機 -->
-                        <button onclick="app.resolveConflict('local')" class="p-3 bg-emerald-100 hover:bg-emerald-200 border-2 border-black font-bold text-xs flat-box flex flex-col items-center justify-center gap-1 shadow-[2px_2px_0px_0px_#000]">
+                        <button onclick="app.resolveConflict('local')" class="p-3 bg-emerald-100 hover:bg-emerald-200 border border-slate-200 font-bold text-xs flat-box flex flex-col items-center justify-center gap-1 shadow-sm">
                             <span class="text-base">📱</span>
                             <span class="font-black text-emerald-950">強制採用本機</span>
                             <span class="text-[10px] text-emerald-900 text-center font-normal">以本機離線內容為準，並立即推送到雲端</span>
                         </button>
 
                         <!-- 選項 3: 雙版本並存 (最安全推薦) -->
-                        <button onclick="app.resolveConflict('both')" class="p-3 bg-yellow-300 hover:bg-yellow-400 border-2 border-black font-bold text-xs flat-box flex flex-col items-center justify-center gap-1 shadow-[2px_2px_0px_0px_#000]">
+                        <button onclick="app.resolveConflict('both')" class="p-3 bg-yellow-300 hover:bg-yellow-400 border border-slate-200 font-bold text-xs flat-box flex flex-col items-center justify-center gap-1 shadow-sm">
                             <span class="text-base">📑</span>
                             <span class="font-black text-black">雙版本並存 (推薦)</span>
                             <span class="text-[10px] text-zinc-900 text-center font-normal">採用雲端版，並將本機離線版另存為副本</span>
@@ -1398,25 +1397,25 @@
     <div id="chatBackdrop" class="hidden fixed inset-0 bg-black/30 z-40 md:hidden" onclick="app.closeChatSidebar()"></div>
 
     <!-- AI Chat Right Sidebar -->
-    <aside id="rightSidebar" class="fixed top-0 right-0 h-full w-80 sm:w-96 bg-white border-l-2 border-black z-50 flex flex-col transform translate-x-full transition-transform duration-300 ease-in-out">
+    <aside id="rightSidebar" class="fixed top-0 right-0 h-full w-80 sm:w-96 bg-white border-l border-slate-200 z-50 flex flex-col shadow-2xl transform translate-x-full transition-transform duration-300 ease-in-out">
         <!-- Header -->
-        <div class="h-14 border-b-2 border-black bg-purple-200 flex items-center justify-between px-3 shrink-0">
+        <div class="h-14 border-b border-slate-200 bg-white flex items-center justify-between px-4 shrink-0">
             <div class="flex items-center gap-2">
                 <span class="text-lg">🤖</span>
                 <span class="font-black text-sm uppercase">AI 助手</span>
                 <span class="text-[10px] bg-white border border-black px-1 font-mono">Groq</span>
             </div>
             <div class="flex items-center gap-1">
-                <button type="button" onclick="app.clearChatMessages()" class="p-1 px-2 bg-white border-2 border-black font-bold text-xs flat-box" title="清除對話紀錄">🗑️ 清空</button>
-                <button onclick="app.closeChatSidebar()" class="p-1 px-2 bg-white border-2 border-black font-bold text-sm flat-box">✕</button>
+                <button type="button" onclick="app.clearChatMessages()" class="p-1 px-2 bg-white border border-slate-200 font-bold text-xs flat-box" title="清除對話紀錄">🗑️ 清空</button>
+                <button onclick="app.closeChatSidebar()" class="p-1 px-2 bg-white border border-slate-200 font-bold text-sm flat-box">✕</button>
             </div>
         </div>
 
         <!-- Consent Banner -->
-        <div id="groqConsent" class="p-3 bg-yellow-100 border-b-2 border-black">
+        <div id="groqConsent" class="p-3 bg-yellow-100 border-b border-slate-200">
             <p class="text-xs font-bold mb-2">⚡ 智慧操作權限</p>
             <p class="text-xs mb-2">本功能使用 Groq LLM，AI 助手可協助管理專案、編輯文檔與切換視圖。產生的所有操作指令皆需經您<strong>確認</strong>後執行。</p>
-            <button onclick="app.acceptGroqConsent()" class="px-3 py-1.5 bg-green-300 hover:bg-green-400 border-2 border-black font-bold text-xs flat-box">✅ 同意並開始使用</button>
+            <button onclick="app.acceptGroqConsent()" class="px-3 py-1.5 bg-green-300 hover:bg-green-400 border border-slate-200 font-bold text-xs flat-box">✅ 同意並開始使用</button>
         </div>
 
         <!-- Chat Body (hidden until consent) -->
@@ -1424,17 +1423,17 @@
             <!-- Messages -->
             <div id="chatMessages" class="flex-1 overflow-y-auto p-3 space-y-2 no-scrollbar">
                 <div class="flex justify-start mb-2">
-                    <div class="max-w-[85%] px-3 py-2 bg-zinc-100 border-2 border-black text-xs leading-relaxed break-words">
+                    <div class="max-w-[85%] px-3 py-2 bg-slate-100 border border-slate-200 text-xs leading-relaxed break-words">
                         👋 你好！我是 AI 助手，已配置好 Groq 模型，可以幫你管理專案、切換視圖、編輯或自主命名建檔。有什麼需要嗎？
                     </div>
                 </div>
             </div>
 
             <!-- Input -->
-            <div class="border-t-2 border-black p-2 bg-zinc-50 shrink-0">
+            <div class="border-t border-slate-200 p-2 bg-slate-50 shrink-0">
                 <div class="flex gap-1">
-                    <input id="chatInput" type="text" placeholder="輸入指令... (例如：幫我撰寫登入系統規格書)" class="flex-1 px-2 py-1.5 border-2 border-black text-xs font-mono flat-input" onkeydown="app.handleChatKeydown(event)" autocomplete="off" />
-                    <button onclick="app.sendChatMessage()" class="px-3 py-1.5 bg-purple-300 hover:bg-purple-400 border-2 border-black font-bold text-xs flat-box shrink-0">送出</button>
+                    <input id="chatInput" type="text" placeholder="輸入指令... (例如：幫我撰寫登入系統規格書)" class="flex-1 px-2 py-1.5 border border-slate-200 text-xs font-mono flat-input" onkeydown="app.handleChatKeydown(event)" autocomplete="off" />
+                    <button onclick="app.sendChatMessage()" class="px-3 py-1.5 bg-purple-300 hover:bg-purple-400 border border-slate-200 font-bold text-xs flat-box shrink-0">送出</button>
                 </div>
                 <div class="text-[10px] text-zinc-500 mt-1 font-mono">
                     Enter 送出 · groq/compound-mini
