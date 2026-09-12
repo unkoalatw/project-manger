@@ -6306,19 +6306,54 @@ ${rawHtml}
                     if (isMermaid) {
                         const cleanCode = code.trim();
                         const escaped = self.escapeHtml(cleanCode);
+                        
+                        // 辨識具體的圖表類型以顯示友善標籤
+                        let typeBadge = 'FLOWCHART';
+                        const m = cleanCode.match(/^\s*(flowchart|graph|sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|pie|gitGraph|mindmap|timeline)\b/i);
+                        if (m) {
+                            const rawType = m[1].toUpperCase();
+                            if (rawType.startsWith('FLOW') || rawType === 'GRAPH') typeBadge = '流程圖';
+                            else if (rawType.startsWith('SEQ')) typeBadge = '時序圖';
+                            else if (rawType.startsWith('CLASS')) typeBadge = '類別圖';
+                            else if (rawType.startsWith('STATE')) typeBadge = '狀態圖';
+                            else if (rawType.startsWith('ER')) typeBadge = 'ER 模型';
+                            else if (rawType.startsWith('GANTT')) typeBadge = '甘特圖';
+                            else if (rawType.startsWith('PIE')) typeBadge = '圓餅圖';
+                            else if (rawType.startsWith('MIND')) typeBadge = '心智圖';
+                            else if (rawType.startsWith('TIME')) typeBadge = '時間軸';
+                            else typeBadge = rawType;
+                        }
+
                         return `
-                            <div class="mermaid-diagram-card my-6 border border-slate-200 bg-white rounded-xl shadow-sm overflow-hidden">
-                                <div class="bg-slate-50 text-slate-700 px-4 py-2 text-[11px] font-mono font-medium border-b border-slate-200 flex justify-between items-center select-none">
-                                    <span class="flex items-center gap-1.5 font-sans font-black tracking-wide">📊 流程圖 / 圖表視覺化 (Mermaid)</span>
+                            <div class="mermaid-diagram-card">
+                                <div class="mermaid-toolbar">
                                     <div class="flex items-center gap-2">
-                                        <button type="button" onclick="const codeEl = this.closest('.mermaid-diagram-card').querySelector('.mermaid-source'); codeEl.classList.toggle('hidden');" class="hover:underline cursor-pointer px-2 py-0.5 bg-amber-100 hover:bg-amber-200 border border-amber-300 text-amber-900 rounded text-[10px] font-bold">切換原始碼</button>
-                                        <button type="button" onclick="navigator.clipboard.writeText(this.closest('.mermaid-diagram-card').querySelector('.mermaid-code-text').innerText); app.showToast('📋 圖表代碼已複製至剪貼簿！');" class="hover:underline cursor-pointer px-2 py-0.5 bg-slate-100 hover:bg-slate-200 border border-slate-300 text-slate-800 rounded text-[10px] font-bold">複製代碼</button>
+                                        <span class="text-sm">📐</span>
+                                        <span class="font-sans font-bold text-xs text-slate-800 tracking-tight">Mermaid 圖表</span>
+                                        <span class="px-1.5 py-0.5 text-[9px] font-mono font-bold uppercase bg-slate-200 text-slate-700 rounded">${typeBadge}</span>
+                                    </div>
+                                    <div class="flex items-center gap-1.5">
+                                        <button type="button" onclick="app.openMermaidModal(this)" class="mermaid-btn" title="全螢幕放大檢視與自由平移縮放">
+                                            <span>🔍</span> <span>放大</span>
+                                        </button>
+                                        <button type="button" onclick="app.exportMermaidSvg(this)" class="mermaid-btn" title="匯出高解析度 SVG 向量圖檔">
+                                            <span>💾</span> <span>匯出 SVG</span>
+                                        </button>
+                                        <button type="button" onclick="const codeEl = this.closest('.mermaid-diagram-card').querySelector('.mermaid-source'); codeEl.classList.toggle('hidden');" class="mermaid-btn" title="展開或收合圖表原始碼">
+                                            <span>📝</span> <span>原始碼</span>
+                                        </button>
+                                        <button type="button" onclick="navigator.clipboard.writeText(this.closest('.mermaid-diagram-card').querySelector('.mermaid-code-text').innerText); app.showToast('📋 圖表代碼已複製至剪貼簿！');" class="mermaid-btn" title="複製 Mermaid 語法">
+                                            <span>📋</span> <span>複製</span>
+                                        </button>
                                     </div>
                                 </div>
-                                <div class="p-3 md:p-5 overflow-x-auto flex justify-center bg-white min-h-[80px]">
-                                    <pre class="mermaid text-xs font-mono text-center w-full flex justify-center">${escaped}</pre>
+                                <div class="mermaid-canvas">
+                                    <pre class="mermaid">${escaped}</pre>
                                 </div>
                                 <div class="mermaid-source hidden border-t border-slate-200 bg-slate-900 p-3">
+                                    <div class="flex justify-between items-center text-[10px] text-slate-400 font-mono mb-1.5 select-none">
+                                        <span>MERMAID SOURCE CODE</span>
+                                    </div>
                                     <pre class="text-slate-100 font-mono text-xs overflow-x-auto leading-relaxed mermaid-code-text"><code>${escaped}</code></pre>
                                 </div>
                             </div>
@@ -7060,6 +7095,183 @@ ${rawHtml}
                 return resultLines.join('\n');
             },
 
+            _mermaidModalState: {
+                scale: 1,
+                translateX: 0,
+                translateY: 0,
+                isDragging: false,
+                startX: 0,
+                startY: 0
+            },
+
+            openMermaidModal(btnOrCard) {
+                const card = btnOrCard.closest ? btnOrCard.closest('.mermaid-diagram-card') : btnOrCard;
+                if (!card) return;
+                const svgEl = card.querySelector('.mermaid svg');
+                if (!svgEl) {
+                    this.showToast('⚠️ 圖表尚未完成繪製或語法有誤');
+                    return;
+                }
+
+                let modal = document.getElementById('mermaidLightboxModal');
+                if (!modal) {
+                    modal = document.createElement('div');
+                    modal.id = 'mermaidLightboxModal';
+                    modal.className = 'fixed inset-0 z-[100] bg-slate-900/80 backdrop-blur-sm flex flex-col items-center justify-center p-2 md:p-6 select-none';
+                    modal.innerHTML = `
+                        <div class="bg-white border border-slate-200 rounded-xl shadow-2xl flex flex-col w-full h-full max-w-6xl max-h-[92vh] overflow-hidden">
+                            <!-- Modal Header -->
+                            <div class="bg-slate-50 border-b border-slate-200 px-4 py-2.5 flex items-center justify-between gap-3">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-base">📐</span>
+                                    <h3 class="font-bold text-sm text-slate-800 tracking-tight">Mermaid 圖表高清放大檢視</h3>
+                                    <span class="text-xs text-slate-400 font-mono hidden sm:inline">(支援滑鼠滾輪縮放、拖曳平移)</span>
+                                </div>
+                                <div class="flex items-center gap-1.5">
+                                    <button type="button" id="mermaidZoomOutBtn" class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs rounded border border-slate-200" title="縮小 (滾輪向下)">－ 縮小</button>
+                                    <button type="button" id="mermaidZoomResetBtn" class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs rounded border border-slate-200 font-mono" title="重設縮放 (100%)">100%</button>
+                                    <button type="button" id="mermaidZoomInBtn" class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 font-bold text-xs rounded border border-slate-200" title="放大 (滾輪向上)">＋ 放大</button>
+                                    <button type="button" id="mermaidExportInModalBtn" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs rounded" title="下載 SVG 向量圖">💾 匯出 SVG</button>
+                                    <button type="button" id="mermaidCloseModalBtn" class="ml-2 px-2.5 py-1 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs rounded" title="關閉 (ESC)">✕ 關閉</button>
+                                </div>
+                            </div>
+                            <!-- Modal Canvas Container -->
+                            <div class="mermaid-modal-canvas flex-1 overflow-hidden relative flex items-center justify-center">
+                                <div id="mermaidModalSvgWrapper" class="transform origin-center transition-transform duration-75 select-none" style="will-change: transform;"></div>
+                            </div>
+                        </div>
+                    `;
+                    document.body.appendChild(modal);
+
+                    // 綁定控制項事件
+                    const wrapper = document.getElementById('mermaidModalSvgWrapper');
+                    const canvas = modal.querySelector('.mermaid-modal-canvas');
+                    const resetBtn = document.getElementById('mermaidZoomResetBtn');
+
+                    const updateTransform = () => {
+                        wrapper.style.transform = `translate(${this._mermaidModalState.translateX}px, ${this._mermaidModalState.translateY}px) scale(${this._mermaidModalState.scale})`;
+                        resetBtn.textContent = `${Math.round(this._mermaidModalState.scale * 100)}%`;
+                    };
+
+                    document.getElementById('mermaidZoomInBtn').onclick = () => {
+                        this._mermaidModalState.scale = Math.min(5, this._mermaidModalState.scale * 1.2);
+                        updateTransform();
+                    };
+                    document.getElementById('mermaidZoomOutBtn').onclick = () => {
+                        this._mermaidModalState.scale = Math.max(0.2, this._mermaidModalState.scale / 1.2);
+                        updateTransform();
+                    };
+                    resetBtn.onclick = () => {
+                        this._mermaidModalState.scale = 1;
+                        this._mermaidModalState.translateX = 0;
+                        this._mermaidModalState.translateY = 0;
+                        updateTransform();
+                    };
+                    document.getElementById('mermaidCloseModalBtn').onclick = () => {
+                        this.closeMermaidModal();
+                    };
+
+                    // 滾輪縮放
+                    canvas.addEventListener('wheel', (e) => {
+                        e.preventDefault();
+                        const delta = e.deltaY < 0 ? 1.15 : 0.85;
+                        this._mermaidModalState.scale = Math.min(6, Math.max(0.2, this._mermaidModalState.scale * delta));
+                        updateTransform();
+                    }, { passive: false });
+
+                    // 拖曳平移
+                    canvas.addEventListener('mousedown', (e) => {
+                        if (e.button !== 0) return;
+                        this._mermaidModalState.isDragging = true;
+                        this._mermaidModalState.startX = e.clientX - this._mermaidModalState.translateX;
+                        this._mermaidModalState.startY = e.clientY - this._mermaidModalState.translateY;
+                    });
+                    window.addEventListener('mousemove', (e) => {
+                        if (!this._mermaidModalState.isDragging) return;
+                        this._mermaidModalState.translateX = e.clientX - this._mermaidModalState.startX;
+                        this._mermaidModalState.translateY = e.clientY - this._mermaidModalState.startY;
+                        updateTransform();
+                    });
+                    window.addEventListener('mouseup', () => {
+                        this._mermaidModalState.isDragging = false;
+                    });
+
+                    // 鍵盤 ESC 關閉
+                    window.addEventListener('keydown', (e) => {
+                        if (e.key === 'Escape' && !modal.classList.contains('hidden')) {
+                            this.closeMermaidModal();
+                        }
+                    });
+                }
+
+                // 複製 SVG 節點到彈窗
+                const wrapper = document.getElementById('mermaidModalSvgWrapper');
+                wrapper.innerHTML = '';
+                const clonedSvg = svgEl.cloneNode(true);
+                clonedSvg.style.maxWidth = 'none';
+                clonedSvg.style.maxHeight = 'none';
+                clonedSvg.style.width = 'auto';
+                clonedSvg.style.height = 'auto';
+                wrapper.appendChild(clonedSvg);
+
+                // 匯出按鈕綁定
+                document.getElementById('mermaidExportInModalBtn').onclick = () => {
+                    this.exportMermaidSvg(card);
+                };
+
+                // 重設狀態
+                this._mermaidModalState.scale = 1;
+                this._mermaidModalState.translateX = 0;
+                this._mermaidModalState.translateY = 0;
+                this._mermaidModalState.isDragging = false;
+                wrapper.style.transform = 'translate(0px, 0px) scale(1)';
+                const resetBtn = document.getElementById('mermaidZoomResetBtn');
+                if (resetBtn) resetBtn.textContent = '100%';
+
+                modal.classList.remove('hidden');
+            },
+
+            closeMermaidModal() {
+                const modal = document.getElementById('mermaidLightboxModal');
+                if (modal) {
+                    modal.classList.add('hidden');
+                }
+            },
+
+            exportMermaidSvg(btnOrCard) {
+                const card = btnOrCard.closest ? btnOrCard.closest('.mermaid-diagram-card') : btnOrCard;
+                if (!card) return;
+                const svgEl = card.querySelector('.mermaid svg');
+                if (!svgEl) {
+                    this.showToast('⚠️ 找不到可匯出的 SVG 圖表');
+                    return;
+                }
+                try {
+                    const serializer = new XMLSerializer();
+                    let source = serializer.serializeToString(svgEl);
+                    if (!source.match(/^<svg[^>]+xmlns="http\:\/\/www\.w3\.org\/2000\/svg"/)) {
+                        source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+                    }
+                    if (!source.match(/^<svg[^>]+xmlns\:xlink="http\:\/\/www\.w3\.org\/1999\/xlink"/)) {
+                        source = source.replace(/^<svg/, '<svg xmlns:xlink="http://www.w3.org/1999/xlink"');
+                    }
+                    const preface = '<?xml version="1.0" standalone="no"?>\r\n';
+                    const svgBlob = new Blob([preface, source], { type: 'image/svg+xml;charset=utf-8' });
+                    const url = URL.createObjectURL(svgBlob);
+                    const downloadLink = document.createElement('a');
+                    downloadLink.href = url;
+                    downloadLink.download = `mermaid_diagram_${Date.now()}.svg`;
+                    document.body.appendChild(downloadLink);
+                    downloadLink.click();
+                    document.body.removeChild(downloadLink);
+                    URL.revokeObjectURL(url);
+                    this.showToast('💾 SVG 向量圖已成功匯出下載！');
+                } catch(e) {
+                    console.error('Export SVG error:', e);
+                    this.showToast('⚠️ 匯出 SVG 失敗: ' + e.message);
+                }
+            },
+
             renderMermaidDiagrams(containerEl) {
                 if (!containerEl) return;
                 if (typeof mermaid === 'undefined') return;
@@ -7071,12 +7283,55 @@ ${rawHtml}
                     if (!this._mermaidInitialized) {
                         mermaid.initialize({
                             startOnLoad: false,
-                            theme: 'default',
+                            theme: 'base',
                             securityLevel: 'loose',
                             suppressErrorRendering: true,
+                            fontFamily: "'Plus Jakarta Sans', 'Noto Sans TC', sans-serif",
+                            themeVariables: {
+                                fontFamily: "'Plus Jakarta Sans', 'Noto Sans TC', sans-serif",
+                                fontSize: '13px',
+                                primaryColor: '#ffffff',
+                                primaryTextColor: '#0f172a',
+                                primaryBorderColor: '#0f172a',
+                                lineColor: '#475569',
+                                secondaryColor: '#f8fafc',
+                                tertiaryColor: '#f1f5f9',
+                                mainBkg: '#ffffff',
+                                nodeBorder: '#0f172a',
+                                nodeTextColor: '#0f172a',
+                                edgeLabelBackground: '#ffffff',
+                                clusterBkg: '#f8fafc',
+                                clusterBorder: '#cbd5e1',
+                                actorBkg: '#ffffff',
+                                actorBorder: '#0f172a',
+                                actorTextColor: '#0f172a',
+                                signalColor: '#475569',
+                                signalTextColor: '#0f172a',
+                                labelBoxBkgColor: '#ffffff',
+                                labelBoxBorderColor: '#cbd5e1',
+                                labelTextColor: '#0f172a'
+                            },
                             flowchart: {
                                 htmlLabels: true,
-                                curve: 'basis'
+                                curve: 'basis',
+                                nodeSpacing: 45,
+                                rankSpacing: 45,
+                                padding: 15
+                            },
+                            sequence: {
+                                actorMargin: 50,
+                                messageMargin: 35,
+                                boxMargin: 10,
+                                boxTextMargin: 5,
+                                noteMargin: 10,
+                                messageFontFamily: "'Plus Jakarta Sans', 'Noto Sans TC', sans-serif"
+                            },
+                            gantt: {
+                                titleTopMargin: 25,
+                                barHeight: 20,
+                                barGap: 4,
+                                topPadding: 50,
+                                sidePadding: 75
                             }
                         });
                         this._mermaidInitialized = true;
