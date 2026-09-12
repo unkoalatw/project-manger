@@ -1708,18 +1708,16 @@
                 <!-- 1. 輸入與設定區塊 -->
                 <div class="bg-slate-50/80 border border-slate-200 rounded-xl p-4 space-y-3">
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
-                        <label class="block font-bold text-xs text-slate-800">🎯 輸入想拆解的目標、功能或需求說明：</label>
-                        <div class="flex items-center gap-1.5 flex-wrap">
-                            <button type="button" onclick="app.fillAiDecomposeFromCurrentDoc()" class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded text-xs font-semibold shadow-xs flex items-center gap-1" title="帶入當前正在編輯的文檔內容">
-                                <span>📄</span> <span>帶入當前文檔</span>
-                            </button>
-                            <button type="button" onclick="app.fillAiDecomposeFromProjectTitle()" class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 rounded text-xs font-semibold shadow-xs flex items-center gap-1" title="帶入當前專案名稱">
-                                <span>📁</span> <span>帶入專案名稱</span>
-                            </button>
+                        <label class="block font-bold text-xs text-slate-800 flex items-center gap-1.5">
+                            <span>🎯</span>
+                            <span>全專案拆解目標與補充需求：</span>
+                        </label>
+                        <div class="flex items-center gap-1.5 flex-wrap text-[11px] text-purple-700 bg-purple-50 px-2.5 py-0.5 rounded-full border border-purple-200/60 font-semibold">
+                            <span>📚 AI 將自動綜整全專案所有文檔與規格資料進行深度分析</span>
                         </div>
                     </div>
 
-                    <textarea id="aiDecomposePromptInput" rows="3" class="flat-input w-full p-3 text-xs leading-relaxed font-mono" placeholder="請描述您的專案目標（例如：製作品牌形象短片/節目拍攝、籌辦千人戶外音樂祭/產品發表會、開發會員管理系統、企劃雙11行銷檔期...）"></textarea>
+                    <textarea id="aiDecomposePromptInput" rows="3" class="flat-input w-full p-3 text-xs leading-relaxed font-mono" placeholder="可輸入額外補充說明或重點方向（例如：聚焦於第三季影片拍攝時程、加強戶外展演的安全規範；若留空則預設根據全專案所有內容進行完整拆解）"></textarea>
 
                     <!-- API Key 與選項 -->
                     <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-1">
@@ -1728,7 +1726,7 @@
                             <input type="password" id="aiGroqApiKeyInput" placeholder="輸入 Groq API Key (gsk_...)" class="flat-input flex-1 p-1.5 text-xs font-mono" onchange="app.setGroqApiKey(this.value)">
                         </div>
                         <button type="button" id="btnStartAiDecompose" onclick="app.startAiTaskDecomposition()" class="px-5 py-2 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold text-xs rounded-lg shadow-sm flex items-center justify-center gap-1.5 transition-all shrink-0">
-                            <span>⚡</span> <span>開始 AI 智慧拆解</span>
+                            <span>⚡</span> <span>分析全專案並開始拆解</span>
                         </button>
                     </div>
                 </div>
@@ -1736,8 +1734,8 @@
                 <!-- 2. 載入中狀態 (Loading Spinner) -->
                 <div id="aiDecomposeLoading" class="hidden py-10 flex flex-col items-center justify-center space-y-3 text-center">
                     <div class="w-10 h-10 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin"></div>
-                    <div class="font-bold text-sm text-purple-900">🤖 Groq AI 正在深度分析架構...</div>
-                    <div class="text-xs text-slate-400 font-mono">正在規劃前期準備、核心執行順序步驟與善後交付項目</div>
+                    <div class="font-bold text-sm text-purple-900">🤖 Groq AI 正在讀取並深度分析全專案文檔與規格...</div>
+                    <div class="text-xs text-slate-400 font-mono">正在規劃跨階段前期準備、核心執行順序步驟與善後交付項目</div>
                 </div>
 
                 <!-- 3. 三階段拆解成果預覽區塊 (Result Phases Container) -->

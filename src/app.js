@@ -9501,11 +9501,8 @@ this.closeModals();
                 }
 
                 const promptInput = document.getElementById('aiDecomposePromptInput');
-                if (promptInput && !promptInput.value.trim()) {
-                    const p = this.getCurrentProject();
-                    if (p && p.title) {
-                        promptInput.value = p.title;
-                    }
+                if (promptInput) {
+                    promptInput.value = '';
                 }
             },
 
@@ -9514,39 +9511,50 @@ this.closeModals();
                 if (modal) modal.classList.add('hidden');
             },
 
-            fillAiDecomposeFromCurrentDoc() {
+            buildFullProjectAiContext() {
                 const p = this.getCurrentProject();
-                const doc = p?.docs?.find(d => d.id === this.state.activeDocId);
-                const input = document.getElementById('aiDecomposePromptInput');
-                if (!input) return;
-                if (doc && doc.content) {
-                    input.value = `【文檔：${doc.title}】\n` + doc.content.slice(0, 1500);
-                    this.showToast('📄 已帶入當前文檔內容');
-                } else {
-                    this.showToast('⚠️ 當前沒有開啟的文檔或文檔為空', 'error');
-                }
-            },
+                if (!p) return '【目前未選擇任何專案】';
 
-            fillAiDecomposeFromProjectTitle() {
-                const p = this.getCurrentProject();
-                const input = document.getElementById('aiDecomposePromptInput');
-                if (!input) return;
-                if (p && p.title) {
-                    input.value = `專案目標：${p.title}`;
-                    this.showToast('📁 已帶入專案名稱');
-                } else {
-                    this.showToast('⚠️ 尚未選擇專案', 'error');
+                let context = `【專案基本資料】\n專案名稱：${p.title || '未命名專案'}\n專案類別：${p.category || '未分類'}\n`;
+                
+                if (p.wizard) {
+                    if (p.wizard.vision) context += `專案願景/總體目標：\n${p.wizard.vision}\n\n`;
+                    if (p.wizard.features) context += `核心功能/規劃模組：\n${p.wizard.features}\n\n`;
+                    if (p.wizard.tech) context += `相關技術/執行規範：\n${p.wizard.tech}\n\n`;
                 }
+
+                const docs = p.docs || [];
+                context += `【專案文檔庫（共 ${docs.length} 份文檔）】\n`;
+                if (docs.length === 0) {
+                    context += `（目前專案內尚無詳細文檔）\n`;
+                } else {
+                    docs.forEach((doc, idx) => {
+                        const title = doc.title || `文檔 ${idx + 1}`;
+                        const content = (doc.content || '').trim();
+                        context += `\n--- [文檔 ${idx + 1}] 《${title}》 ---\n${content || '(空白內容)'}\n`;
+                    });
+                }
+
+                const existingTasks = p.tasks || [];
+                if (existingTasks.length > 0) {
+                    context += `\n【現有已建立任務（供參考）】\n`;
+                    existingTasks.slice(0, 30).forEach((t, idx) => {
+                        context += `- ${t.title || '未命名任務'} [${t.status || 'TODO'}, 優先度: ${t.priority || 'MED'}]\n`;
+                    });
+                }
+
+                return context;
             },
 
             async startAiTaskDecomposition() {
-                const input = document.getElementById('aiDecomposePromptInput');
-                const promptText = input ? input.value.trim() : '';
-                if (!promptText) {
-                    this.showToast('⚠️ 請先輸入欲拆解的專案目標或功能說明', 'error');
-                    if (input) input.focus();
+                const p = this.getCurrentProject();
+                if (!p) {
+                    this.showToast('⚠️ 請先選擇或建立一個專案', 'error');
                     return;
                 }
+
+                const input = document.getElementById('aiDecomposePromptInput');
+                const userNotes = input ? input.value.trim() : '';
 
                 const apiKey = this.getGroqApiKey();
                 if (!apiKey) {
@@ -9554,7 +9562,7 @@ this.closeModals();
                     if (keyInput && keyInput.value.trim()) {
                         this.setGroqApiKey(keyInput.value.trim());
                     } else {
-                        const enteredKey = prompt('請輸入您的 Groq API Key（例如：gsk_...）以進行 AI 拆解：');
+                        const enteredKey = prompt('請輸入您的 Groq API Key（例如：gsk_...）以進行全專案 AI 拆解：');
                         if (enteredKey && enteredKey.trim()) {
                             this.setGroqApiKey(enteredKey.trim());
                             if (keyInput) keyInput.value = enteredKey.trim();
@@ -9579,13 +9587,14 @@ this.closeModals();
                 }
 
                 try {
-                    const decomposedData = await this.callGroqTaskDecomposition(promptText);
+                    const fullProjectContext = this.buildFullProjectAiContext();
+                    const decomposedData = await this.callGroqTaskDecomposition(fullProjectContext, userNotes);
                     this.aiDecomposedData = decomposedData;
                     this.renderAiDecomposedPhases(decomposedData);
                     if (loadingEl) loadingEl.classList.add('hidden');
                     if (resultsEl) resultsEl.classList.remove('hidden');
                     if (footerEl) footerEl.classList.remove('hidden');
-                    this.showToast('✨ AI 任務三階段自動拆解完成！');
+                    this.showToast('✨ 全專案 AI 任務三階段自動拆解完成！');
                 } catch(err) {
                     if (loadingEl) loadingEl.classList.add('hidden');
                     console.error('AI Decompose Error:', err);
@@ -9598,12 +9607,13 @@ this.closeModals();
                 }
             },
 
-            async callGroqTaskDecomposition(userPrompt) {
+            async callGroqTaskDecomposition(fullProjectContext, userNotes = '') {
                 const systemPrompt = `你是一個資深的跨領域專案管理與敏捷任務拆解大師。
-請特別注意：使用者的專案可能是「影片/節目拍攝與製作」、「實體/線上活動策劃與執行」、「行銷推廣與品牌發表」、「軟體與系統開發」、「設計與出版」、「營運行政」等任何領域的專案。
+使用者正在管理一個完整專案，此專案可能是「影片/節目拍攝與製作」、「實體/線上活動策劃與執行」、「行銷推廣與品牌發表」、「軟體與系統開發」、「設計與出版」、「營運行政」等任何領域。
 
-你的任務是：
-根據使用者輸入的專案內容與所屬領域，精確、專業且高度貼合該領域實務地拆解為三大階段的結構化任務：
+【你的核心職責】：
+你將收到使用者整個專案的「所有文檔庫、願景、規格與設定資料」。
+你必須深度研讀並貫穿「全專案所有文檔與內容」，提煉出專案從無到有、跨階段推進的完整架構，並精確拆解為三大階段的結構化任務清單：
 
 1. preTasks (第一階段：前期準備任務)：
    - 影視節目：腳本編寫、分鏡表、勘景、演員/通告發放、器材租借、預算編列、工作人員招募。
@@ -9616,7 +9626,7 @@ this.closeModals();
    - 影視節目：設機與彩排(步驟1) -> 核心場景拍攝(步驟2) -> 現場收音與素材備份(步驟3) -> 剪輯與初剪(步驟4) -> 調色/混音/特效(步驟5)。
    - 活動專案：場地進場佈置(步驟1) -> 設備音響彩排(步驟2) -> 迎賓接待與開場(步驟3) -> 主題議程執行(步驟4) -> 頒獎/大合照(步驟5) -> 散場引導(步驟6)。
    - 程式專案：資料庫模型建立(步驟1) -> 核心 API 開發(步驟2) -> 前端畫面串接(步驟3) -> 系統整合(步驟4)。
-   - 每個步驟必須包含清楚的順序編號 (sequence: 1, 2, 3...) 與執行要點。
+   - 每個步驟必須包含清楚的順序編號 (sequence: 1, 2, 3...) 與具體執行要點。
 
 3. postTasks (第三階段：善後與交付任務)：
    - 影視節目：母帶輸出交付、宣傳短片發布、版權登錄、器材歸還、素材硬碟封存。
@@ -9628,7 +9638,7 @@ this.closeModals();
 你必須且只能輸出標準合法的 JSON 格式，不得包含任何額外的 Markdown 說明或前後贅字。
 JSON 格式規範如下：
 {
-  "summary": "一句話總結此專案領域與核心拆解策略",
+  "summary": "一句話總結全專案的領域定位與核心拆解策略",
   "preTasks": [
     { "title": "任務標題", "desc": "簡要說明或執行要點", "priority": "HIGH" | "MED" | "LOW" }
   ],
@@ -9640,6 +9650,10 @@ JSON 格式規範如下：
   ]
 }`;
 
+                const userMessageContent = `以下為此專案的完整資料庫（包含所有文檔與規格）：\n\n${fullProjectContext}\n\n` + 
+                    (userNotes ? `【使用者的補充指示/重點聚焦】：\n${userNotes}\n\n` : '') +
+                    `請依據上述全專案內容，為我深度規劃並拆解出三階段任務（前期準備、進行時順序步驟、善後交付）。`;
+
                 const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
                     method: 'POST',
                     headers: {
@@ -9650,10 +9664,10 @@ JSON 格式規範如下：
                         model: 'groq/compound-mini',
                         messages: [
                             { role: 'system', content: systemPrompt },
-                            { role: 'user', content: userPrompt }
+                            { role: 'user', content: userMessageContent }
                         ],
                         temperature: 0.3,
-                        max_tokens: 3000,
+                        max_tokens: 3500,
                         response_format: { type: 'json_object' }
                     })
                 });
