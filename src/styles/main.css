@@ -803,4 +803,46 @@
         .col-purple { border-color: #a855f7; }
         .col-rose { border-color: #f43f5e; }
         .col-cyan { border-color: #06b6d4; }
-        .col-indigo { border-color: #6366f1; }
+        .col-indigo { border-color: #6366f1; }
+
+        /* ================= ✨ AI 任務三階段自動拆解系統樣式 ================= */
+        .ai-phase-card {
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            background: #ffffff;
+            transition: all 0.18s ease;
+        }
+        .ai-phase-card:hover {
+            border-color: #cbd5e1;
+            box-shadow: var(--shadow-card);
+        }
+        .ai-phase-header-pre {
+            background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+            border-bottom: 1px solid #bfdbfe;
+            color: #1e40af;
+        }
+        .ai-phase-header-exec {
+            background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%);
+            border-bottom: 1px solid #ddd6fe;
+            color: #5b21b6;
+        }
+        .ai-phase-header-post {
+            background: linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%);
+            border-bottom: 1px solid #a7f3d0;
+            color: #065f46;
+        }
+        .ai-step-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            height: 22px;
+            border-radius: 9999px;
+            font-size: 11px;
+            font-weight: 800;
+            background-color: #8b5cf6;
+            color: #ffffff;
+            font-mono: monospace;
+            flex-shrink: 0;
+        }
+

@@ -9477,7 +9477,7 @@ this.closeModals();
             },
 
 
-            // ================= 🤖 Groq AI 助理模組 (Groq AI Chat & Autonomous Doc Creation) =================
+            // ================= 🤖 Groq AI 任務三階段智慧拆解模組 (AI 3-Phase Task Decomposition) =================
             getGroqApiKey() {
                 return localStorage.getItem('flatSpecGroqApiKey') || '';
             },
@@ -9488,152 +9488,143 @@ this.closeModals();
                     localStorage.removeItem('flatSpecGroqApiKey');
                 }
             },
-            chatMessages: [],
-            groqConsentGiven: false,
+            aiDecomposedData: null,
 
-            toggleChatSidebar() {
-                const sidebar = document.getElementById('rightSidebar');
-                const backdrop = document.getElementById('chatBackdrop');
-                if (!sidebar) return;
-                const isOpen = !sidebar.classList.contains('translate-x-full');
-                if (isOpen) {
-                    this.closeChatSidebar();
-                } else {
-                    sidebar.classList.remove('translate-x-full');
-                    if (backdrop) backdrop.classList.remove('hidden');
-                    this.initChatState();
+            openAiTaskDecomposeModal() {
+                const modal = document.getElementById('aiTaskDecomposeModal');
+                if (!modal) return;
+                modal.classList.remove('hidden');
+
+                const keyInput = document.getElementById('aiGroqApiKeyInput');
+                if (keyInput) {
+                    keyInput.value = this.getGroqApiKey();
+                }
+
+                const promptInput = document.getElementById('aiDecomposePromptInput');
+                if (promptInput && !promptInput.value.trim()) {
+                    const p = this.getCurrentProject();
+                    if (p && p.title) {
+                        promptInput.value = p.title;
+                    }
                 }
             },
 
-            closeChatSidebar() {
-                const sidebar = document.getElementById('rightSidebar');
-                const backdrop = document.getElementById('chatBackdrop');
-                if (sidebar) sidebar.classList.add('translate-x-full');
-                if (backdrop) backdrop.classList.add('hidden');
+            closeAiTaskDecomposeModal() {
+                const modal = document.getElementById('aiTaskDecomposeModal');
+                if (modal) modal.classList.add('hidden');
             },
 
-            initChatState() {
-                const consent = localStorage.getItem('flatSpecGroqConsent') === 'true';
-                this.groqConsentGiven = consent;
-                const consentEl = document.getElementById('groqConsent');
-                const chatBody = document.getElementById('chatBody');
-                if (consent) {
-                    if (consentEl) consentEl.classList.add('hidden');
-                    if (chatBody) chatBody.classList.remove('hidden');
-                } else {
-                    if (consentEl) consentEl.classList.remove('hidden');
-                    if (chatBody) chatBody.classList.add('hidden');
-                }
-            },
-
-            acceptGroqConsent() {
-                this.groqConsentGiven = true;
-                localStorage.setItem('flatSpecGroqConsent', 'true');
-                this.initChatState();
-                this.showToast('✅ 已同意啟用 Groq AI 智慧助手');
-            },
-
-            clearChatMessages() {
-                this.chatMessages = [];
-                const msgBox = document.getElementById('chatMessages');
-                if (msgBox) {
-                    msgBox.innerHTML = `
-                        <div class="flex justify-start mb-2">
-                            <div class="max-w-[85%] px-3 py-2 bg-zinc-100 border-2 border-black text-xs leading-relaxed break-words">
-                                👋 對話紀錄已清空。我是 AI 助手，已配置好 Groq 模型，有什麼需要協助的嗎？
-                            </div>
-                        </div>
-                    `;
-                }
-            },
-
-            handleChatKeydown(e) {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                    e.preventDefault();
-                    this.sendChatMessage();
-                }
-            },
-
-            async sendChatMessage() {
-                const input = document.getElementById('chatInput');
-                if (!input) return;
-                const text = input.value.trim();
-                if (!text) return;
-                input.value = '';
-
-                // 加入使用者訊息
-                this.chatMessages.push({ role: 'user', content: text });
-                this.appendChatMessageUI('user', text);
-
-                // 顯示 AI 思考中
-                const thinkingId = 'aiThinking_' + Date.now();
-                this.appendChatMessageUI('assistant', '🤖 正在思考與規劃中...', thinkingId);
-
-                try {
-                    const aiReply = await this.callGroqApi(text);
-                    const thinkingEl = document.getElementById(thinkingId);
-                    if (thinkingEl) thinkingEl.remove();
-
-                    this.chatMessages.push({ role: 'assistant', content: aiReply });
-                    this.appendChatMessageUI('assistant', aiReply);
-
-                    // 智慧自主執行 / 建立文檔或切換視圖
-                    this.processAiAutonomousActions(aiReply);
-                } catch(err) {
-                    const thinkingEl = document.getElementById(thinkingId);
-                    if (thinkingEl) thinkingEl.remove();
-                    this.appendChatMessageUI('assistant', '⚠️ 連線錯誤：' + (err.message || 'Groq API 無法回應'));
-                }
-            },
-
-            appendChatMessageUI(role, content, customId = null) {
-                const msgBox = document.getElementById('chatMessages');
-                if (!msgBox) return;
-                const isUser = role === 'user';
-                const div = document.createElement('div');
-                div.className = `flex ${isUser ? 'justify-end' : 'justify-start'} mb-2`;
-                if (customId) div.id = customId;
-
-                const bubble = document.createElement('div');
-                bubble.className = `max-w-[85%] px-3 py-2 text-xs leading-relaxed break-words ${isUser ? 'bg-purple-200 border-2 border-black text-purple-950 font-bold' : 'bg-zinc-100 border-2 border-black text-black'}`;
-                bubble.innerHTML = isUser ? this.escapeHtml(content).replace(/\n/g, '<br>') : this.parseMarkdown(content);
-                div.appendChild(bubble);
-                msgBox.appendChild(div);
-                msgBox.scrollTop = msgBox.scrollHeight;
-            },
-
-            async callGroqApi(userPrompt) {
+            fillAiDecomposeFromCurrentDoc() {
                 const p = this.getCurrentProject();
-                const projectContext = p ? `當前專案名稱：${p.title}，現有文檔列表：${(p.docs||[]).map(d=>d.title).join(', ')}` : '無當前專案';
+                const doc = p?.docs?.find(d => d.id === this.state.activeDocId);
+                const input = document.getElementById('aiDecomposePromptInput');
+                if (!input) return;
+                if (doc && doc.content) {
+                    input.value = `【文檔：${doc.title}】\n` + doc.content.slice(0, 1500);
+                    this.showToast('📄 已帶入當前文檔內容');
+                } else {
+                    this.showToast('⚠️ 當前沒有開啟的文檔或文檔為空', 'error');
+                }
+            },
 
-                const systemMessage = {
-                    role: 'system',
-                    content: `你是一個強大的敏捷專案管理與文檔架構 AI 助手。
-使用者環境資訊：${projectContext}
-若使用者要求建立、撰寫或生成新文檔，請自行給予該文檔最適切的「標題」，並在回覆中使用以下格式：
-[CREATE_DOC:文檔名稱]
-文檔 Markdown 內容
-[/CREATE_DOC]
+            fillAiDecomposeFromProjectTitle() {
+                const p = this.getCurrentProject();
+                const input = document.getElementById('aiDecomposePromptInput');
+                if (!input) return;
+                if (p && p.title) {
+                    input.value = `專案目標：${p.title}`;
+                    this.showToast('📁 已帶入專案名稱');
+                } else {
+                    this.showToast('⚠️ 尚未選擇專案', 'error');
+                }
+            },
 
-若使用者要求切換視圖，請在回覆末尾加上 [SWITCH_VIEW:Dashboard|Docs|Execution|Wizard]。
-若使用者要求新增任務，請使用 [ADD_TASK:任務標題]。
-請保持回應精簡、專業、工整且具備結構性。`.trim()
-                };
-
-                const messages = [
-                    systemMessage,
-                    ...this.chatMessages.slice(-8)
-                ];
+            async startAiTaskDecomposition() {
+                const input = document.getElementById('aiDecomposePromptInput');
+                const promptText = input ? input.value.trim() : '';
+                if (!promptText) {
+                    this.showToast('⚠️ 請先輸入欲拆解的專案目標或功能說明', 'error');
+                    if (input) input.focus();
+                    return;
+                }
 
                 const apiKey = this.getGroqApiKey();
                 if (!apiKey) {
-                    const enteredKey = prompt('請輸入您的 Groq API Key（例如：gsk_...）以啟用 AI 助手功能：');
-                    if (enteredKey && enteredKey.trim()) {
-                        this.setGroqApiKey(enteredKey.trim());
+                    const keyInput = document.getElementById('aiGroqApiKeyInput');
+                    if (keyInput && keyInput.value.trim()) {
+                        this.setGroqApiKey(keyInput.value.trim());
                     } else {
-                        throw new Error('未設定 Groq API Key。請設定 API Key 後再試。');
+                        const enteredKey = prompt('請輸入您的 Groq API Key（例如：gsk_...）以進行 AI 拆解：');
+                        if (enteredKey && enteredKey.trim()) {
+                            this.setGroqApiKey(enteredKey.trim());
+                            if (keyInput) keyInput.value = enteredKey.trim();
+                        } else {
+                            this.showToast('❌ 未提供 Groq API Key，無法執行拆解', 'error');
+                            return;
+                        }
                     }
                 }
+
+                const loadingEl = document.getElementById('aiDecomposeLoading');
+                const resultsEl = document.getElementById('aiDecomposeResultsContainer');
+                const footerEl = document.getElementById('aiDecomposeFooter');
+                const btnStart = document.getElementById('btnStartAiDecompose');
+
+                if (loadingEl) loadingEl.classList.remove('hidden');
+                if (resultsEl) resultsEl.classList.add('hidden');
+                if (footerEl) footerEl.classList.add('hidden');
+                if (btnStart) {
+                    btnStart.disabled = true;
+                    btnStart.classList.add('opacity-50');
+                }
+
+                try {
+                    const decomposedData = await this.callGroqTaskDecomposition(promptText);
+                    this.aiDecomposedData = decomposedData;
+                    this.renderAiDecomposedPhases(decomposedData);
+                    if (loadingEl) loadingEl.classList.add('hidden');
+                    if (resultsEl) resultsEl.classList.remove('hidden');
+                    if (footerEl) footerEl.classList.remove('hidden');
+                    this.showToast('✨ AI 任務三階段自動拆解完成！');
+                } catch(err) {
+                    if (loadingEl) loadingEl.classList.add('hidden');
+                    console.error('AI Decompose Error:', err);
+                    this.showToast(`❌ 拆解失敗：${err.message || 'Groq API 請求異常'}`, 'error');
+                } finally {
+                    if (btnStart) {
+                        btnStart.disabled = false;
+                        btnStart.classList.remove('opacity-50');
+                    }
+                }
+            },
+
+            async callGroqTaskDecomposition(userPrompt) {
+                const systemPrompt = `你是一個資深的敏捷專案管理與任務架構規劃大師。
+你的任務是將使用者提供的專案、目標、需求或文檔，精確且完整地拆解為三大階段的結構化任務：
+
+1. preTasks (前期準備任務)：
+   - 包含需求確認、架構調研、環境設置、權限設定、設計規格草擬、相依模組準備等。
+2. inProgressTasks (進行時核心執行與順序步驟)：
+   - 按照「嚴格的執行順序 (sequence 1, 2, 3...)」逐步推進的核心開發或執行事項。
+   - 每個項目必須包含清晰的順序編號 (sequence: 1, 2, 3...)。
+3. postTasks (善後與交付任務)：
+   - 包含測試驗收、發布部署、文檔歸檔、回顧復盤、資源清理、維運交接等。
+
+【極其重要輸出規範】：
+你必須且只能輸出標準合法的 JSON 格式，不得包含任何額外的 Markdown 說明或前後贅字。
+JSON 格式規範如下：
+{
+  "summary": "一句話總結此目標的拆解策略",
+  "preTasks": [
+    { "title": "任務標題", "desc": "簡要說明或執行要點", "priority": "HIGH" | "MED" | "LOW" }
+  ],
+  "inProgressTasks": [
+    { "sequence": 1, "title": "任務標題", "desc": "簡要說明或執行要點", "priority": "HIGH" | "MED" | "LOW" }
+  ],
+  "postTasks": [
+    { "title": "任務標題", "desc": "簡要說明或執行要點", "priority": "HIGH" | "MED" | "LOW" }
+  ]
+}`;
 
                 const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
                     method: 'POST',
@@ -9643,9 +9634,13 @@ this.closeModals();
                     },
                     body: JSON.stringify({
                         model: 'groq/compound-mini',
-                        messages: messages,
-                        temperature: 0.6,
-                        max_tokens: 2048
+                        messages: [
+                            { role: 'system', content: systemPrompt },
+                            { role: 'user', content: userPrompt }
+                        ],
+                        temperature: 0.3,
+                        max_tokens: 3000,
+                        response_format: { type: 'json_object' }
                     })
                 });
 
@@ -9654,63 +9649,196 @@ this.closeModals();
                     throw new Error(`HTTP ${response.status}: ${errorText}`);
                 }
 
-                const data = await response.json();
-                return data.choices?.[0]?.message?.content || '無回應內容';
+                const result = await response.json();
+                const rawContent = result.choices?.[0]?.message?.content || '{}';
+                
+                // 去除 markdown code block 標記
+                const cleanedJson = rawContent.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+                const parsed = JSON.parse(cleanedJson);
+
+                return {
+                    summary: parsed.summary || '',
+                    preTasks: Array.isArray(parsed.preTasks) ? parsed.preTasks : [],
+                    inProgressTasks: Array.isArray(parsed.inProgressTasks) ? parsed.inProgressTasks : [],
+                    postTasks: Array.isArray(parsed.postTasks) ? parsed.postTasks : []
+                };
             },
 
-            processAiAutonomousActions(aiText) {
-                if (!aiText) return;
+            renderAiDecomposedPhases(data) {
+                const preList = document.getElementById('aiPreTasksList');
+                const inProgList = document.getElementById('aiInProgTasksList');
+                const postList = document.getElementById('aiPostTasksList');
 
-                // 1. 自主建檔指令 [CREATE_DOC:文檔標題]內容[/CREATE_DOC]
-                const createDocMatch = aiText.match(/\[CREATE_DOC:([^\]]+)\]([\s\S]*?)\[\/CREATE_DOC\]/i);
-                if (createDocMatch) {
-                    const docTitle = createDocMatch[1].trim();
-                    const docContent = createDocMatch[2].trim();
-                    const p = this.getCurrentProject();
-                    if (p) {
-                        const newDoc = {
-                            id: 'doc_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-                            title: docTitle || 'AI 生成文檔',
-                            content: docContent,
-                            folderId: null,
-                            updatedAt: new Date().toISOString()
-                        };
-                        p.docs = p.docs || [];
-                        p.docs.unshift(newDoc);
-                        this.state.activeDocId = newDoc.id;
-                        this.saveToLocal();
-                        this.renderAll();
-                        this.switchView('Docs');
-                        this.showToast(`🤖 AI 已為您自主建立並切換至文檔：「${newDoc.title}」`);
+                const preBadge = document.getElementById('aiPreTasksCountBadge');
+                const inProgBadge = document.getElementById('aiInProgTasksCountBadge');
+                const postBadge = document.getElementById('aiPostTasksCountBadge');
+
+                if (preBadge) preBadge.textContent = `${data.preTasks.length} 項`;
+                if (inProgBadge) inProgBadge.textContent = `${data.inProgressTasks.length} 步驟`;
+                if (postBadge) postBadge.textContent = `${data.postTasks.length} 項`;
+
+                // Render Phase 1: Pre Tasks
+                if (preList) {
+                    if (data.preTasks.length === 0) {
+                        preList.innerHTML = '<div class="text-xs text-slate-400 py-2 text-center">無前期任務</div>';
+                    } else {
+                        preList.innerHTML = data.preTasks.map((t, idx) => `
+                            <label class="flex items-start gap-2.5 p-2 bg-white hover:bg-blue-50/40 border border-slate-200 rounded-lg cursor-pointer transition-colors">
+                                <input type="checkbox" name="aiPreTaskItem" data-idx="${idx}" checked class="mt-0.5 rounded text-blue-600 focus:ring-blue-500" onchange="app.updateAiDecomposeSelectionCount()">
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <span class="font-bold text-xs text-slate-800">${this.escapeHtml(t.title)}</span>
+                                        <span class="text-[9px] px-1.5 py-0.2 rounded font-bold ${t.priority === 'HIGH' ? 'bg-red-100 text-red-700' : (t.priority === 'LOW' ? 'bg-slate-100 text-slate-600' : 'bg-amber-100 text-amber-700')}">${t.priority || 'MED'}</span>
+                                    </div>
+                                    ${t.desc ? `<p class="text-[11px] text-slate-500 mt-0.5">${this.escapeHtml(t.desc)}</p>` : ''}
+                                </div>
+                            </label>
+                        `).join('');
                     }
                 }
 
-                // 2. 視圖切換指令 [SWITCH_VIEW:viewName]
-                const switchMatch = aiText.match(/\[SWITCH_VIEW:(Dashboard|Docs|Execution|Wizard)\]/i);
-                if (switchMatch) {
-                    const targetView = switchMatch[1];
-                    this.switchView(targetView);
+                // Render Phase 2: In-Progress Tasks with sequence
+                if (inProgList) {
+                    if (data.inProgressTasks.length === 0) {
+                        inProgList.innerHTML = '<div class="text-xs text-slate-400 py-2 text-center">無進行時任務</div>';
+                    } else {
+                        inProgList.innerHTML = data.inProgressTasks.map((t, idx) => {
+                            const seq = t.sequence !== undefined ? t.sequence : (idx + 1);
+                            return `
+                                <label class="flex items-start gap-2.5 p-2 bg-white hover:bg-purple-50/40 border border-purple-200/80 rounded-lg cursor-pointer transition-colors">
+                                    <input type="checkbox" name="aiInProgTaskItem" data-idx="${idx}" checked class="mt-0.5 rounded text-purple-600 focus:ring-purple-500" onchange="app.updateAiDecomposeSelectionCount()">
+                                    <div class="flex-1 min-w-0">
+                                        <div class="flex items-center gap-2 flex-wrap">
+                                            <span class="ai-step-badge">步驟 ${seq}</span>
+                                            <span class="font-bold text-xs text-slate-800">${this.escapeHtml(t.title)}</span>
+                                            <span class="text-[9px] px-1.5 py-0.2 rounded font-bold ${t.priority === 'HIGH' ? 'bg-red-100 text-red-700' : (t.priority === 'LOW' ? 'bg-slate-100 text-slate-600' : 'bg-amber-100 text-amber-700')}">${t.priority || 'MED'}</span>
+                                        </div>
+                                        ${t.desc ? `<p class="text-[11px] text-slate-500 mt-0.5">${this.escapeHtml(t.desc)}</p>` : ''}
+                                    </div>
+                                </label>
+                            `;
+                        }).join('');
+                    }
                 }
 
-                // 3. 任務新增指令 [ADD_TASK:任務標題]
-                const addTaskMatch = aiText.match(/\[ADD_TASK:([^\]]+)\]/i);
-                if (addTaskMatch) {
-                    const taskTitle = addTaskMatch[1].trim();
-                    const p = this.getCurrentProject();
-                    if (p) {
-                        p.tasks = p.tasks || [];
+                // Render Phase 3: Post Tasks
+                if (postList) {
+                    if (data.postTasks.length === 0) {
+                        postList.innerHTML = '<div class="text-xs text-slate-400 py-2 text-center">無善後任務</div>';
+                    } else {
+                        postList.innerHTML = data.postTasks.map((t, idx) => `
+                            <label class="flex items-start gap-2.5 p-2 bg-white hover:bg-emerald-50/40 border border-slate-200 rounded-lg cursor-pointer transition-colors">
+                                <input type="checkbox" name="aiPostTaskItem" data-idx="${idx}" checked class="mt-0.5 rounded text-emerald-600 focus:ring-emerald-500" onchange="app.updateAiDecomposeSelectionCount()">
+                                <div class="flex-1 min-w-0">
+                                    <div class="flex items-center gap-2 flex-wrap">
+                                        <span class="font-bold text-xs text-slate-800">${this.escapeHtml(t.title)}</span>
+                                        <span class="text-[9px] px-1.5 py-0.2 rounded font-bold ${t.priority === 'HIGH' ? 'bg-red-100 text-red-700' : (t.priority === 'LOW' ? 'bg-slate-100 text-slate-600' : 'bg-amber-100 text-amber-700')}">${t.priority || 'MED'}</span>
+                                    </div>
+                                    ${t.desc ? `<p class="text-[11px] text-slate-500 mt-0.5">${this.escapeHtml(t.desc)}</p>` : ''}
+                                </div>
+                            </label>
+                        `).join('');
+                    }
+                }
+
+                this.updateAiDecomposeSelectionCount();
+            },
+
+            toggleAiDecomposeSelectAll(selectAll) {
+                const checkboxes = document.querySelectorAll('#aiTaskDecomposeModal input[type="checkbox"]');
+                checkboxes.forEach(cb => cb.checked = selectAll);
+                this.updateAiDecomposeSelectionCount();
+            },
+
+            updateAiDecomposeSelectionCount() {
+                const checkboxes = document.querySelectorAll('#aiTaskDecomposeModal input[type="checkbox"]');
+                const checked = Array.from(checkboxes).filter(cb => cb.checked);
+                const countBadge = document.getElementById('aiDecomposeSelectedCount');
+                if (countBadge) {
+                    countBadge.textContent = `${checked.length}/${checkboxes.length}`;
+                }
+            },
+
+            importAiDecomposedTasks() {
+                const p = this.getCurrentProject();
+                if (!p) {
+                    this.showToast('⚠️ 請先選擇或建立一個專案', 'error');
+                    return;
+                }
+                if (!this.aiDecomposedData) {
+                    this.showToast('⚠️ 尚無拆解成果可匯入', 'error');
+                    return;
+                }
+
+                p.tasks = p.tasks || [];
+                let importedCount = 0;
+
+                // 1. Pre Tasks
+                const preCheckboxes = document.querySelectorAll('input[name="aiPreTaskItem"]:checked');
+                preCheckboxes.forEach(cb => {
+                    const idx = parseInt(cb.getAttribute('data-idx'), 10);
+                    const t = this.aiDecomposedData.preTasks[idx];
+                    if (t) {
                         p.tasks.push({
-                            id: 't_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
-                            title: taskTitle,
-                            priority: 'MED',
+                            id: 't_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+                            title: `[前期] ${t.title}`,
+                            desc: t.desc || '',
+                            priority: t.priority || 'MED',
                             status: 'TODO',
                             assignee: ''
                         });
-                        this.saveToLocal();
-                        this.renderAll();
-                        this.showToast(`✅ AI 已新增任務：「${taskTitle}」`);
+                        importedCount++;
                     }
+                });
+
+                // 2. In-Progress Tasks with order/sequence
+                const inProgCheckboxes = document.querySelectorAll('input[name="aiInProgTaskItem"]:checked');
+                inProgCheckboxes.forEach(cb => {
+                    const idx = parseInt(cb.getAttribute('data-idx'), 10);
+                    const t = this.aiDecomposedData.inProgressTasks[idx];
+                    if (t) {
+                        const seq = t.sequence !== undefined ? t.sequence : (idx + 1);
+                        p.tasks.push({
+                            id: 't_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+                            title: `[步驟 ${seq}] ${t.title}`,
+                            desc: t.desc || '',
+                            priority: t.priority || 'HIGH',
+                            status: 'TODO',
+                            assignee: ''
+                        });
+                        importedCount++;
+                    }
+                });
+
+                // 3. Post Tasks
+                const postCheckboxes = document.querySelectorAll('input[name="aiPostTaskItem"]:checked');
+                postCheckboxes.forEach(cb => {
+                    const idx = parseInt(cb.getAttribute('data-idx'), 10);
+                    const t = this.aiDecomposedData.postTasks[idx];
+                    if (t) {
+                        p.tasks.push({
+                            id: 't_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
+                            title: `[善後] ${t.title}`,
+                            desc: t.desc || '',
+                            priority: t.priority || 'MED',
+                            status: 'TODO',
+                            assignee: ''
+                        });
+                        importedCount++;
+                    }
+                });
+
+                if (importedCount === 0) {
+                    this.showToast('⚠️ 未選取任何任務進行匯入', 'error');
+                    return;
                 }
+
+                this.saveToLocal();
+                this.renderAll();
+                this.switchView('Execution');
+                this.closeAiTaskDecomposeModal();
+                this.playAudioFeedback('success');
+                this.showToast(`🎉 成功匯入 ${importedCount} 個結構化三階段任務至專案看板！`);
             }
 };
 
