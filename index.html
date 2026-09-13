@@ -441,6 +441,38 @@
                         <button type="button" onclick="app.insertMarkdown('## ', '')" class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-800 font-semibold text-xs rounded-md border border-slate-200 shadow-xs shrink-0" title="標題 H2">H2</button>
                         <button type="button" onclick="app.insertMarkdown('- ', '')" class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-800 font-medium text-xs rounded-md border border-slate-200 shadow-xs shrink-0" title="清單項目">• 清單</button>
                         <button type="button" onclick="app.insertMarkdown('- [ ] ', '')" class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-800 font-medium text-xs rounded-md border border-slate-200 shadow-xs shrink-0" title="待辦任務">☑ 任務</button>
+                        <!-- 統計圖表插入選單 (長條圖、折線圖、圓餅圖) -->
+                        <div class="relative inline-block shrink-0" id="docChartPickerContainer">
+                            <button type="button" onclick="app.toggleDocChartDropdown(event)" class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-800 font-medium text-xs rounded-md border border-slate-200 shadow-xs flex items-center gap-1 shrink-0" title="在文檔中插入視覺化統計圖表 (長條圖、折線圖、圓餅圖)">
+                                <span>📈 圖表</span>
+                                <span class="text-[9px] text-slate-400">▼</span>
+                            </button>
+                            <div id="docChartDropdown" class="hidden absolute left-0 top-full mt-1 w-64 max-w-[calc(100vw-2rem)] bg-white border border-slate-200 rounded-lg shadow-lg z-50 p-2 space-y-1 text-xs">
+                                <div class="font-bold text-[10px] text-slate-400 uppercase px-2 py-1 tracking-wider">📊 插入統計圖表 (Mermaid)</div>
+                                <button type="button" onclick="app.insertChartTemplate('bar')" class="w-full text-left px-2.5 py-2 hover:bg-slate-100 font-medium flex items-center gap-2.5 rounded transition-colors text-slate-800">
+                                    <span class="text-base">📊</span>
+                                    <div>
+                                        <div class="font-bold text-xs">長條圖 / 柱狀圖 (Bar Chart)</div>
+                                        <div class="text-[10px] text-slate-500 font-normal">適合各類別數值、業績與佔比對比</div>
+                                    </div>
+                                </button>
+                                <button type="button" onclick="app.insertChartTemplate('line')" class="w-full text-left px-2.5 py-2 hover:bg-slate-100 font-medium flex items-center gap-2.5 rounded transition-colors text-slate-800">
+                                    <span class="text-base">📈</span>
+                                    <div>
+                                        <div class="font-bold text-xs">折線圖 / 趨勢圖 (Line Chart)</div>
+                                        <div class="text-[10px] text-slate-500 font-normal">適合時間序列、成長趨勢與數據波動</div>
+                                    </div>
+                                </button>
+                                <button type="button" onclick="app.insertChartTemplate('pie')" class="w-full text-left px-2.5 py-2 hover:bg-slate-100 font-medium flex items-center gap-2.5 rounded transition-colors text-slate-800">
+                                    <span class="text-base">🥧</span>
+                                    <div>
+                                        <div class="font-bold text-xs">圓形圖 / 圓餅圖 (Pie Chart)</div>
+                                        <div class="text-[10px] text-slate-500 font-normal">適合比例劃分、預算分配與組成分析</div>
+                                    </div>
+                                </button>
+                            </div>
+                        </div>
+
                         <button type="button" onclick="app.insertDocDatabaseTablePrompt()" class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-800 font-medium text-xs rounded-md border border-slate-200 shadow-xs flex items-center gap-1 shrink-0" title="插入文件內動態資料庫表格 (語法: /table 資料表名稱)">
                             <span>📊</span> <span>資料庫</span>
                         </button>

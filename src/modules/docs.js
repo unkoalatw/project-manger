@@ -1483,5 +1483,54 @@ graph TD
                 this.debouncedSaveAndSync();
                 this.renderDocHistoryTimeline();
                 this.showToast('🗑️ 快照已刪除');
+            },
+
+            // ================= 📊 圖表插入與選單邏輯 (Charts: Bar, Line, Pie) =================
+            toggleDocChartDropdown(e) {
+                if (e) e.stopPropagation();
+                const dropdown = document.getElementById('docChartDropdown');
+                if (!dropdown) return;
+                const isHidden = dropdown.classList.contains('hidden');
+                // 關閉其他可能開啟的選單
+                const allMenus = document.querySelectorAll('#docEditToolbar .absolute:not(.hidden)');
+                allMenus.forEach(m => m.classList.add('hidden'));
+
+                if (isHidden) {
+                    dropdown.classList.remove('hidden');
+                    const closeHandler = (evt) => {
+                        if (!dropdown.contains(evt.target)) {
+                            dropdown.classList.add('hidden');
+                            document.removeEventListener('click', closeHandler);
+                        }
+                    };
+                    setTimeout(() => document.addEventListener('click', closeHandler), 10);
+                } else {
+                    dropdown.classList.add('hidden');
+                }
+            },
+
+            closeDocChartDropdown() {
+                const dropdown = document.getElementById('docChartDropdown');
+                if (dropdown) dropdown.classList.add('hidden');
+            },
+
+            insertChartTemplate(chartType) {
+                this.closeDocChartDropdown();
+                let template = '';
+                if (chartType === 'bar') {
+                    template = `\n\`\`\`mermaid\nxychart-beta\n    title "各季度業績與達成目標 (長條圖)"\n    x-axis [第一季, 第二季, 第三季, 第四季]\n    y-axis "金額 (萬元)" 0 --> 120\n    bar [45, 68, 85, 110]\n    line [50, 70, 80, 100]\n\`\`\`\n`;
+                    this.showToast('📊 已插入長條圖 (柱狀圖) 範本！');
+                } else if (chartType === 'line') {
+                    template = `\n\`\`\`mermaid\nxychart-beta\n    title "產品每月活躍使用者成長趨勢 (折線圖)"\n    x-axis [1月, 2月, 3月, 4月, 5月, 6月]\n    y-axis "活躍人數 (K)" 10 --> 100\n    line [15, 28, 42, 60, 78, 95]\n\`\`\`\n`;
+                    this.showToast('📈 已插入折線圖 (趨勢圖) 範本！');
+                } else if (chartType === 'pie') {
+                    template = `\n\`\`\`mermaid\npie title 專案預算與資源分配比例 (圓餅圖)\n    "研發與工程" : 45\n    "設計與體驗" : 25\n    "市場推廣" : 20\n    "維運與備用" : 10\n\`\`\`\n`;
+                    this.showToast('🥧 已插入圓形圖 (圓餅圖) 範本！');
+                }
+
+                if (template) {
+                    this.insertMarkdown(template, '');
+                    this.playSound('create');
+                }
             }
 };

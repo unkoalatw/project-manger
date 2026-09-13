@@ -93,7 +93,7 @@ export const markdown = {
                 renderer.code = function(token) {
                     const lang = (token.lang || '').toLowerCase().trim();
                     const code = token.text || '';
-                    const isMermaid = lang === 'mermaid' || /^\s*(?:flowchart|graph|sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|pie|gitGraph|mindmap|timeline)\b/i.test(code);
+                    const isMermaid = lang === 'mermaid' || /^\s*(?:flowchart|graph|sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|pie|gitGraph|mindmap|timeline|xychart-beta|xychart|quadrantChart|sankey-beta|sankey|block-beta)\b/i.test(code);
                     
                     if (isMermaid) {
                         const cleanCode = code.trim();
@@ -101,7 +101,7 @@ export const markdown = {
                         
                         // 辨識具體的圖表類型以顯示友善標籤
                         let typeBadge = 'FLOWCHART';
-                        const m = cleanCode.match(/^\s*(flowchart|graph|sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|pie|gitGraph|mindmap|timeline)\b/i);
+                        const m = cleanCode.match(/^\s*(flowchart|graph|sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|pie|gitGraph|mindmap|timeline|xychart-beta|xychart|quadrantChart|sankey-beta|sankey|block-beta)\b/i);
                         if (m) {
                             const rawType = m[1].toUpperCase();
                             if (rawType.startsWith('FLOW') || rawType === 'GRAPH') typeBadge = '流程圖';
@@ -111,6 +111,7 @@ export const markdown = {
                             else if (rawType.startsWith('ER')) typeBadge = 'ER 模型';
                             else if (rawType.startsWith('GANTT')) typeBadge = '甘特圖';
                             else if (rawType.startsWith('PIE')) typeBadge = '圓餅圖';
+                            else if (rawType.startsWith('XYCHART')) typeBadge = '統計圖表';
                             else if (rawType.startsWith('MIND')) typeBadge = '心智圖';
                             else if (rawType.startsWith('TIME')) typeBadge = '時間軸';
                             else typeBadge = rawType;
