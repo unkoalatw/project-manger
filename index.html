@@ -366,8 +366,8 @@
                 </div>
 
                 <!-- 編輯工具列 (支援左右滑動拖曳式工具列 + 精選下拉選單收納) -->
-                <div id="docEditToolbar" class="bg-white border border-slate-200 rounded-xl shadow-xs relative z-20">
-                    <div class="flex items-center gap-1.5 p-1.5 sm:p-2 overflow-x-auto no-scrollbar scroll-smooth select-none w-full">
+                <div id="docEditToolbar" class="bg-white border border-slate-200 rounded-xl shadow-xs relative z-30 overflow-visible">
+                    <div class="flex flex-wrap items-center gap-1.5 p-1.5 sm:p-2 select-none w-full overflow-visible">
                         <!-- 1. 🔗 引用文檔下拉選單 -->
                         <div class="relative inline-block shrink-0" id="docLinkPickerContainer">
                             <button type="button" onclick="app.toggleDocLinkDropdown(event)" class="px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg font-bold text-xs text-slate-700 flex items-center gap-1 shrink-0" title="在游標處引用專案內其他文檔">
@@ -488,7 +488,7 @@
                                 <span>🧩 小工具</span>
                                 <span class="text-[9px] text-purple-400">▼</span>
                             </button>
-                            <div id="docWidgetsDropdown" class="hidden absolute left-0 top-full mt-1 w-72 max-w-[calc(100vw-2rem)] bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-2 space-y-1 text-xs" onclick="this.classList.add('hidden')">
+                            <div id="docWidgetsDropdown" class="hidden absolute left-0 top-full mt-1 w-72 max-w-[calc(100vw-2rem)] bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-2 space-y-1 text-xs">
                                 <div class="font-bold text-[10px] text-slate-400 uppercase px-2 py-1 tracking-wider">🛠️ 個人小工具 (Widgets)</div>
                                 <button type="button" onclick="app.insertMarkdown('/calculator (120 * 4.5) + 300\n', '')" class="w-full text-left px-2.5 py-1.5 hover:bg-purple-50 rounded-lg flex items-center gap-2 text-slate-800">
                                     <span>🧮</span> <span>計算機 (/calculator)</span>
