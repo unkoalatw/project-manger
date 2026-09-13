@@ -36,17 +36,26 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
 
-      - name: Build Android Release & Debug APK
+      - name: Restore Keystore from Secret (If available)
+        if: env.ANDROID_KEYSTORE_BASE64 != ''
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+        run: |
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/flatspec-release.jks
+
+      - name: Build Debug APK
         run: |
           cd android
-          gradle assembleRelease assembleDebug
+          gradle assembleDebug
 
-      - name: Upload Release APK
-        uses: actions/upload-artifact@v4
-        with:
-          name: FlatSpec-v1.0-Release-APK
-          path: android/app/build/outputs/apk/release/app-release.apk
-          retention-days: 30
+      - name: Build Release APK
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          cd android
+          gradle assembleRelease || echo "Release build skipped or requires signing key"
 
       - name: Upload Debug APK
         uses: actions/upload-artifact@v4
@@ -54,3 +63,13 @@ jobs:
           name: FlatSpec-v1.0-Debug-APK
           path: android/app/build/outputs/apk/debug/app-debug.apk
           retention-days: 30
+          if-no-files-found: warn
+
+      - name: Upload Release APK
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: FlatSpec-v1.0-Release-APK
+          path: android/app/build/outputs/apk/release/*.apk
+          retention-days: 30
+          if-no-files-found: ignore

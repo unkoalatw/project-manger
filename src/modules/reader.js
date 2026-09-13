@@ -22,19 +22,25 @@ export const reader = {
                 if (titleEl) titleEl.innerText = doc.title || '無標題文檔';
 
                 let rawContent = doc.content || '*文檔無內容*';
-                let renderedHtml = '';
-                if (typeof marked !== 'undefined' && marked.parse) {
-                    renderedHtml = marked.parse(rawContent);
-                } else {
-                    renderedHtml = `<pre class="whitespace-pre-wrap">${this.escapeHtml(rawContent)}</pre>`;
-                }
+                let renderedHtml = (typeof this.parseMarkdown === 'function') 
+                    ? this.parseMarkdown(rawContent) 
+                    : ((typeof marked !== 'undefined' && marked.parse) ? marked.parse(rawContent) : `<pre class="whitespace-pre-wrap">${this.escapeHtml(rawContent)}</pre>`);
 
                 contentEl.innerHTML = renderedHtml;
 
-                if (typeof mermaid !== 'undefined' && mermaid.run) {
+                if (typeof this.renderMermaidDiagrams === 'function') {
+                    this.renderMermaidDiagrams(contentEl);
+                } else if (typeof mermaid !== 'undefined' && mermaid.run) {
                     try {
                         mermaid.run({ querySelector: '#cleanReaderContent .language-mermaid, #cleanReaderContent .mermaid' });
                     } catch(e) {}
+                }
+
+                if (typeof this.resolvePendingLinkPreviews === 'function') {
+                    this.resolvePendingLinkPreviews(contentEl);
+                }
+                if (typeof this.initActiveWidgets === 'function') {
+                    this.initActiveWidgets(contentEl);
                 }
 
                 this.setReaderTheme(this.readerState.theme || 'paper');
@@ -85,7 +91,9 @@ export const reader = {
                 }
 
                 let rawContent = doc.content || '';
-                let renderedHtml = (typeof marked !== 'undefined' && marked.parse) ? marked.parse(rawContent) : `<pre>${this.escapeHtml(rawContent)}</pre>`;
+                let renderedHtml = (typeof this.parseMarkdown === 'function')
+                    ? this.parseMarkdown(rawContent)
+                    : ((typeof marked !== 'undefined' && marked.parse) ? marked.parse(rawContent) : `<pre>${this.escapeHtml(rawContent)}</pre>`);
 
                 const standaloneHTML = `<!DOCTYPE html>
 <html lang="zh-TW">

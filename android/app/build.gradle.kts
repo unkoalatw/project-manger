@@ -17,30 +17,38 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    val keystorePath = System.getenv("ANDROID_KEYSTORE_PATH") ?: "../flatspec-release.jks"
+    val keystoreFile = file(keystorePath)
+    val hasReleaseKeystore = keystoreFile.exists()
+
     signingConfigs {
         create("release") {
-            storeFile = file("../flatspec-release.jks")
-            storePassword = "flatspecpass"
-            keyAlias = "flatspec"
-            keyPassword = "flatspecpass"
-            enableV1Signing = true
-            enableV2Signing = true
-            enableV3Signing = true
-            enableV4Signing = true
+            if (hasReleaseKeystore) {
+                storeFile = keystoreFile
+                storePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD") ?: "flatspecpass"
+                keyAlias = System.getenv("ANDROID_KEY_ALIAS") ?: "flatspec"
+                keyPassword = System.getenv("ANDROID_KEY_PASSWORD") ?: "flatspecpass"
+                enableV1Signing = true
+                enableV2Signing = true
+                enableV3Signing = true
+                enableV4Signing = true
+            }
         }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
-            signingConfig = signingConfigs.getByName("release")
+            if (hasReleaseKeystore) {
+                signingConfig = signingConfigs.getByName("release")
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
         }
         debug {
-            signingConfig = signingConfigs.getByName("release")
+            // 使用預設 Android Debug Signing Config
         }
     }
 
