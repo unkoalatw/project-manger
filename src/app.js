@@ -31,6 +31,8 @@ import { aiDecompose } from './modules/aiDecompose.js';
 import { aiDocAssistant } from './modules/aiDocAssistant.js';
 import { docCollapsible } from './modules/docCollapsible.js';
 import { docDatabase } from './modules/docDatabase.js';
+import { docWidgets } from './modules/docWidgets.js';
+import { memorySearch } from './modules/memorySearch.js';
 
 export const app = {
     state,
@@ -64,7 +66,9 @@ export const app = {
     ...aiDecompose,
     ...aiDocAssistant,
     ...docCollapsible,
-    ...docDatabase
+    ...docDatabase,
+    ...docWidgets,
+    ...memorySearch
 };
 
 // 啟動應用程式

@@ -476,6 +476,59 @@
                         <button type="button" onclick="app.insertDocDatabaseTablePrompt()" class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-800 font-medium text-xs rounded-md border border-slate-200 shadow-xs flex items-center gap-1 shrink-0" title="插入文件內動態資料庫表格 (語法: /table 資料表名稱)">
                             <span>📊</span> <span>資料庫</span>
                         </button>
+
+                        <!-- 🧩 個人小工具與動態 Block 快捷選單 -->
+                        <div class="relative inline-block shrink-0" id="docWidgetsPickerContainer">
+                            <button type="button" onclick="const d = document.getElementById('docWidgetsDropdown'); d.classList.toggle('hidden');" class="px-2.5 py-1 bg-purple-50 hover:bg-purple-100 text-purple-800 font-bold text-xs rounded-md border border-purple-200 shadow-xs flex items-center gap-1 shrink-0" title="在文檔中插入個人小工具 Block、有狀態內容與 Live Data">
+                                <span>🧩 小工具</span>
+                                <span class="text-[9px] text-purple-400">▼</span>
+                            </button>
+                            <div id="docWidgetsDropdown" class="hidden absolute left-0 top-full mt-1 w-72 max-w-[calc(100vw-2rem)] bg-white border border-slate-200 rounded-lg shadow-lg z-50 p-2 space-y-1 text-xs" onclick="this.classList.add('hidden')">
+                                <div class="font-bold text-[10px] text-slate-400 uppercase px-2 py-1 tracking-wider">🛠️ 個人小工具 (Widgets)</div>
+                                <button type="button" onclick="app.insertMarkdown('/calculator (120 * 4.5) + 300\n', '')" class="w-full text-left px-2.5 py-1.5 hover:bg-purple-50 rounded flex items-center gap-2 text-slate-800">
+                                    <span>🧮</span> <span>計算機 (/calculator)</span>
+                                </button>
+                                <button type="button" onclick="app.insertMarkdown('/countdown 2026-12-31 23:59:59 年終目標倒數\n', '')" class="w-full text-left px-2.5 py-1.5 hover:bg-purple-50 rounded flex items-center gap-2 text-slate-800">
+                                    <span>⏳</span> <span>倒數計時器 (/countdown)</span>
+                                </button>
+                                <button type="button" onclick="app.insertMarkdown('/stopwatch\n', '')" class="w-full text-left px-2.5 py-1.5 hover:bg-purple-50 rounded flex items-center gap-2 text-slate-800">
+                                    <span>⏱️</span> <span>碼錶計時器 (/stopwatch)</span>
+                                </button>
+                                <button type="button" onclick="app.insertMarkdown('/random 披薩, 火鍋, 牛排, 日料, 泰式\n', '')" class="w-full text-left px-2.5 py-1.5 hover:bg-purple-50 rounded flex items-center gap-2 text-slate-800">
+                                    <span>🎲</span> <span>隨機決策抽籤 (/random)</span>
+                                </button>
+                                <button type="button" onclick="app.insertMarkdown('/counter 0 今日喝水量(杯)\n', '')" class="w-full text-left px-2.5 py-1.5 hover:bg-purple-50 rounded flex items-center gap-2 text-slate-800">
+                                    <span>🔢</span> <span>點擊計數器 (/counter)</span>
+                                </button>
+                                <button type="button" onclick="app.insertMarkdown('/qr https://unkoalatw.github.io/project-manger/\n', '')" class="w-full text-left px-2.5 py-1.5 hover:bg-purple-50 rounded flex items-center gap-2 text-slate-800">
+                                    <span>📱</span> <span>QR Code 條碼 (/qr)</span>
+                                </button>
+                                <button type="button" onclick="app.insertMarkdown('/converter\n', '')" class="w-full text-left px-2.5 py-1.5 hover:bg-purple-50 rounded flex items-center gap-2 text-slate-800">
+                                    <span>🔄</span> <span>單位與匯率換算 (/converter)</span>
+                                </button>
+                                <button type="button" onclick="app.insertMarkdown('/poll-self 當前專注度 | 滿分極佳 🔥 | 還行持平 😐 | 需要休息 ☕\n', '')" class="w-full text-left px-2.5 py-1.5 hover:bg-purple-50 rounded flex items-center gap-2 text-slate-800">
+                                    <span>📊</span> <span>自我狀態投票 (/poll-self)</span>
+                                </button>
+                                <button type="button" onclick="app.insertMarkdown('/clipboard 一鍵複製常用文字或代碼片段\n', '')" class="w-full text-left px-2.5 py-1.5 hover:bg-purple-50 rounded flex items-center gap-2 text-slate-800">
+                                    <span>📋</span> <span>快速複製按鈕 (/clipboard)</span>
+                                </button>
+
+                                <div class="border-t border-slate-100 my-1"></div>
+                                <div class="font-bold text-[10px] text-slate-400 uppercase px-2 py-1 tracking-wider">🏷️ 有狀態內容 (Stateful)</div>
+                                <button type="button" onclick="app.insertMarkdown('- [read:Unread] ', '文檔閱讀項目 (點擊切換狀態)')" class="w-full text-left px-2.5 py-1.5 hover:bg-amber-50 rounded flex items-center gap-2 text-slate-800">
+                                    <span>📖</span> <span>閱讀清單 (Unread ➔ Reading ➔ Finished ➔ Revisit)</span>
+                                </button>
+                                <button type="button" onclick="app.insertMarkdown('- [idea:Raw] ', '靈感點子記錄 (點擊流轉)')" class="w-full text-left px-2.5 py-1.5 hover:bg-blue-50 rounded flex items-center gap-2 text-slate-800">
+                                    <span>💡</span> <span>想法流轉 (Raw ➔ Interesting ➔ Tried ➔ Abandoned)</span>
+                                </button>
+
+                                <div class="border-t border-slate-100 my-1"></div>
+                                <div class="font-bold text-[10px] text-slate-400 uppercase px-2 py-1 tracking-wider">📡 即時儀表板 (Live Data)</div>
+                                <button type="button" onclick="app.insertMarkdown('/data https://api.github.com/repos/unkoalatw/project-manger refresh:30s\n', '')" class="w-full text-left px-2.5 py-1.5 hover:bg-emerald-50 rounded flex items-center gap-2 text-slate-800">
+                                    <span>🌐</span> <span>即時 API 資料 Dashboard (/data)</span>
+                                </button>
+                            </div>
+                        </div>
                         <button type="button" onclick="app.insertMarkdown('`', '`')" class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-800 font-mono text-xs rounded-md border border-slate-200 shadow-xs shrink-0" title="行內代碼">&lt;/&gt;</button>
                         <button type="button" onclick="app.insertMarkdown('> ', '')" class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-800 font-medium text-xs rounded-md border border-slate-200 shadow-xs shrink-0" title="引言">&gt;</button>
                         <button type="button" onclick="app.centerCurrentLineOrSelection()" class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-800 font-medium text-xs rounded-md border border-slate-200 shadow-xs flex items-center gap-1 shrink-0" title="將當前行或選取文字置中 (語法 ->文字<-)">
@@ -1781,6 +1834,50 @@
                     <button type="button" onclick="app.closeCustomColumnModal()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-lg">取消</button>
                     <button type="button" onclick="app.saveCustomColumn()" class="px-4 py-2 bg-black text-white hover:bg-slate-800 font-bold text-xs rounded-lg shadow-xs transition-colors">確認儲存</button>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: 🔍 記憶與情境語意搜尋 (Memory & Context Search Modal) -->
+    <div id="globalSearchModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-start justify-center pt-16 md:pt-24 p-4 select-none" onclick="if(event.target===this) app.closeSearchModal()">
+        <div class="bg-white border-2 border-black rounded-2xl p-4 md:p-6 w-full max-w-2xl shadow-[6px_6px_0px_0px_#000] flex flex-col space-y-4 max-h-[80vh]">
+            <div class="flex items-center justify-between border-b-2 border-black pb-3">
+                <div class="flex items-center gap-2">
+                    <span class="text-xl">🧠</span>
+                    <div>
+                        <h3 class="font-black text-sm md:text-base text-slate-900">記憶與情境語意搜尋 (Memory Search)</h3>
+                        <p class="text-[11px] text-slate-500 font-normal">依模糊記憶、關鍵特徵、時間情境快速定位全域文檔</p>
+                    </div>
+                </div>
+                <button type="button" onclick="app.closeSearchModal()" class="text-slate-400 hover:text-black font-black text-lg px-2">✕</button>
+            </div>
+
+            <!-- 搜尋輸入框 -->
+            <div class="relative">
+                <input type="text" id="globalSearchInput" placeholder="輸入模糊記憶（例：去年 NFC 奇怪玩法、排查藍色畫布、Firebase 網址）..." class="w-full p-3 pl-10 font-bold text-xs md:text-sm bg-slate-50 border-2 border-black rounded-xl focus:bg-white focus:outline-none shadow-[2px_2px_0px_0px_#000]" oninput="app.runMemorySearch()" onkeydown="if(event.key==='Escape') app.closeSearchModal()" />
+                <span class="absolute left-3.5 top-3.5 text-slate-400 text-sm">🔍</span>
+            </div>
+
+            <!-- 情境式特徵篩選標籤 (Search by Context Filters) -->
+            <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 text-xs">
+                <span class="text-[11px] font-bold text-slate-400 shrink-0">情境篩選：</span>
+                <button type="button" onclick="app.setSearchContextFilter('ALL')" data-filter="ALL" class="search-context-btn px-2.5 py-1 bg-black text-white font-bold text-xs rounded-full border border-black shadow-xs shrink-0">🌟 全部</button>
+                <button type="button" onclick="app.setSearchContextFilter('has_url')" data-filter="has_url" class="search-context-btn px-2.5 py-1 bg-white hover:bg-zinc-100 text-slate-700 font-bold text-xs rounded-full border border-slate-200 shrink-0">🌐 包含網址連結</button>
+                <button type="button" onclick="app.setSearchContextFilter('has_image')" data-filter="has_image" class="search-context-btn px-2.5 py-1 bg-white hover:bg-zinc-100 text-slate-700 font-bold text-xs rounded-full border border-slate-200 shrink-0">🖼️ 包含圖片/截圖</button>
+                <button type="button" onclick="app.setSearchContextFilter('has_code')" data-filter="has_code" class="search-context-btn px-2.5 py-1 bg-white hover:bg-zinc-100 text-slate-700 font-bold text-xs rounded-full border border-slate-200 shrink-0">💻 包含代碼區塊</button>
+                <button type="button" onclick="app.setSearchContextFilter('has_table')" data-filter="has_table" class="search-context-btn px-2.5 py-1 bg-white hover:bg-zinc-100 text-slate-700 font-bold text-xs rounded-full border border-slate-200 shrink-0">📊 包含表格資料</button>
+                <button type="button" onclick="app.setSearchContextFilter('recent_night')" data-filter="recent_night" class="search-context-btn px-2.5 py-1 bg-white hover:bg-zinc-100 text-slate-700 font-bold text-xs rounded-full border border-slate-200 shrink-0">🌙 晚間夜間修改</button>
+                <button type="button" onclick="app.setSearchContextFilter('last_month')" data-filter="last_month" class="search-context-btn px-2.5 py-1 bg-white hover:bg-zinc-100 text-slate-700 font-bold text-xs rounded-full border border-slate-200 shrink-0">🗓️ 上個月文檔</button>
+            </div>
+
+            <div class="flex items-center justify-between text-[11px] text-slate-400 font-mono">
+                <span id="globalSearchCountBadge">正在檢索...</span>
+                <span>ESC 關閉 / 點擊跳轉文檔</span>
+            </div>
+
+            <!-- 搜尋結果清單 -->
+            <div id="globalSearchResults" class="flex-1 overflow-y-auto space-y-2 pr-1 min-h-[160px] max-h-[360px]">
+                <!-- 動態注入搜尋結果卡片 -->
             </div>
         </div>
     </div>

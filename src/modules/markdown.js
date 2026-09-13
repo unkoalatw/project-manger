@@ -595,6 +595,11 @@ export const markdown = {
                 // 2.9 文件內動態資料庫表格語法前處理 (支援 /table 資料表名稱 或 :::table 資料表名稱)
                 text = this.preprocessInlineDatabaseTables(text);
 
+                // 2.95 個人小工具 Block、有狀態內容與 Live Data Block 前處理
+                if (typeof this.preprocessDocWidgets === 'function') {
+                    text = this.preprocessDocWidgets(text);
+                }
+
                 // 3. 執行全規格 Marked.js 解析
                 let html = '';
                 if (typeof marked !== 'undefined') {
