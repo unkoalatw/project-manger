@@ -1810,19 +1810,36 @@
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2">
                         <label class="block font-bold text-xs text-slate-800 flex items-center gap-1.5">
                             <span>🎯</span>
-                            <span>全專案拆解目標與補充需求：</span>
+                            <span>拆解目標與補充需求：</span>
                         </label>
                         <div class="flex items-center gap-1.5 flex-wrap text-[11px] text-purple-700 bg-purple-50 px-2.5 py-0.5 rounded-full border border-purple-200/60 font-semibold">
-                            <span>📚 AI 將自動綜整全專案所有文檔與規格資料進行深度分析</span>
+                            <span>💡 可指定特定文檔或資料夾，極限精準拆解並精省額度</span>
                         </div>
                     </div>
 
-                    <textarea id="aiDecomposePromptInput" rows="3" class="flat-input w-full p-3 text-xs leading-relaxed font-mono" placeholder="可輸入額外補充說明或重點方向（例如：聚焦於第三季影片拍攝時程、加強戶外展演的安全規範；若留空則預設根據全專案所有內容進行完整拆解）"></textarea>
+                    <!-- 🗂️ 拆解範圍選擇區 (支援全專案、複選特定文檔或資料夾) -->
+                    <div class="bg-white border border-slate-200 rounded-lg p-3 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                                <span>📑</span> <span>參考文檔範疇 (可複選)：</span>
+                            </span>
+                            <div class="flex items-center gap-2 text-[11px]">
+                                <button type="button" onclick="app.setAiDecomposeScopeSelectAll(true)" class="text-purple-600 hover:text-purple-800 font-semibold">全選</button>
+                                <span class="text-slate-300">|</span>
+                                <button type="button" onclick="app.setAiDecomposeScopeSelectAll(false)" class="text-slate-500 hover:text-slate-700 font-semibold">取消全選</button>
+                            </div>
+                        </div>
+                        <div id="aiDecomposeScopeContainer" class="max-h-36 overflow-y-auto p-2 bg-slate-50/60 border border-slate-200/60 rounded-md space-y-1.5 text-xs">
+                            <!-- 動態注入專案內之資料夾與文檔複選核取方塊 -->
+                        </div>
+                    </div>
+
+                    <textarea id="aiDecomposePromptInput" rows="2" class="flat-input w-full p-2.5 text-xs leading-relaxed font-mono" placeholder="可輸入額外補充說明或重點方向（例如：聚焦於第三季拍攝時程、加強戶外展演的安全規範；若留空則根據選取文檔進行完整拆解）"></textarea>
 
                     <!-- 操作按鈕列 -->
                     <div class="flex items-center justify-end pt-1">
                         <button type="button" id="btnStartAiDecompose" onclick="app.startAiTaskDecomposition()" class="w-full sm:w-auto px-6 py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-bold text-xs rounded-lg shadow-sm flex items-center justify-center gap-1.5 transition-all">
-                            <span>⚡</span> <span>深度分析全專案並開始拆解</span>
+                            <span>⚡</span> <span>分析選取文檔並開始拆解</span>
                         </button>
                     </div>
                 </div>

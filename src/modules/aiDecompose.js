@@ -19,6 +19,7 @@ export const aiDecompose = {
         modal.classList.remove('hidden');
 
         this.updateGroqApiKeyStatusUI();
+        this.renderAiDecomposeScopeSelector();
 
         const promptInput = document.getElementById('aiDecomposePromptInput');
         if (promptInput) {
@@ -31,56 +32,103 @@ export const aiDecompose = {
         if (modal) modal.classList.add('hidden');
     },
 
-    updateGroqApiKeyStatusUI() {
-        const statusEl = document.getElementById('aiGroqApiKeyStatus');
-        if (!statusEl) return;
-        const key = this.getGroqApiKey();
-        if (key) {
-            const masked = key.length > 8 ? `${key.slice(0, 4)}...${key.slice(-4)}` : '已配置';
-            statusEl.innerHTML = `<span class="text-emerald-600 font-bold">● 已就緒 (${masked})</span>`;
-        } else {
-            statusEl.innerHTML = `<span class="text-emerald-600 font-bold">● 雲端/本機智能引擎就緒</span>`;
+    renderAiDecomposeScopeSelector() {
+        const container = document.getElementById('aiDecomposeScopeContainer');
+        if (!container) return;
+        const p = this.getCurrentProject();
+        if (!p) {
+            container.innerHTML = '<div class="text-xs text-slate-400 py-1 text-center">尚未選擇專案</div>';
+            return;
         }
+
+        const docs = Array.isArray(p.docs) ? p.docs : [];
+        const folders = Array.isArray(p.docFolders) ? p.docFolders : [];
+
+        if (docs.length === 0 && folders.length === 0) {
+            container.innerHTML = '<div class="text-xs text-slate-400 py-1 text-center">目前專案尚無任何文檔</div>';
+            return;
+        }
+
+        let html = '';
+
+        // 1. 資料夾區塊
+        if (folders.length > 0) {
+            folders.forEach(f => {
+                const folderDocs = docs.filter(d => d.folderId === f.id);
+                html += `
+                    <label class="flex items-center gap-2 p-1.5 hover:bg-white rounded cursor-pointer border border-transparent hover:border-slate-200 transition-colors">
+                        <input type="checkbox" name="aiScopeFolder" value="${f.id}" onchange="app.onAiScopeFolderToggle('${f.id}', this.checked)" class="rounded text-purple-600 focus:ring-purple-500">
+                        <span class="font-bold text-slate-800 flex items-center gap-1">
+                            <span>📁</span> <span>${this.escapeHtml(f.name || '未命名資料夾')}</span>
+                            <span class="text-[10px] text-slate-400 font-normal">(${folderDocs.length} 篇)</span>
+                        </span>
+                    </label>
+                `;
+            });
+        }
+
+        // 2. 獨立文檔或根目錄文檔
+        docs.forEach(d => {
+            const parentFolder = folders.find(f => f.id === d.folderId);
+            const folderPrefix = parentFolder ? `[${parentFolder.name}] ` : '';
+            html += `
+                <label class="flex items-center gap-2 p-1.5 pl-3 hover:bg-white rounded cursor-pointer border border-transparent hover:border-slate-200 transition-colors">
+                    <input type="checkbox" name="aiScopeDoc" value="${d.id}" data-folder-id="${d.folderId || ''}" checked class="rounded text-purple-600 focus:ring-purple-500">
+                    <span class="text-slate-700 flex items-center gap-1 truncate">
+                        <span>📄</span> <span class="text-slate-400 text-[10px]">${folderPrefix}</span><span>${this.escapeHtml(d.title || '未命名文檔')}</span>
+                    </span>
+                </label>
+            `;
+        });
+
+        container.innerHTML = html;
     },
 
-    promptConfigureGroqApiKey() {
-        const current = this.getGroqApiKey();
-        const newKey = prompt('請輸入 Groq API Key（例如：gsk_...）：\n若留空則使用雲端共用 Key 或本機智慧引擎。', current);
-        if (newKey !== null) {
-            this.setGroqApiKey(newKey.trim());
-            this.updateGroqApiKeyStatusUI();
-            if (newKey.trim()) {
-                this.showToast('✅ Groq API Key 已更新並儲存');
-            } else {
-                this.showToast('ℹ️ 已清除自訂 Key，將使用雲端共用配置');
-            }
-        }
+    onAiScopeFolderToggle(folderId, isChecked) {
+        const docCheckboxes = document.querySelectorAll(`input[name="aiScopeDoc"][data-folder-id="${folderId}"]`);
+        docCheckboxes.forEach(cb => cb.checked = isChecked);
     },
 
-    // 壓縮並提取專案極簡上下文（節省 85% 以上 Token）
+    setAiDecomposeScopeSelectAll(selectAll) {
+        const fldCheckboxes = document.querySelectorAll('input[name="aiScopeFolder"]');
+        const docCheckboxes = document.querySelectorAll('input[name="aiScopeDoc"]');
+        fldCheckboxes.forEach(cb => cb.checked = selectAll);
+        docCheckboxes.forEach(cb => cb.checked = selectAll);
+    },
+
+    // 壓縮並提取指定選取文檔之極簡上下文（精準聚焦並節省 90% 以上 Token）
     buildFullProjectAiContext(project) {
         if (!project) return '';
         const title = (project.title || '專案').trim();
         const desc = (project.description || '').trim().replace(/\s+/g, ' ').slice(0, 150);
 
+        // 讀取使用者在介面上勾選的特定文檔
+        const checkedDocInputs = document.querySelectorAll('input[name="aiScopeDoc"]:checked');
+        const selectedDocIds = Array.from(checkedDocInputs).map(cb => cb.value);
+
+        let targetDocs = Array.isArray(project.docs) ? project.docs : [];
+        if (selectedDocIds.length > 0) {
+            targetDocs = targetDocs.filter(d => selectedDocIds.includes(d.id));
+        }
+
         let docsSummary = '';
-        if (Array.isArray(project.docs) && project.docs.length > 0) {
-            docsSummary = project.docs.slice(0, 5).map(d => {
+        if (targetDocs.length > 0) {
+            docsSummary = targetDocs.slice(0, 6).map(d => {
                 const cleanContent = (d.content || '')
                     .replace(/[`#*_\-\[\]()!>]/g, ' ')
                     .replace(/\s+/g, ' ')
                     .trim()
-                    .slice(0, 180);
+                    .slice(0, 200);
                 return `[文檔: ${d.title || '無標題'}] ${cleanContent}`;
             }).join(' | ');
         }
 
         let existingTasks = '';
         if (Array.isArray(project.tasks) && project.tasks.length > 0) {
-            existingTasks = project.tasks.slice(0, 8).map(t => t.title).join('、');
+            existingTasks = project.tasks.slice(0, 6).map(t => t.title).join('、');
         }
 
-        return `專案: ${title}\n描述: ${desc || '無'}\n文檔概要: ${docsSummary || '無'}\n現有任務: ${existingTasks || '無'}`;
+        return `專案目標: ${title}\n描述: ${desc || '無'}\n指定參考內容: ${docsSummary || '無'}\n既有任務: ${existingTasks || '無'}`;
     },
 
     // 本機高智能備用拆解引擎 (100% 成功保證，即使無網路或 API 額度用盡亦不報錯)
