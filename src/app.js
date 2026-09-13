@@ -7805,15 +7805,26 @@ ${rawHtml}
                     return `<code class="bg-zinc-200 text-zinc-900 px-1.5 py-0.5 font-mono text-xs border border-zinc-400 font-bold">${token.text}</code>`;
                 };
 
-                // 5. 待辦任務清單 Checkbox
+                // 5. 待辦任務清單 Checkbox (支援現代極簡互動式點擊切換)
                 renderer.checkbox = function(token) {
-                    return `<input type="checkbox" ${token.checked ? 'checked' : ''} disabled class="accent-black mr-1.5 inline-block align-middle cursor-default" />`;
+                    // Marked 內部若自行渲染 checkbox 標籤時的相容處理
+                    return '';
                 };
 
                 renderer.listitem = function(token) {
                     if (token.task) {
-                        const content = this.parser.parse(token.tokens || []);
-                        return `<li class="list-none flex items-start gap-1.5 my-1 ${token.checked ? 'line-through text-zinc-400' : 'text-zinc-900 font-medium'}">${content}</li>`;
+                        const currentTaskIdx = self._docTaskCount++;
+                        const isChecked = Boolean(token.checked);
+                        const parsedBody = this.parser.parse(token.tokens || []);
+                        const cleanContent = parsedBody.replace(/^<p>([\s\S]*)<\/p>\s*$/, '$1');
+                        return `
+                            <li class="doc-task-item flex items-start gap-2.5 my-2 list-none group ${isChecked ? 'is-completed text-zinc-400' : 'text-zinc-900'}">
+                                <label class="inline-flex items-center mt-0.5 cursor-pointer select-none shrink-0" title="點擊切換完成狀態">
+                                    <input type="checkbox" data-task-index="${currentTaskIdx}" ${isChecked ? 'checked ' : ''}onchange="app.toggleDocTaskCheckbox(${currentTaskIdx}, this.checked)" class="doc-task-checkbox w-4 h-4 rounded border-2 border-black accent-black cursor-pointer transition-transform active:scale-90" />
+                                </label>
+                                <div class="doc-task-label flex-1 leading-snug break-words ${isChecked ? 'line-through text-zinc-400' : 'text-zinc-900 font-medium'}">${cleanContent}</div>
+                            </li>
+                        `;
                     }
                     const content = this.parser.parse(token.tokens || []);
                     return `<li class="my-0.5 text-zinc-900 ml-4 list-disc">${content}</li>`;
@@ -8120,6 +8131,7 @@ ${rawHtml}
                 if (!md) return '';
 
                 this._headingCount = 0;
+                this._docTaskCount = 0;
                 this.initMarked();
 
                 let text = md;
@@ -8398,11 +8410,49 @@ ${rawHtml}
                            .replace(/\*(.*?)\*/g, '<em>$1</em>')
                            .replace(/~~(.*?)~~/g, '<del class="text-zinc-400">$1</del>');
 
+                // 待辦核取方塊 Checkbox 解析支援
+                html = html.replace(/^([ \t]*)[-*+]\s+\[([ xX])\]\s+(.*)$/gim, (match, indent, state, label) => {
+                    const currentTaskIdx = this._docTaskCount++;
+                    const isChecked = state.toLowerCase() === 'x';
+                    return `<div class="doc-task-item flex items-start gap-2.5 my-1.5 list-none group ${isChecked ? 'is-completed text-zinc-400' : 'text-zinc-900'}"><label class="inline-flex items-center mt-0.5 cursor-pointer select-none shrink-0" title="點擊切換完成狀態"><input type="checkbox" data-task-index="${currentTaskIdx}" ${isChecked ? 'checked ' : ''}onchange="app.toggleDocTaskCheckbox(${currentTaskIdx}, this.checked)" class="doc-task-checkbox w-4 h-4 rounded border-2 border-black accent-black cursor-pointer transition-transform active:scale-90" /></label><div class="doc-task-label flex-1 leading-snug break-words ${isChecked ? 'line-through text-zinc-400' : 'text-zinc-900 font-medium'}">${label}</div></div>`;
+                });
+
                 // 色彩標籤解析
                 html = this.parseColorTags(html);
 
                 html = html.replace(/\n/g, '<br>');
                 return html;
+            },
+
+            // ================= ☑️ 文檔 Markdown 待辦清單互動切換引擎 =================
+            toggleDocTaskCheckbox(taskIndex, newChecked) {
+                const p = this.getCurrentProject();
+                const doc = p?.docs?.find(d => d.id === this.state.activeDocId);
+                if (!doc || typeof doc.content !== 'string') return;
+
+                let currentIdx = 0;
+                let found = false;
+                
+                // 替換第 taskIndex 個 - [ ] 或 - [x]
+                const newContent = doc.content.replace(/^([ \t]*[-*+]\s+\[)([ xX])(\]\s+.*)$/gm, (match, prefix, state, suffix) => {
+                    if (currentIdx === taskIndex) {
+                        found = true;
+                        currentIdx++;
+                        return prefix + (newChecked ? 'x' : ' ') + suffix;
+                    }
+                    currentIdx++;
+                    return match;
+                });
+
+                if (found) {
+                    this.updateDocContent(newContent);
+                    const editor = document.getElementById('docEditor');
+                    if (editor) {
+                        editor.value = newContent;
+                    }
+                    this.playSound('click');
+                    this.showToast(newChecked ? '☑️ 待辦任務已標記為完成' : '◻️ 待辦任務已標記為未完成', 'info');
+                }
             },
 
             sanitizeMermaidCode(code) {

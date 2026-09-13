@@ -929,4 +929,26 @@
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
         }
 
+        /* 📋 現代文檔待辦核取清單樣式 (Interactive Document Task Checklist) */
+        .doc-task-item {
+            list-style: none !important;
+            margin-left: 0 !important;
+            padding-left: 0 !important;
+        }
+
+        .doc-task-item .doc-task-checkbox {
+            appearance: auto !important;
+            -webkit-appearance: auto !important;
+            accent-color: #000000 !important;
+            width: 1.05rem !important;
+            height: 1.05rem !important;
+            border-radius: 3px !important;
+            cursor: pointer !important;
+        }
+
+        .doc-task-item.is-completed .doc-task-label {
+            text-decoration: line-through !important;
+            opacity: 0.55 !important;
+        }
+
 
