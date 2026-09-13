@@ -456,6 +456,104 @@ graph TD
 - **重試機制**: 網路逾時自動重試 3 次。
 `;
 
+                    case 'code':
+                    case 'code_snippet':
+                        return `# 💻 代碼片段與技術腳本：${safeTitle}
+
+> **作者**: ${author}  
+> **建立日期**: ${today}  
+> **語言/技術棧**: JavaScript / TypeScript / Python / Shell  
+> **功能描述**: 核心模組實作與代碼範例
+
+---
+
+## 1. 核心實作代碼 (Source Code)
+
+\`\`\`javascript
+/**
+ * @description ${safeTitle}
+ * @param {Object} options 設定選項
+ * @returns {Promise<any>}
+ */
+export async function executeTask(options = {}) {
+    console.log('🚀 開始執行任務:', options);
+    try {
+        // 在此撰寫核心邏輯...
+        const result = { success: true, timestamp: Date.now() };
+        return result;
+    } catch (error) {
+        console.error('❌ 執行失敗:', error);
+        throw error;
+    }
+}
+\`\`\`
+
+---
+
+## 2. 使用方式與測試 (Usage & Examples)
+
+\`\`\`javascript
+// 引入並呼叫函式
+import { executeTask } from './module.js';
+
+executeTask({ debug: true })
+    .then(res => console.log('✅ 結果:', res))
+    .catch(err => console.error('錯誤:', err));
+\`\`\`
+
+---
+
+## 3. 注意事項與相依性 (Notes & Dependencies)
+- 需要 Node.js 或現代瀏覽器 ES6+ 環境。
+- 注意邊界異常處理與記憶體釋放。
+`;
+
+                    case 'dashboard':
+                    case 'dashboards':
+                    case 'live_dashboard':
+                        return `# 📊 即時數據與監控儀表板：${safeTitle}
+
+> **更新頻率**: 每 30 秒自動更新  
+> **數據來源**: Live API / 專案狀態指標  
+> **建立日期**: ${today}  
+
+---
+
+## 1. 即時服務與 API 狀態 (Live Data Stream)
+
+/data https://api.github.com/repos/unkoalatw/project-manger refresh:30s
+
+---
+
+## 2. 專案關鍵指標 (Key Metrics)
+
+| 指標項目 (Metric) | 目標值 (Target) | 當前狀態 (Status) | 趨勢 (Trend) |
+| :--- | :---: | :---: | :---: |
+| 系統可用性 (Uptime) | 99.9% | 🟢 99.95% | ⬆️ 穩定 |
+| API 響應延遲 (Latency) | < 200ms | 🟢 120ms | ⬇️ 優化 |
+| 任務完成率 (Completion) | > 85% | 🟡 82% | ➡️ 持平 |
+
+---
+
+## 3. 趨勢與分佈圖表 (Visual Analytics)
+
+\`\`\`mermaid
+pie title 專案任務分類與佔比
+    "功能開發" : 45
+    "架構優化" : 25
+    "缺陷修復" : 20
+    "文檔維護" : 10
+\`\`\`
+
+---
+
+## 4. 快速工具箱 (Control Widgets)
+
+/counter 0 今日處理請求數
+
+/stopwatch 監控與壓測計時
+`;
+
                     case 'meeting':
                         return `# 📋 專案會議紀錄：${safeTitle}
 
@@ -525,6 +623,8 @@ graph TD
                 const placeholders = {
                     proposal: '例如：功能提案書：即時協作同步系統',
                     tech_spec: '例如：技術規格書：狀態管理與快取架構',
+                    code: '例如：代碼模組：狀態流轉與資料庫連接器',
+                    dashboard: '例如：數據儀表板：服務健康度與流量監控',
                     meeting: '例如：第 5 次專案衝刺會議紀錄',
                     bug_report: '例如：問題排查：離線狀態資料衝突處理',
                     blank: '例如：核心設計構想'
@@ -532,9 +632,11 @@ graph TD
                 titleEl.placeholder = placeholders[templateKey] || '例如：核心設計構想';
                 
                 // 如果當前標題為空或符合其他範本的前綴，自動替換預設文字
-                if (!currentVal || currentVal.startsWith('功能提案書') || currentVal.startsWith('技術規格書') || currentVal.startsWith('專案會議紀錄') || currentVal.startsWith('缺陷排查') || currentVal.startsWith('未命名')) {
+                if (!currentVal || currentVal.startsWith('功能提案書') || currentVal.startsWith('技術規格書') || currentVal.startsWith('代碼模組') || currentVal.startsWith('數據儀表板') || currentVal.startsWith('專案會議紀錄') || currentVal.startsWith('缺陷排查') || currentVal.startsWith('未命名')) {
                     if (templateKey === 'proposal') titleEl.value = '功能提案書：';
                     else if (templateKey === 'tech_spec') titleEl.value = '技術規格書：';
+                    else if (templateKey === 'code') titleEl.value = '代碼模組：';
+                    else if (templateKey === 'dashboard') titleEl.value = '數據儀表板：';
                     else if (templateKey === 'meeting') titleEl.value = '專案會議紀錄：';
                     else if (templateKey === 'bug_report') titleEl.value = '缺陷排查：';
                     else if (templateKey === 'blank') titleEl.value = '';
@@ -593,9 +695,11 @@ graph TD
 
                 const templateKey = templateEl?.value || 'proposal';
                 let title = titleEl.value.trim();
-                if (!title || title === '功能提案書：' || title === '技術規格書：' || title === '專案會議紀錄：' || title === '缺陷排查：') {
+                if (!title || title === '功能提案書：' || title === '技術規格書：' || title === '代碼模組：' || title === '數據儀表板：' || title === '專案會議紀錄：' || title === '缺陷排查：') {
                     if (templateKey === 'proposal') title = '功能提案書：新功能提案';
                     else if (templateKey === 'tech_spec') title = '技術規格書：系統架構設計';
+                    else if (templateKey === 'code') title = '代碼模組：核心腳本';
+                    else if (templateKey === 'dashboard') title = '數據儀表板：即時監控';
                     else if (templateKey === 'meeting') title = '專案會議紀錄';
                     else if (templateKey === 'bug_report') title = '缺陷排查報告';
                     else title = '未命名文檔';

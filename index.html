@@ -1337,13 +1337,21 @@
             </div>
             <div class="space-y-3.5">
                 <div>
-                    <label class="block font-bold text-xs mb-1 text-slate-700">文檔範本類型</label>
+                    <label class="block font-bold text-xs mb-1 text-slate-700">文檔類型與範本</label>
                     <select id="newDocTemplateSelect" onchange="app.handleNewDocTemplateChange(this.value)" class="flat-input w-full p-2 text-xs font-bold bg-slate-50 cursor-pointer">
-                        <option value="proposal">🚀 功能提案書 (Feature Proposal / PRD)</option>
-                        <option value="tech_spec">🛠️ 技術架構與 API 規格書 (Tech Spec)</option>
-                        <option value="meeting">📋 專案會議紀錄與決策追蹤 (Meeting Notes)</option>
-                        <option value="bug_report">🐞 缺陷排查與除錯報告 (Bug Report)</option>
-                        <option value="blank">📝 空白文檔 (Blank Document)</option>
+                        <optgroup label="📄 Documents (文檔 / 規格 / 紀錄)">
+                            <option value="proposal">🚀 功能提案書 (Feature Proposal / PRD)</option>
+                            <option value="tech_spec">🛠️ 技術架構與 API 規格書 (Tech Spec)</option>
+                            <option value="meeting">📋 專案會議紀錄與決策追蹤 (Meeting Notes)</option>
+                            <option value="bug_report">🐞 缺陷排查與除錯報告 (Bug Report)</option>
+                            <option value="blank">📝 空白文檔 (Blank Document)</option>
+                        </optgroup>
+                        <optgroup label="💻 Code (代碼 / 腳本 / 模組)">
+                            <option value="code">💻 代碼片段與技術腳本 (Code & Scripts)</option>
+                        </optgroup>
+                        <optgroup label="📊 Dashboards (儀表板 / 即時監控)">
+                            <option value="dashboard">📊 即時數據與監控儀表板 (Live Data Dashboard)</option>
+                        </optgroup>
                     </select>
                 </div>
                 <div>
