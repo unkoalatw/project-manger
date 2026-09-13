@@ -676,6 +676,16 @@ export const docWidgets = {
                         ` : ''}
                     </div>
                 `;
+            } else if (json && json.status === 'error') {
+                html = `
+                    <div class="p-3 bg-rose-950/60 border border-rose-800 rounded-lg text-rose-200">
+                        <div class="flex items-center gap-2 font-bold text-xs text-rose-300 mb-1">
+                            <span>⚠️ API 回報錯誤</span>
+                        </div>
+                        <div class="font-mono text-xs text-rose-300 break-words leading-relaxed">${this.escapeHtml(json.message || JSON.stringify(json))}</div>
+                    </div>
+                `;
+                if (dotEl) dotEl.className = 'w-2.5 h-2.5 rounded-full bg-rose-500';
             } else if (typeof json === 'object' && json !== null) {
                 if (Array.isArray(json)) {
                     html = `<div class="text-[11px] text-emerald-400 mb-1">陣列資料 (共 ${json.length} 筆項目)：</div><pre class="overflow-x-auto text-[11px] leading-tight text-slate-300">${this.escapeHtml(JSON.stringify(json.slice(0, 5), null, 2))}</pre>`;
@@ -697,7 +707,7 @@ export const docWidgets = {
             }
 
             contentEl.innerHTML = html;
-            if (dotEl) {
+            if (dotEl && (!json || json.status !== 'error')) {
                 dotEl.className = 'w-2.5 h-2.5 rounded-full bg-emerald-400';
             }
         } catch(err) {
