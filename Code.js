@@ -18,6 +18,9 @@ function doGet(e) {
     // 支援 GET 模式執行 AI 代理 (解決瀏覽器對 POST 302 redirect 偶發丟失連線的問題)
     if (e && e.parameter && e.parameter.action) {
       var act = e.parameter.action;
+      if (act === 'youtube' || act === 'yt') {
+        return handleYouTubeEndpoint(e.parameter);
+      }
       if (act === 'ai_task_decompose' || act === 'ai_decompose' || act === 'ai_doc_assist' || act === 'ai_get_key') {
         var payload = {
           action: act,
@@ -211,6 +214,105 @@ function handleAiDecompositionProxy(payload) {
     return ContentService.createTextOutput(JSON.stringify({
       status: 'error',
       message: 'AI 雲端中繼代理發生異常: ' + proxyErr.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+/**
+ * ================= 🔴 永久免過期 YouTube Data API 端點 =================
+ * 採用 Google API Key 模式，完全無需 OAuth 2.0 / Refresh Token，永不過期！
+ */
+function handleYouTubeEndpoint(params) {
+  try {
+    var scriptProps = PropertiesService.getScriptProperties();
+    var apiKey = scriptProps.getProperty('YOUTUBE_API_KEY') || (params ? params.apiKey : '') || '';
+    var channelId = scriptProps.getProperty('YOUTUBE_CHANNEL_ID') || (params ? params.channelId : '') || '';
+    var handle = (params ? params.handle : '') || scriptProps.getProperty('YOUTUBE_HANDLE') || '';
+
+    if (!apiKey) {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: 'error',
+        message: '尚未配置 YOUTUBE_API_KEY。請至 Apps Script「專案設定 ➔ 指令碼屬性」新增 YOUTUBE_API_KEY，或在網址加上 &apiKey=YOUR_KEY'
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // 1. 查詢頻道基本資訊與統計
+    var channelQuery = '';
+    if (channelId) {
+      channelQuery = 'id=' + encodeURIComponent(channelId);
+    } else if (handle) {
+      var cleanHandle = handle.replace(/^@/, '');
+      channelQuery = 'forHandle=' + encodeURIComponent(cleanHandle);
+    } else {
+      // 預設抓取由 API Key 授權建立之預設或指定的頻道
+      return ContentService.createTextOutput(JSON.stringify({
+        status: 'error',
+        message: '請在「指令碼屬性」設定 YOUTUBE_CHANNEL_ID 或在網址傳入 &channelId=UCxxxx / &handle=@channel'
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    var channelUrl = 'https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics,contentDetails&' + channelQuery + '&key=' + apiKey;
+    var respChannel = UrlFetchApp.fetch(channelUrl, { muteHttpExceptions: true });
+    var jsonChannel = JSON.parse(respChannel.getContentText());
+
+    if (jsonChannel.error) {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: 'error',
+        message: 'YouTube API 回報錯誤: ' + (jsonChannel.error.message || JSON.stringify(jsonChannel.error))
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    if (!jsonChannel.items || jsonChannel.items.length === 0) {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: 'error',
+        message: '找不到指定的 YouTube 頻道，請確認 Channel ID 或 Handle 是否正確。'
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    var item = jsonChannel.items[0];
+    var stats = item.statistics || {};
+    var snippet = item.snippet || {};
+    var uploadsPlaylistId = item.contentDetails?.relatedPlaylists?.uploads || '';
+
+    // 2. 獲取最新影片列表 (最多 5 部)
+    var recentVideos = [];
+    if (uploadsPlaylistId) {
+      try {
+        var videosUrl = 'https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=5&playlistId=' + uploadsPlaylistId + '&key=' + apiKey;
+        var respVideos = UrlFetchApp.fetch(videosUrl, { muteHttpExceptions: true });
+        var jsonVideos = JSON.parse(respVideos.getContentText());
+        if (jsonVideos.items && Array.isArray(jsonVideos.items)) {
+          recentVideos = jsonVideos.items.map(function(v) {
+            return {
+              title: v.snippet?.title || '未命名影片',
+              publishedAt: v.snippet?.publishedAt || ''
+            };
+          });
+        }
+      } catch (vidErr) {
+        Logger.log('無法獲取最新影片: ' + vidErr.toString());
+      }
+    }
+
+    var resultPayload = {
+      status: 'success',
+      data: {
+        channelTitle: snippet.title || 'YouTube 頻道',
+        subscribers: parseInt(stats.subscriberCount, 10) || 0,
+        totalViews: parseInt(stats.viewCount, 10) || 0,
+        videoCount: parseInt(stats.videoCount, 10) || 0,
+        recentVideos: recentVideos,
+        updatedAt: new Date().toISOString()
+      }
+    };
+
+    return ContentService.createTextOutput(JSON.stringify(resultPayload))
+      .setMimeType(ContentService.MimeType.JSON);
+
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({
+      status: 'error',
+      message: '處理 YouTube 數據失敗: ' + err.toString()
     })).setMimeType(ContentService.MimeType.JSON);
   }
 }
