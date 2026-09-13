@@ -18,7 +18,15 @@ export const aiDecompose = {
         if (!modal) return;
         modal.classList.remove('hidden');
 
-        this.updateGroqApiKeyStatusUI();
+        if (typeof this.ensureActivePointers === 'function') {
+            this.ensureActivePointers();
+        }
+
+        if (typeof this.updateGroqApiKeyStatusUI === 'function') {
+            this.updateGroqApiKeyStatusUI();
+        } else if (typeof this.initAiSettingsTab === 'function') {
+            this.initAiSettingsTab();
+        }
         this.renderAiDecomposeScopeSelector();
 
         const promptInput = document.getElementById('aiDecomposePromptInput');
@@ -51,54 +59,79 @@ export const aiDecompose = {
         const docs = Array.isArray(p.docs) ? p.docs : [];
         const folders = Array.isArray(p.docFolders) ? p.docFolders : [];
 
-        if (docs.length === 0 && folders.length === 0) {
+        if (docs.length === 0) {
             container.innerHTML = '<div class="text-xs text-slate-400 py-3 text-center">目前專案尚無任何文檔</div>';
             this.updateAiDecomposeScopeStats();
             return;
         }
 
-        let html = '';
+        // 遞迴渲染資料夾與子資料夾樹 (邏輯與側邊欄樹完全一致)
+        const renderFolderLevel = (parentId, depth = 0) => {
+            let html = '';
+            const currentFolders = folders.filter(f => (f.parentId || null) === parentId);
+            const currentDocs = docs.filter(d => (d.folderId || null) === parentId);
 
-        // 1. 渲染各資料夾及其內部文檔
-        if (folders.length > 0) {
-            folders.forEach(f => {
-                const folderDocs = docs.filter(d => d.folderId === f.id);
+            currentFolders.forEach(f => {
+                const subDocsCount = docs.filter(d => d.folderId === f.id).length;
                 html += `
                     <div class="p-1.5 bg-white border border-slate-200/80 rounded-md mb-1.5 space-y-1">
                         <label class="flex items-center gap-2 cursor-pointer font-bold text-slate-800 text-xs select-none">
                             <input type="checkbox" name="aiScopeFolder" value="${f.id}" checked onchange="app.onAiScopeFolderToggle('${f.id}', this.checked)" class="rounded text-purple-600 focus:ring-purple-500">
                             <span class="flex items-center gap-1">
                                 <span>📁</span> <span>${this.escapeHtml(f.name || '未命名資料夾')}</span>
-                                <span class="text-[10px] text-slate-400 font-normal">(${folderDocs.length} 篇)</span>
+                                <span class="text-[10px] text-slate-400 font-normal">(${subDocsCount} 篇)</span>
                             </span>
                         </label>
-                        <div class="pl-5 space-y-1 border-l-2 border-purple-100 ml-2">
-                            ${folderDocs.length === 0 ? '<div class="text-[11px] text-slate-400 py-0.5">空資料夾</div>' : folderDocs.map(d => `
-                                <label class="flex items-center gap-2 py-0.5 cursor-pointer text-slate-700 hover:text-slate-900 select-none">
-                                    <input type="checkbox" name="aiScopeDoc" value="${d.id}" data-folder-id="${f.id}" checked onchange="app.updateAiDecomposeScopeStats()" class="rounded text-purple-600 focus:ring-purple-500">
-                                    <span class="truncate flex items-center gap-1 text-[11px]">
-                                        <span>📄</span> <span>${this.escapeHtml(d.title || '未命名文檔')}</span>
-                                    </span>
-                                </label>
-                            `).join('')}
+                        <div class="pl-4 space-y-1 border-l-2 border-purple-100 ml-1.5">
+                            ${renderFolderLevel(f.id, depth + 1)}
                         </div>
                     </div>
                 `;
             });
-        }
 
-        // 2. 根目錄獨立文檔 (未分類文檔)
-        const rootDocs = docs.filter(d => !d.folderId || !folders.some(f => f.id === d.folderId));
-        if (rootDocs.length > 0) {
-            html += `
-                <div class="p-1.5 bg-white border border-slate-200/80 rounded-md space-y-1">
-                    <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-1">根目錄文檔 (${rootDocs.length} 篇)</div>
-                    <div class="space-y-1 pl-1">
-                        ${rootDocs.map(d => `
-                            <label class="flex items-center gap-2 py-0.5 cursor-pointer text-slate-700 hover:text-slate-900 select-none">
-                                <input type="checkbox" name="aiScopeDoc" value="${d.id}" data-folder-id="" checked onchange="app.updateAiDecomposeScopeStats()" class="rounded text-purple-600 focus:ring-purple-500">
-                                <span class="truncate flex items-center gap-1 text-[11px]">
-                                    <span>📄</span> <span>${this.escapeHtml(d.title || '未命名文檔')}</span>
+            currentDocs.forEach(d => {
+                html += `
+                    <label class="flex items-center gap-2 py-1 px-1.5 rounded hover:bg-purple-50/50 cursor-pointer text-slate-700 hover:text-slate-900 select-none transition-colors">
+                        <input type="checkbox" name="aiScopeDoc" value="${d.id}" data-folder-id="${d.folderId || ''}" checked onchange="app.updateAiDecomposeScopeStats()" class="rounded text-purple-600 focus:ring-purple-500">
+                        <span class="truncate flex items-center gap-1.5 text-xs font-medium">
+                            <span>📄</span> <span class="font-semibold text-slate-800">${this.escapeHtml(d.title || '未命名文檔')}</span>
+                        </span>
+                    </label>
+                `;
+            });
+
+            if (currentFolders.length === 0 && currentDocs.length === 0 && depth > 0) {
+                html += '<div class="text-[11px] text-slate-400 py-0.5 italic">空資料夾</div>';
+            }
+
+            return html;
+        };
+
+        let renderedTree = renderFolderLevel(null, 0);
+        
+        // 防禦機制：若有文檔之 folderId 在 docFolders 中已不存在（孤立文檔），一律列出
+        const renderedDocIds = new Set();
+        // 抓出所有在 folders 層級下的文檔
+        const collectDocsInFolders = (parentId) => {
+            folders.filter(f => (f.parentId || null) === parentId).forEach(f => {
+                docs.filter(d => d.folderId === f.id).forEach(d => renderedDocIds.add(d.id));
+                collectDocsInFolders(f.id);
+            });
+        };
+        collectDocsInFolders(null);
+        docs.filter(d => (d.folderId || null) === null).forEach(d => renderedDocIds.add(d.id));
+
+        const missingDocs = docs.filter(d => !renderedDocIds.has(d.id));
+        if (missingDocs.length > 0) {
+            renderedTree += `
+                <div class="p-1.5 bg-white border border-slate-200/80 rounded-md mt-1.5 space-y-1">
+                    <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-1">其他文檔 (${missingDocs.length} 篇)</div>
+                    <div class="space-y-1">
+                        ${missingDocs.map(d => `
+                            <label class="flex items-center gap-2 py-1 px-1.5 rounded hover:bg-purple-50/50 cursor-pointer text-slate-700 hover:text-slate-900 select-none transition-colors">
+                                <input type="checkbox" name="aiScopeDoc" value="${d.id}" data-folder-id="${d.folderId || ''}" checked onchange="app.updateAiDecomposeScopeStats()" class="rounded text-purple-600 focus:ring-purple-500">
+                                <span class="truncate flex items-center gap-1.5 text-xs font-medium">
+                                    <span>📄</span> <span class="font-semibold text-slate-800">${this.escapeHtml(d.title || '未命名文檔')}</span>
                                 </span>
                             </label>
                         `).join('')}
@@ -107,7 +140,7 @@ export const aiDecompose = {
             `;
         }
 
-        container.innerHTML = html;
+        container.innerHTML = renderedTree || '<div class="text-xs text-slate-400 py-3 text-center">目前專案尚無任何文檔</div>';
         this.updateAiDecomposeScopeStats();
     },
 
@@ -169,19 +202,19 @@ export const aiDecompose = {
         const checkedDocInputs = document.querySelectorAll('input[name="aiScopeDoc"]:checked');
         const selectedDocIds = Array.from(checkedDocInputs).map(cb => cb.value);
 
-        let targetDocs = Array.isArray(project.docs) ? project.docs : [];
-        if (selectedDocIds.length > 0) {
-            targetDocs = targetDocs.filter(d => selectedDocIds.includes(d.id));
+        let targetDocs = [];
+        if (selectedDocIds.length > 0 && Array.isArray(project.docs)) {
+            targetDocs = project.docs.filter(d => selectedDocIds.includes(d.id));
         }
 
         let docsSummary = '';
         if (targetDocs.length > 0) {
-            docsSummary = targetDocs.slice(0, 6).map(d => {
+            docsSummary = targetDocs.slice(0, 8).map(d => {
                 const cleanContent = (d.content || '')
                     .replace(/[`#*_\-\[\]()!>]/g, ' ')
                     .replace(/\s+/g, ' ')
                     .trim()
-                    .slice(0, 200);
+                    .slice(0, 250);
                 return `[文檔: ${d.title || '無標題'}] ${cleanContent}`;
             }).join(' | ');
         }
@@ -269,10 +302,12 @@ export const aiDecompose = {
         const userNotes = promptInput ? promptInput.value.trim() : '';
 
         const loadingArea = document.getElementById('aiDecomposeLoading');
-        const resultArea = document.getElementById('aiDecomposeResultArea');
+        const resultArea = document.getElementById('aiDecomposeResultsContainer');
+        const footerArea = document.getElementById('aiDecomposeFooter');
 
         if (loadingArea) loadingArea.classList.remove('hidden');
         if (resultArea) resultArea.classList.add('hidden');
+        if (footerArea) footerArea.classList.add('hidden');
 
         try {
             const projectContext = this.buildFullProjectAiContext(p);
@@ -295,6 +330,7 @@ export const aiDecompose = {
 
             if (loadingArea) loadingArea.classList.add('hidden');
             if (resultArea) resultArea.classList.remove('hidden');
+            if (footerArea) footerArea.classList.remove('hidden');
             this.playAudioFeedback('success');
         } catch (err) {
             console.warn('AI Decompose Fallback to Local Engine:', err);
@@ -304,6 +340,7 @@ export const aiDecompose = {
 
             if (loadingArea) loadingArea.classList.add('hidden');
             if (resultArea) resultArea.classList.remove('hidden');
+            if (footerArea) footerArea.classList.remove('hidden');
             this.playAudioFeedback('success');
             this.showToast('💡 已為您完成任務三階段智慧拆解');
         }
@@ -376,7 +413,7 @@ export const aiDecompose = {
             }
         }
 
-        // 2. 本機 Direct Groq 呼叫（使用輕量免費模型）
+        // 2. 本機 Direct Groq 呼叫（使用最新官方推薦模型）
         if (clientKey) {
             const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
                 method: 'POST',
@@ -385,13 +422,13 @@ export const aiDecompose = {
                     'Authorization': `Bearer ${clientKey}`
                 },
                 body: JSON.stringify({
-                    model: 'llama-3.1-8b-instant',
+                    model: 'openai/gpt-oss-20b',
                     messages: [
                         { role: 'system', content: systemPrompt },
                         { role: 'user', content: userMessage }
                     ],
                     temperature: 0.2,
-                    max_tokens: 1200,
+                    max_tokens: 1500,
                     response_format: { type: 'json_object' }
                 })
             });
@@ -493,17 +530,19 @@ export const aiDecompose = {
     },
 
     toggleAiDecomposeSelectAll(selectAll) {
-        const checkboxes = document.querySelectorAll('#aiTaskDecomposeModal input[type="checkbox"]');
-        checkboxes.forEach(cb => cb.checked = selectAll);
+        const checkboxes = document.querySelectorAll('input[name="aiPreTaskItem"], input[name="aiInProgTaskItem"], input[name="aiPostTaskItem"]');
+        if (checkboxes.length === 0) return;
+        const targetState = typeof selectAll === 'boolean' ? selectAll : !Array.from(checkboxes).every(cb => cb.checked);
+        checkboxes.forEach(cb => cb.checked = targetState);
         this.updateAiDecomposeSelectionCount();
     },
 
     updateAiDecomposeSelectionCount() {
-        const checkboxes = document.querySelectorAll('#aiTaskDecomposeModal input[type="checkbox"]');
+        const checkboxes = document.querySelectorAll('input[name="aiPreTaskItem"], input[name="aiInProgTaskItem"], input[name="aiPostTaskItem"]');
         const checked = Array.from(checkboxes).filter(cb => cb.checked);
-        const countBadge = document.getElementById('aiDecomposeSelectedCount');
-        if (countBadge) {
-            countBadge.textContent = `${checked.length}/${checkboxes.length}`;
+        const countText = document.getElementById('aiDecomposeSelectedCountText');
+        if (countText) {
+            countText.textContent = `已選取 ${checked.length} / ${checkboxes.length} 個任務`;
         }
     },
 
@@ -520,6 +559,12 @@ export const aiDecompose = {
 
         p.tasks = p.tasks || [];
         let importedCount = 0;
+        let skippedDuplicateCount = 0;
+
+        const isTaskDuplicate = (title) => {
+            const cleanTitle = (title || '').trim().toLowerCase();
+            return p.tasks.some(existing => (existing.title || '').trim().toLowerCase() === cleanTitle);
+        };
 
         // 1. Pre Tasks
         const preCheckboxes = document.querySelectorAll('input[name="aiPreTaskItem"]:checked');
@@ -527,13 +572,20 @@ export const aiDecompose = {
             const idx = parseInt(cb.getAttribute('data-idx'), 10);
             const t = this.aiDecomposedData.preTasks[idx];
             if (t) {
+                const title = `[前期] ${t.title}`;
+                if (isTaskDuplicate(title)) {
+                    skippedDuplicateCount++;
+                    return;
+                }
                 p.tasks.push({
                     id: 't_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
-                    title: `[前期] ${t.title}`,
+                    title: title,
                     desc: t.desc || '',
                     priority: t.priority || 'MED',
                     status: 'TODO',
-                    assignee: ''
+                    assignee: '',
+                    source: 'ai-decompose',
+                    createdAt: new Date().toISOString()
                 });
                 importedCount++;
             }
@@ -546,13 +598,20 @@ export const aiDecompose = {
             const t = this.aiDecomposedData.inProgressTasks[idx];
             if (t) {
                 const seq = t.sequence !== undefined ? t.sequence : (idx + 1);
+                const title = `[步驟 ${seq}] ${t.title}`;
+                if (isTaskDuplicate(title)) {
+                    skippedDuplicateCount++;
+                    return;
+                }
                 p.tasks.push({
                     id: 't_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
-                    title: `[步驟 ${seq}] ${t.title}`,
+                    title: title,
                     desc: t.desc || '',
                     priority: t.priority || 'HIGH',
                     status: 'TODO',
-                    assignee: ''
+                    assignee: '',
+                    source: 'ai-decompose',
+                    createdAt: new Date().toISOString()
                 });
                 importedCount++;
             }
@@ -564,28 +623,47 @@ export const aiDecompose = {
             const idx = parseInt(cb.getAttribute('data-idx'), 10);
             const t = this.aiDecomposedData.postTasks[idx];
             if (t) {
+                const title = `[善後] ${t.title}`;
+                if (isTaskDuplicate(title)) {
+                    skippedDuplicateCount++;
+                    return;
+                }
                 p.tasks.push({
                     id: 't_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
-                    title: `[善後] ${t.title}`,
+                    title: title,
                     desc: t.desc || '',
                     priority: t.priority || 'MED',
                     status: 'TODO',
-                    assignee: ''
+                    assignee: '',
+                    source: 'ai-decompose',
+                    createdAt: new Date().toISOString()
                 });
                 importedCount++;
             }
         });
 
         if (importedCount === 0) {
-            this.showToast('⚠️ 未選取任何任務進行匯入', 'error');
+            if (skippedDuplicateCount > 0) {
+                this.showToast(`ℹ️ 選取的 ${skippedDuplicateCount} 個任務已存在於看板中（已自動去重）`);
+            } else {
+                this.showToast('⚠️ 未選取任何任務進行匯入', 'error');
+            }
             return;
+        }
+
+        p.updatedAt = new Date().toISOString();
+        if (typeof this.logActivity === 'function') {
+            this.logActivity(`AI 建立了 ${importedCount} 個三階段任務`);
         }
 
         this.saveToLocal();
         this.renderAll();
+        if (typeof this.debouncedSaveAndSync === 'function') {
+            this.debouncedSaveAndSync();
+        }
         this.switchView('Execution');
         this.closeAiTaskDecomposeModal();
         this.playAudioFeedback('success');
-        this.showToast(`🎉 成功匯入 ${importedCount} 個結構化三階段任務至專案看板！`);
+        this.showToast(`🎉 成功匯入 ${importedCount} 個結構化三階段任務至專案看板並同步雲端！${skippedDuplicateCount > 0 ? ` (已去重 ${skippedDuplicateCount} 項)` : ''}`);
     }
 };

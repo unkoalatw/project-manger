@@ -2337,12 +2337,18 @@
                         <span id="aiDocResultBadge" class="text-[11px] font-bold text-purple-900 flex items-center gap-1">
                             <span>✨</span> <span>AI 分析與建議</span>
                         </span>
-                        <div class="flex items-center gap-1">
+                        <div class="flex items-center gap-1 flex-wrap justify-end">
                             <button type="button" onclick="app.copyAiDocResult()" class="p-1 px-2 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded text-[10px] font-bold border border-slate-200" title="複製結果">
                                 📋 複製
                             </button>
-                            <button type="button" id="btnApplyAiDocResultToEditor" onclick="app.applyAiDocResultToEditor()" class="p-1 px-2 bg-purple-600 hover:bg-purple-700 text-white rounded text-[10px] font-bold shadow-xs" title="替換選取文字或插入文檔">
-                                ✍️ 插入文檔
+                            <button type="button" id="btnReplaceAiDocResult" onclick="app.replaceSelectedDocTextWithAiResult()" class="hidden p-1 px-2 bg-purple-600 hover:bg-purple-700 text-white rounded text-[10px] font-bold shadow-xs" title="替換原本選取的文字">
+                                ↩ 取代原文
+                            </button>
+                            <button type="button" id="btnInsertAiDocResultAtCursor" onclick="app.insertAiDocResultAtCursor()" class="p-1 px-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded text-[10px] font-bold shadow-xs" title="在游標位置插入結果">
+                                ➕ 插入游標
+                            </button>
+                            <button type="button" id="btnCreateDocFromAiResult" onclick="app.createDocFromAiResult()" class="p-1 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded text-[10px] font-bold border border-slate-200" title="將此 AI 產出另存為新文檔">
+                                📄 存為新檔
                             </button>
                         </div>
                     </div>

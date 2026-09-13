@@ -244,6 +244,9 @@ export const lifecycle = {
                 // 5. 初始化編輯器圖片與選取範圍追蹤
                 this.setupEditorImageInteractions();
                 this.setupEditorSelectionTracking();
+                if (typeof this.setupAiDocSelectionTracking === 'function') {
+                    this.setupAiDocSelectionTracking();
+                }
             },
 
             // ================= 側邊欄拖曳調整大小引擎 (桌機版) =================

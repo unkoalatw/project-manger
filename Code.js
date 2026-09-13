@@ -148,14 +148,17 @@ function handleAiDecompositionProxy(payload) {
     }
 
     var isJsonMode = payload.responseFormat !== 'text';
+    var maxTokens = Math.min(Number(payload.maxTokens) || 2000, 4000);
+    var preferredModel = scriptProps.getProperty('GROQ_MODEL') || 'openai/gpt-oss-20b';
+
     var groqPayload = {
-      model: 'llama-3.1-8b-instant',
+      model: preferredModel,
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userMessageContent }
       ],
       temperature: 0.2,
-      max_tokens: 1200
+      max_tokens: maxTokens
     };
 
     if (isJsonMode) {
@@ -173,9 +176,10 @@ function handleAiDecompositionProxy(payload) {
     };
 
     var candidateModels = [
-      'llama-3.1-8b-instant',
-      'llama-3.2-3b-preview',
-      'llama-3.2-1b-preview'
+      preferredModel,
+      'qwen/qwen3.6-27b',
+      'openai/gpt-oss-120b',
+      'llama-3.3-70b-versatile'
     ];
 
     var response = null;
@@ -189,13 +193,15 @@ function handleAiDecompositionProxy(payload) {
         response = UrlFetchApp.fetch('https://api.groq.com/openai/v1/chat/completions', options);
         responseCode = response.getResponseCode();
         responseBody = response.getContentText();
-        if (responseCode === 200) break;
+        if (responseCode >= 200 && responseCode < 300) {
+          break;
+        }
       } catch (callErr) {
         responseBody = callErr.toString();
       }
     }
 
-    if (responseCode !== 200) {
+    if (responseCode < 200 || responseCode >= 300) {
       return ContentService.createTextOutput(JSON.stringify({
         status: 'error',
         message: 'Groq 雲端請求異常 (HTTP ' + responseCode + '): ' + responseBody

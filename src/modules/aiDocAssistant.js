@@ -3,7 +3,9 @@ export const aiDocAssistant = {
 // ================= 🤖 AI 文件助理核心系統 (AI Document Assistant) =================
             currentAiDocTab: 'rewrite',
             lastSelectedDocText: '',
+            lastSelectedDocContext: null,
             lastAiDocResult: '',
+            lastAiResultContext: null,
             lastExtractedTasks: [],
 
             toggleAiDocAssistant(forceState) {
@@ -45,16 +47,25 @@ export const aiDocAssistant = {
                 }
             },
 
-            setupEditorSelectionTracking() {
+            setupAiDocSelectionTracking() {
                 const editor = document.getElementById('docEditor');
                 if (!editor) return;
 
                 const updateSelection = () => {
+                    const doc = this.getCurrentDoc();
+                    const p = this.getCurrentProject();
                     const start = editor.selectionStart;
                     const end = editor.selectionEnd;
                     if (typeof start === 'number' && typeof end === 'number' && start !== end) {
                         const sel = editor.value.substring(start, end).trim();
                         if (sel) {
+                            this.lastSelectedDocContext = {
+                                text: sel,
+                                start: start,
+                                end: end,
+                                docId: doc ? doc.id : null,
+                                projectId: p ? p.id : null
+                            };
                             this.lastSelectedDocText = sel;
                             const input = document.getElementById('aiDocSelectedTextInput');
                             if (input && document.activeElement !== input) {
@@ -72,6 +83,8 @@ export const aiDocAssistant = {
             syncSelectionFromEditor() {
                 const editor = document.getElementById('docEditor');
                 const input = document.getElementById('aiDocSelectedTextInput');
+                const doc = this.getCurrentDoc();
+                const p = this.getCurrentProject();
                 if (!editor || !input) return;
 
                 const start = editor.selectionStart;
@@ -79,12 +92,27 @@ export const aiDocAssistant = {
                 let text = '';
                 if (typeof start === 'number' && typeof end === 'number' && start !== end) {
                     text = editor.value.substring(start, end).trim();
+                    if (text) {
+                        this.lastSelectedDocContext = {
+                            text: text,
+                            start: start,
+                            end: end,
+                            docId: doc ? doc.id : null,
+                            projectId: p ? p.id : null
+                        };
+                    }
                 }
 
                 if (!text) {
-                    // 若無選取，則預設抓取游標所在段落或整篇文字
-                    const fullText = editor.value.trim();
-                    text = this.lastSelectedDocText || fullText.slice(0, 1500);
+                    // 若同一篇文檔之前有反白選取記錄且有效，才進行重用
+                    if (this.lastSelectedDocContext && doc && this.lastSelectedDocContext.docId === doc.id) {
+                        text = this.lastSelectedDocContext.text;
+                    } else {
+                        // 否則取游標所在段落或整篇前 1500 字，並重置 context
+                        const fullText = editor.value.trim();
+                        text = fullText.slice(0, 1500);
+                        this.lastSelectedDocContext = null;
+                    }
                 }
 
                 if (text) {
@@ -93,8 +121,9 @@ export const aiDocAssistant = {
                 }
             },
 
-            async callUnifiedGroqApi(systemPrompt, userMessageContent, isJson = false) {
+            async callUnifiedGroqApi(systemPrompt, userMessageContent, isJson = false, maxTokens = 3500) {
                 const clientKey = this.getGroqApiKey();
+                let proxyErrorMessage = '';
 
                 // 1. 優先使用 GAS 雲端安全代理（金鑰 100% 存於後端，全裝置免手動配置）
                 if (this.state.gasUrl) {
@@ -109,7 +138,8 @@ export const aiDocAssistant = {
                                 systemPrompt: systemPrompt,
                                 userMessage: userMessageContent,
                                 clientApiKey: clientKey,
-                                responseFormat: isJson ? 'json_object' : 'text'
+                                responseFormat: isJson ? 'json_object' : 'text',
+                                maxTokens: maxTokens
                             }),
                             redirect: 'follow'
                         });
@@ -122,28 +152,34 @@ export const aiDocAssistant = {
                                 } else {
                                     return proxyResult.rawText || proxyResult.data || '';
                                 }
-                            } else if (proxyResult.status === 'error' && proxyResult.message && !clientKey) {
+                            } else if (proxyResult.status === 'error' && proxyResult.message) {
+                                proxyErrorMessage = proxyResult.message;
                                 console.warn('GAS proxy returned error:', proxyResult.message);
+                            } else {
+                                proxyErrorMessage = 'GAS AI Proxy 執行失敗 (未回傳成功狀態)';
                             }
+                        } else {
+                            proxyErrorMessage = `GAS 雲端連線失敗 (HTTP ${proxyResponse.status})`;
                         }
                     } catch (proxyErr) {
+                        proxyErrorMessage = proxyErr.message || 'GAS 雲端代理請求異常';
                         console.warn('GAS proxy fetch failed, trying direct:', proxyErr);
                     }
                 }
 
                 // 2. 本機 Direct 呼叫 Fallback (若本機有配置金鑰)
                 if (!clientKey) {
-                    throw new Error('雲端 AI 後端尚未配置完成。請先確認 Google Apps Script 雲端連線正常。');
+                    throw new Error(proxyErrorMessage || '雲端 AI 後端尚未配置完成。請先確認 Google Apps Script 雲端連線正常。');
                 }
 
                 const payload = {
-                    model: 'llama-3.1-8b-instant',
+                    model: 'openai/gpt-oss-20b',
                     messages: [
                         { role: 'system', content: systemPrompt },
                         { role: 'user', content: userMessageContent }
                     ],
                     temperature: 0.3,
-                    max_tokens: 3500
+                    max_tokens: maxTokens
                 };
 
                 if (isJson) {
@@ -184,14 +220,37 @@ export const aiDocAssistant = {
                 if (resultContainer && isLoading) resultContainer.classList.add('hidden');
             },
 
-            showAiDocResult(badgeText, contentHtml, rawTextForCopy = '') {
+            showAiDocResult(badgeText, contentHtml, rawTextForCopy = '', resultType = 'general', customSelectionContext = null) {
                 const resultContainer = document.getElementById('aiDocResultContainer');
                 const badgeEl = document.getElementById('aiDocResultBadge');
                 const textEl = document.getElementById('aiDocResultText');
+                const btnReplace = document.getElementById('btnReplaceAiDocResult');
+
+                const currentDoc = this.getCurrentDoc();
+                const currentProj = this.getCurrentProject();
 
                 if (badgeEl) badgeEl.innerHTML = `<span>✨</span> <span>${badgeText}</span>`;
                 if (textEl) textEl.innerHTML = contentHtml;
                 this.lastAiDocResult = rawTextForCopy || textEl.innerText;
+
+                // 綁定完整的上下文 Context，避免跨文件或覆蓋錯誤
+                this.lastAiResultContext = {
+                    resultType: resultType,
+                    projectId: currentProj ? currentProj.id : null,
+                    docId: currentDoc ? currentDoc.id : null,
+                    text: this.lastAiDocResult,
+                    createdAt: Date.now(),
+                    selectionContext: customSelectionContext || (resultType === 'rewrite' ? this.lastSelectedDocContext : null)
+                };
+
+                // 只有在改寫 (rewrite) 且有當初選取座標時，才顯示「↩ 取代原文」按鈕
+                if (btnReplace) {
+                    if (resultType === 'rewrite' && this.lastAiResultContext.selectionContext) {
+                        btnReplace.classList.remove('hidden');
+                    } else {
+                        btnReplace.classList.add('hidden');
+                    }
+                }
 
                 if (resultContainer) {
                     resultContainer.classList.remove('hidden');
@@ -208,6 +267,9 @@ export const aiDocAssistant = {
                     this.showToast('⚠️ 請先選取或貼入要改寫的文字內容', 'error');
                     return;
                 }
+
+                // 鎖定送給 AI 時的選取範疇快照
+                const capturedSelection = this.lastSelectedDocContext ? { ...this.lastSelectedDocContext } : null;
 
                 const customPrompt = document.getElementById('aiRewriteCustomPrompt')?.value.trim() || '';
 
@@ -233,9 +295,9 @@ ${customPrompt ? `【額外指示要求】：${customPrompt}` : ''}
                 this.setAiDocLoading(true, `正在以「${styleType}」風格為您潤飾文字...`);
 
                 try {
-                    const resultText = await this.callUnifiedGroqApi(systemPrompt, userMessage, false);
+                    const resultText = await this.callUnifiedGroqApi(systemPrompt, userMessage, false, 2500);
                     this.setAiDocLoading(false);
-                    this.showAiDocResult(`改寫完成 (${styleType})`, this.escapeHtml(resultText), resultText);
+                    this.showAiDocResult(`改寫完成 (${styleType})`, this.escapeHtml(resultText), resultText, 'rewrite', capturedSelection);
                     document.getElementById('aiDocTaskImportBar')?.classList.add('hidden');
                     this.showToast('✨ 文字改寫完成！');
                 } catch (err) {
@@ -266,9 +328,9 @@ ${customPrompt ? `【額外指示要求】：${customPrompt}` : ''}
                 this.setAiDocLoading(true, 'AI 正在研讀全文並生成結構化摘要...');
 
                 try {
-                    const summaryText = await this.callUnifiedGroqApi(systemPrompt, userMessage, false);
+                    const summaryText = await this.callUnifiedGroqApi(systemPrompt, userMessage, false, 3000);
                     this.setAiDocLoading(false);
-                    this.showAiDocResult('整份文檔智慧摘要', this.renderMarkdownToHtml(summaryText), summaryText);
+                    this.showAiDocResult('整份文檔智慧摘要', this.renderMarkdownToHtml(summaryText), summaryText, 'summary');
                     document.getElementById('aiDocTaskImportBar')?.classList.add('hidden');
                     this.showToast('📑 全文摘要已生成！');
                 } catch (err) {
@@ -281,6 +343,7 @@ ${customPrompt ? `【額外指示要求】：${customPrompt}` : ''}
             // 3. 根據文件內容產生待辦事項 (Extract Tasks)
             async runAiDocExtractTasks() {
                 const doc = this.getCurrentDoc();
+                const p = this.getCurrentProject();
                 if (!doc || !doc.content || !doc.content.trim()) {
                     this.showToast('⚠️ 當前文檔無足夠內容可供提取待辦', 'error');
                     return;
@@ -299,14 +362,22 @@ ${customPrompt ? `【額外指示要求】：${customPrompt}` : ''}
                 this.setAiDocLoading(true, 'AI 正在掃描文檔並萃取具體待辦事項...');
 
                 try {
-                    const jsonResult = await this.callUnifiedGroqApi(systemPrompt, userMessage, true);
+                    const jsonResult = await this.callUnifiedGroqApi(systemPrompt, userMessage, true, 2500);
                     this.setAiDocLoading(false);
 
-                    const tasks = Array.isArray(jsonResult.tasks) ? jsonResult.tasks : [];
-                    this.lastExtractedTasks = tasks;
+                    if (!jsonResult || typeof jsonResult !== 'object' || !Array.isArray(jsonResult.tasks)) {
+                        throw new Error('AI 回傳之 JSON 結構非預期的任務清單格式');
+                    }
+
+                    const tasks = jsonResult.tasks;
+                    this.lastExtractedTasks = tasks.map(t => ({
+                        ...t,
+                        sourceDocId: doc.id,
+                        sourceProjectId: p ? p.id : null
+                    }));
 
                     if (tasks.length === 0) {
-                        this.showAiDocResult('待辦事項掃描結果', '<p class="text-slate-500">文檔中未檢測到明確的後續執行動作。</p>');
+                        this.showAiDocResult('待辦事項掃描結果', '<p class="text-slate-500">文檔中未檢測到明確的後續執行動作。</p>', '', 'tasks');
                         document.getElementById('aiDocTaskImportBar')?.classList.add('hidden');
                         return;
                     }
@@ -331,7 +402,7 @@ ${customPrompt ? `【額外指示要求】：${customPrompt}` : ''}
                     });
                     html += '</div>';
 
-                    this.showAiDocResult(`成功萃取 ${tasks.length} 項待辦任務`, html, rawCopy);
+                    this.showAiDocResult(`成功萃取 ${tasks.length} 項待辦任務`, html, rawCopy, 'tasks');
                     document.getElementById('aiDocTaskImportBar')?.classList.remove('hidden');
                     this.showToast(`☑️ 成功萃取 ${tasks.length} 項待辦事項！`);
                 } catch (err) {
@@ -355,23 +426,55 @@ ${customPrompt ? `【額外指示要求】：${customPrompt}` : ''}
                 if (!Array.isArray(p.tasks)) p.tasks = [];
 
                 let count = 0;
+                let skippedDuplicate = 0;
+
+                const isTaskDuplicate = (title) => {
+                    const cleanTitle = (title || '').trim().toLowerCase();
+                    return p.tasks.some(existing => (existing.title || '').trim().toLowerCase() === cleanTitle);
+                };
+
                 this.lastExtractedTasks.forEach(t => {
+                    const title = t.title || '未命名任務';
+                    if (isTaskDuplicate(title)) {
+                        skippedDuplicate++;
+                        return;
+                    }
                     p.tasks.push({
                         id: 't_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5),
-                        title: t.title || '未命名任務',
+                        title: title,
                         desc: t.desc || '',
                         priority: t.priority || 'MED',
                         status: 'TODO',
-                        assignee: ''
+                        assignee: '',
+                        source: 'ai-doc-extract',
+                        sourceDocId: t.sourceDocId || null,
+                        createdAt: new Date().toISOString()
                     });
                     count++;
                 });
 
+                if (count === 0) {
+                    if (skippedDuplicate > 0) {
+                        this.showToast(`ℹ️ 萃取的 ${skippedDuplicate} 個任務已存在於看板中（已自動去重）`);
+                    } else {
+                        this.showToast('⚠️ 目前無可匯入之任務', 'error');
+                    }
+                    document.getElementById('aiDocTaskImportBar')?.classList.add('hidden');
+                    return;
+                }
+
+                p.updatedAt = new Date().toISOString();
+                if (typeof this.logActivity === 'function') {
+                    this.logActivity(`AI 萃取建立了 ${count} 個待辦事項`);
+                }
+
                 this.saveToLocal();
                 this.renderAll();
-                this.debouncedSaveAndSync();
+                if (typeof this.debouncedSaveAndSync === 'function') {
+                    this.debouncedSaveAndSync();
+                }
                 this.playAudioFeedback('success');
-                this.showToast(`🎉 成功匯入 ${count} 個待辦事項至專案看板！`);
+                this.showToast(`🎉 成功匯入 ${count} 個待辦事項至專案看板並同步雲端！${skippedDuplicate > 0 ? ` (已去重 ${skippedDuplicate} 項)` : ''}`);
                 document.getElementById('aiDocTaskImportBar')?.classList.add('hidden');
             },
 
@@ -396,9 +499,9 @@ ${customPrompt ? `【額外指示要求】：${customPrompt}` : ''}
                 this.setAiDocLoading(true, 'AI 正在進行全文跨段落邏輯矛盾與衝突查核...');
 
                 try {
-                    const resultText = await this.callUnifiedGroqApi(systemPrompt, userMessage, false);
+                    const resultText = await this.callUnifiedGroqApi(systemPrompt, userMessage, false, 3000);
                     this.setAiDocLoading(false);
-                    this.showAiDocResult('前後矛盾邏輯查核報告', this.renderMarkdownToHtml(resultText), resultText);
+                    this.showAiDocResult('前後矛盾邏輯查核報告', this.renderMarkdownToHtml(resultText), resultText, 'audit');
                     document.getElementById('aiDocTaskImportBar')?.classList.add('hidden');
                     this.showToast('🔍 矛盾查核完成！');
                 } catch (err) {
@@ -433,9 +536,9 @@ ${customPrompt ? `【額外指示要求】：${customPrompt}` : ''}
                 this.setAiDocLoading(true, 'AI 正在查核論點支撐度與事實依據...');
 
                 try {
-                    const resultText = await this.callUnifiedGroqApi(systemPrompt, userMessage, false);
+                    const resultText = await this.callUnifiedGroqApi(systemPrompt, userMessage, false, 3000);
                     this.setAiDocLoading(false);
-                    this.showAiDocResult('證據支持度查核報告', this.renderMarkdownToHtml(resultText), resultText);
+                    this.showAiDocResult('證據支持度查核報告', this.renderMarkdownToHtml(resultText), resultText, 'audit');
                     document.getElementById('aiDocTaskImportBar')?.classList.add('hidden');
                     this.showToast('🔬 證據支持查核完成！');
                 } catch (err) {
@@ -482,9 +585,9 @@ ${customPrompt ? `【額外指示要求】：${customPrompt}` : ''}
                 this.setAiDocLoading(true, `AI 正在研讀文檔並解答：「${question.slice(0, 20)}...」`);
 
                 try {
-                    const answerText = await this.callUnifiedGroqApi(systemPrompt, userMessage, false);
+                    const answerText = await this.callUnifiedGroqApi(systemPrompt, userMessage, false, 3000);
                     this.setAiDocLoading(false);
-                    this.showAiDocResult(`問答回覆：${question.slice(0, 15)}...`, this.renderMarkdownToHtml(answerText), answerText);
+                    this.showAiDocResult(`問答回覆：${question.slice(0, 15)}...`, this.renderMarkdownToHtml(answerText), answerText, 'qa');
                     document.getElementById('aiDocTaskImportBar')?.classList.add('hidden');
                     this.showToast('💬 AI 已為您解答！');
                 } catch (err) {
@@ -506,7 +609,50 @@ ${customPrompt ? `【額外指示要求】：${customPrompt}` : ''}
                 });
             },
 
-            applyAiDocResultToEditor() {
+            // 專用動作 1：取代當初選取的原文 (僅 Rewrite 支援，具備嚴格上下文驗證)
+            replaceSelectedDocTextWithAiResult() {
+                if (!this.lastAiDocResult) {
+                    this.showToast('⚠️ 目前無結果可套用', 'error');
+                    return;
+                }
+
+                const currentDoc = this.getCurrentDoc();
+                const currentProj = this.getCurrentProject();
+                const ctx = this.lastAiResultContext;
+
+                if (!ctx || !ctx.selectionContext) {
+                    this.showToast('⚠️ 無法追溯原選取位置，請使用「➕ 插入游標」', 'error');
+                    return;
+                }
+
+                if (ctx.docId !== (currentDoc ? currentDoc.id : null) || ctx.projectId !== (currentProj ? currentProj.id : null)) {
+                    this.showToast('⚠️ 此改寫結果來自其他文檔，禁止直接替換當前文檔內容！', 'error');
+                    return;
+                }
+
+                const editor = document.getElementById('docEditor');
+                if (!editor) return;
+
+                const val = editor.value;
+                const { start, end, text: originalText } = ctx.selectionContext;
+
+                // 驗證原文字位置是否仍然精確吻合
+                if (typeof start === 'number' && typeof end === 'number' && val.substring(start, end).trim() === originalText.trim()) {
+                    editor.value = val.substring(0, start) + this.lastAiDocResult + val.substring(end);
+                    this.updateDocContent(editor.value);
+                    editor.focus();
+                    editor.setSelectionRange(start, start + this.lastAiDocResult.length);
+                    this.showToast('↩ 已成功替換原選取文字！');
+                } else {
+                    // 原文字已被修改過，提供安全保護
+                    if (confirm('偵測到文檔內容在改寫後已被修改，原選取位置可能已偏移。\n是否仍要在當前游標處插入？')) {
+                        this.insertAiDocResultAtCursor();
+                    }
+                }
+            },
+
+            // 專用動作 2：在游標處安全插入結果 (不覆蓋任何選取文字)
+            insertAiDocResultAtCursor() {
                 if (!this.lastAiDocResult) {
                     this.showToast('⚠️ 目前無結果可套用', 'error');
                     return;
@@ -515,27 +661,55 @@ ${customPrompt ? `【額外指示要求】：${customPrompt}` : ''}
                 const editor = document.getElementById('docEditor');
                 if (!editor) return;
 
-                const start = editor.selectionStart;
-                const end = editor.selectionEnd;
+                const val = editor.value;
+                const insertPos = typeof editor.selectionStart === 'number' ? editor.selectionStart : val.length;
+                const appendText = (insertPos > 0 && !val.substring(0, insertPos).endsWith('\n\n') ? '\n\n' : '') + this.lastAiDocResult + (insertPos < val.length && !val.substring(insertPos).startsWith('\n\n') ? '\n\n' : '');
 
-                if (typeof start === 'number' && typeof end === 'number' && start !== end) {
-                    // 替換反白選取文字
-                    const val = editor.value;
-                    editor.value = val.substring(0, start) + this.lastAiDocResult + val.substring(end);
-                    this.updateDocContent(editor.value);
-                    editor.focus();
-                    editor.setSelectionRange(start, start + this.lastAiDocResult.length);
-                    this.showToast('✍️ 已成功替換選取處的文字！');
-                } else {
-                    // 在游標處插入或追加至文檔末尾
-                    const val = editor.value;
-                    const insertPos = typeof start === 'number' ? start : val.length;
-                    const appendText = (insertPos > 0 && !val.endsWith('\n\n') ? '\n\n' : '') + this.lastAiDocResult;
-                    editor.value = val.substring(0, insertPos) + appendText + val.substring(insertPos);
-                    this.updateDocContent(editor.value);
-                    editor.focus();
-                    this.showToast('✍️ 已將 AI 結果插入至文檔中！');
+                editor.value = val.substring(0, insertPos) + appendText + val.substring(insertPos);
+                this.updateDocContent(editor.value);
+                editor.focus();
+                const newCursorPos = insertPos + appendText.length;
+                editor.setSelectionRange(newCursorPos, newCursorPos);
+                this.showToast('➕ 已將 AI 結果插入至文檔游標位置！');
+            },
+
+            // 專用動作 3：將 AI 產出成果另存為全新文檔
+            createDocFromAiResult() {
+                if (!this.lastAiDocResult) {
+                    this.showToast('⚠️ 目前無結果可另存', 'error');
+                    return;
                 }
+
+                const p = this.getCurrentProject();
+                if (!p) {
+                    this.showToast('⚠️ 未選擇專案', 'error');
+                    return;
+                }
+
+                const currentDoc = this.getCurrentDoc();
+                const badgeEl = document.getElementById('aiDocResultBadge');
+                const badgeText = badgeEl ? badgeEl.innerText.replace('✨', '').trim() : 'AI 產出';
+                const docTitle = `${badgeText} - ${currentDoc ? currentDoc.title : '分析報告'}`;
+
+                const newDoc = {
+                    id: 'doc_' + Date.now(),
+                    title: docTitle,
+                    content: `# ${docTitle}\n\n> 產生時間：${new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })}\n> 來源文檔：${currentDoc ? currentDoc.title : '未指定'}\n\n---\n\n${this.lastAiDocResult}`,
+                    folderId: currentDoc ? currentDoc.folderId : null
+                };
+
+                if (!Array.isArray(p.docs)) p.docs = [];
+                p.docs.push(newDoc);
+                p.updatedAt = new Date().toISOString();
+                this.state.activeDocId = newDoc.id;
+
+                this.saveToLocal();
+                this.renderAll();
+                if (typeof this.debouncedSaveAndSync === 'function') {
+                    this.debouncedSaveAndSync();
+                }
+                this.switchView('Docs');
+                this.showToast(`📄 已成功建立新文檔「${docTitle}」！`);
             },
 
             // 7. 口頭報告產生器 (Speech Script Generator: 3min, 5min, 10min)
@@ -564,9 +738,9 @@ ${customPrompt ? `4. 【使用者特別要求】：${customPrompt}` : ''}
                 this.setAiDocLoading(true, `AI 正在為您生成 ${minutes} 分鐘口頭報告講稿與時間標籤...`);
 
                 try {
-                    const speechText = await this.callUnifiedGroqApi(systemPrompt, userMessage, false);
+                    const speechText = await this.callUnifiedGroqApi(systemPrompt, userMessage, false, 3800);
                     this.setAiDocLoading(false);
-                    this.showAiDocResult(`🎙️ ${minutes} 分鐘口頭報告講稿`, this.renderMarkdownToHtml(speechText), speechText);
+                    this.showAiDocResult(`🎙️ ${minutes} 分鐘口頭報告講稿`, this.renderMarkdownToHtml(speechText), speechText, 'speech');
                     document.getElementById('aiDocTaskImportBar')?.classList.add('hidden');
                     this.showToast(`🎙️ ${minutes} 分鐘講稿生成完成！`);
                 } catch (err) {
@@ -615,9 +789,9 @@ ${customPrompt ? `4. 【使用者特別要求】：${customPrompt}` : ''}
                 this.setAiDocLoading(true, 'AI 正在以評審視角深掘潛在質疑並預測 Q&A...');
 
                 try {
-                    const qnaResult = await this.callUnifiedGroqApi(systemPrompt, userMessage, false);
+                    const qnaResult = await this.callUnifiedGroqApi(systemPrompt, userMessage, false, 3500);
                     this.setAiDocLoading(false);
-                    this.showAiDocResult('🎯 答辯與審查 Q&A 深度預測', this.renderMarkdownToHtml(qnaResult), qnaResult);
+                    this.showAiDocResult('🎯 答辯與審查 Q&A 深度預測', this.renderMarkdownToHtml(qnaResult), qnaResult, 'qna');
                     document.getElementById('aiDocTaskImportBar')?.classList.add('hidden');
                     this.showToast('🎯 Q&A 預測生成完成！');
                 } catch (err) {
@@ -651,9 +825,9 @@ ${customPrompt ? `4. 【使用者特別要求】：${customPrompt}` : ''}
                 this.setAiDocLoading(true, 'AI 正在全篇掃描專有名詞與術語一致性...');
 
                 try {
-                    const termsResult = await this.callUnifiedGroqApi(systemPrompt, userMessage, false);
+                    const termsResult = await this.callUnifiedGroqApi(systemPrompt, userMessage, false, 3500);
                     this.setAiDocLoading(false);
-                    this.showAiDocResult('📖 術語一致性掃描報告', this.renderMarkdownToHtml(termsResult), termsResult);
+                    this.showAiDocResult('📖 術語一致性掃描報告', this.renderMarkdownToHtml(termsResult), termsResult, 'terms');
                     document.getElementById('aiDocTaskImportBar')?.classList.add('hidden');
                     this.showToast('📖 術語一致性檢查完成！');
                 } catch (err) {
