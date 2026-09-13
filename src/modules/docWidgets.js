@@ -602,5 +602,165 @@ export const docWidgets = {
                 }, refreshSec * 1000);
             }
         });
+    },
+
+    // ================= 7. 斜線指令選單 (Slash Command Autocomplete `/`) =================
+    _slashCommands: [
+        { id: 'calc', icon: '🧮', title: '計算機 (Calculator)', desc: '插入可互動運算的個人計算機', cmd: '/calculator (120 * 4.5) + 300\n' },
+        { id: 'countdown', icon: '⏳', title: '倒數計時器 (Countdown)', desc: '目標時間與截止倒數 (日/時/分/秒)', cmd: '/countdown 2026-12-31 23:59:59 項目目標倒數\n' },
+        { id: 'stopwatch', icon: '⏱️', title: '碼錶計時 (Stopwatch)', desc: '精確到毫秒的碼錶與計圈功能', cmd: '/stopwatch 任務計時碼錶\n' },
+        { id: 'random', icon: '🎲', title: '隨機抽籤 (Random Picker)', desc: '自訂項目或範圍隨機抽籤決策', cmd: '/random 項目A, 項目B, 項目C, 項目D\n' },
+        { id: 'counter', icon: '🔢', title: '計數器 (Counter)', desc: '快速點擊增減計數統計', cmd: '/counter 0 統計計數\n' },
+        { id: 'qr', icon: '📱', title: 'QR Code 條碼', desc: '即時產生任何網址或文字的 QR Code', cmd: '/qr https://unkoalatw.github.io/project-manger/\n' },
+        { id: 'converter', icon: '🔄', title: '單位與匯率換算', desc: 'USD/TWD/JPY/公里/公斤等快速換算', cmd: '/converter\n' },
+        { id: 'poll', icon: '📊', title: '自我狀態投票 (Poll)', desc: '自評專注度、狀態或決策投票', cmd: '/poll-self 當前專注度 | 滿分極佳 🔥 | 還行持平 😐 | 需要休息 ☕\n' },
+        { id: 'clip', icon: '📋', title: '快速複製按鈕 (Clipboard)', desc: '建立一鍵複製常用文本片段按鈕', cmd: '/clipboard 一鍵複製常用文本\n' },
+        { id: 'read', icon: '📖', title: '閱讀清單 (Stateful Badge)', desc: 'Unread ➔ Reading ➔ Finished ➔ Revisit', cmd: '- [read:Unread] 文檔閱讀項目\n' },
+        { id: 'idea', icon: '💡', title: '靈感狀態 (Idea Flow)', desc: 'Raw ➔ Interesting ➔ Tried ➔ Abandoned', cmd: '- [idea:Raw] 靈感點子記錄\n' },
+        { id: 'data', icon: '📡', title: '即時數據儀表板 (Live Data)', desc: '透過 API 連線即時顯示並自動刷新數據', cmd: '/data https://api.github.com/repos/unkoalatw/project-manger refresh:30s\n' },
+        { id: 'table', icon: '📑', title: '動態資料庫表格 (Database)', desc: '插入可篩選、排序的嵌入式資料表', cmd: '/table 專案清單\n' }
+    ],
+
+    _slashActiveIndex: 0,
+    _slashTriggerPos: -1,
+
+    setupSlashCommandAutocomplete() {
+        const editor = document.getElementById('docEditor');
+        if (!editor || editor._slashBound) return;
+        editor._slashBound = true;
+
+        editor.addEventListener('input', (e) => {
+            const val = editor.value;
+            const cursorPos = editor.selectionStart;
+            const textBefore = val.slice(0, cursorPos);
+            
+            // 檢查當前行是否以 / 開頭，或當前輸入是否為 / 開頭的指令觸發
+            const lastLine = textBefore.split('\n').pop();
+            const slashMatch = lastLine.match(/\/([a-zA-Z0-9_-]*)$/);
+
+            if (slashMatch) {
+                const query = slashMatch[1].toLowerCase();
+                this._slashTriggerPos = cursorPos - slashMatch[0].length;
+                this.showSlashMenu(editor, query);
+            } else {
+                this.hideSlashMenu();
+            }
+        });
+
+        editor.addEventListener('keydown', (e) => {
+            const menu = document.getElementById('editorSlashMenu');
+            if (!menu || menu.classList.contains('hidden')) return;
+
+            const items = menu.querySelectorAll('.slash-menu-item');
+            if (!items.length) return;
+
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                this._slashActiveIndex = (this._slashActiveIndex + 1) % items.length;
+                this.updateSlashMenuSelection(items);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                this._slashActiveIndex = (this._slashActiveIndex - 1 + items.length) % items.length;
+                this.updateSlashMenuSelection(items);
+            } else if (e.key === 'Enter' || e.key === 'Tab') {
+                e.preventDefault();
+                const activeItem = items[this._slashActiveIndex];
+                if (activeItem) {
+                    const cmdId = activeItem.getAttribute('data-cmd-id');
+                    this.executeSlashCommand(cmdId);
+                }
+            } else if (e.key === 'Escape') {
+                this.hideSlashMenu();
+            }
+        });
+
+        document.addEventListener('click', (e) => {
+            const menu = document.getElementById('editorSlashMenu');
+            if (menu && !menu.contains(e.target) && e.target !== editor) {
+                this.hideSlashMenu();
+            }
+        });
+    },
+
+    showSlashMenu(editor, query) {
+        let menu = document.getElementById('editorSlashMenu');
+        if (!menu) {
+            menu = document.createElement('div');
+            menu.id = 'editorSlashMenu';
+            menu.className = 'fixed z-50 bg-white border-2 border-black rounded-xl shadow-[4px_4px_0px_0px_#000] p-1.5 w-72 max-h-64 overflow-y-auto hidden';
+            document.body.appendChild(menu);
+        }
+
+        const filtered = this._slashCommands.filter(c => 
+            !query || c.id.toLowerCase().includes(query) || c.title.toLowerCase().includes(query)
+        );
+
+        if (!filtered.length) {
+            this.hideSlashMenu();
+            return;
+        }
+
+        this._slashActiveIndex = 0;
+        menu.innerHTML = `
+            <div class="px-2 py-1 text-[10px] font-mono font-bold text-zinc-500 uppercase border-b border-zinc-200 mb-1 flex items-center justify-between">
+                <span>⚡ 插入小工具與區塊</span>
+                <span class="text-[9px] bg-zinc-100 px-1 py-0.5 rounded border border-zinc-300">↑↓ 選擇 / Enter 插入</span>
+            </div>
+            ${filtered.map((c, idx) => `
+                <div class="slash-menu-item flex items-center gap-2.5 p-2 rounded-lg cursor-pointer transition-colors ${idx === 0 ? 'bg-zinc-100 border border-black font-bold' : 'hover:bg-zinc-50 text-zinc-800'}" data-cmd-id="${c.id}" onclick="app.executeSlashCommand('${c.id}')">
+                    <span class="text-lg shrink-0">${c.icon}</span>
+                    <div class="min-w-0 flex-1">
+                        <div class="font-bold text-xs text-slate-900 truncate">${c.title}</div>
+                        <div class="text-[10px] text-zinc-500 truncate">${c.desc}</div>
+                    </div>
+                </div>
+            `).join('')}
+        `;
+
+        // 計算編輯器相對視窗座標
+        const rect = editor.getBoundingClientRect();
+        menu.style.left = `${Math.min(window.innerWidth - 300, Math.max(16, rect.left + 24))}px`;
+        menu.style.top = `${Math.min(window.innerHeight - 280, Math.max(60, rect.top + 50))}px`;
+        menu.classList.remove('hidden');
+    },
+
+    updateSlashMenuSelection(items) {
+        items.forEach((item, idx) => {
+            if (idx === this._slashActiveIndex) {
+                item.className = 'slash-menu-item flex items-center gap-2.5 p-2 rounded-lg cursor-pointer bg-zinc-100 border border-black font-bold shadow-2xs';
+                item.scrollIntoView({ block: 'nearest' });
+            } else {
+                item.className = 'slash-menu-item flex items-center gap-2.5 p-2 rounded-lg cursor-pointer hover:bg-zinc-50 text-zinc-800';
+            }
+        });
+    },
+
+    hideSlashMenu() {
+        const menu = document.getElementById('editorSlashMenu');
+        if (menu) menu.classList.add('hidden');
+    },
+
+    executeSlashCommand(cmdId) {
+        const item = this._slashCommands.find(c => c.id === cmdId);
+        if (!item) return;
+
+        const editor = document.getElementById('docEditor');
+        if (!editor) return;
+
+        const val = editor.value;
+        const cursorPos = editor.selectionStart;
+        const triggerPos = this._slashTriggerPos >= 0 ? this._slashTriggerPos : cursorPos;
+
+        const before = val.slice(0, triggerPos);
+        const after = val.slice(cursorPos);
+        
+        editor.value = before + item.cmd + after;
+        editor.selectionStart = editor.selectionEnd = triggerPos + item.cmd.length;
+        editor.focus();
+
+        this.hideSlashMenu();
+        this.updateDocContent(editor.value);
+        this.playSound('click');
+        this.showToast(`🧩 已插入 ${item.title}`);
     }
 };
