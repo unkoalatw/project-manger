@@ -677,15 +677,37 @@ export const docWidgets = {
                     </div>
                 `;
             } else if (json && json.status === 'error') {
-                html = `
-                    <div class="p-3 bg-rose-950/60 border border-rose-800 rounded-lg text-rose-200">
-                        <div class="flex items-center gap-2 font-bold text-xs text-rose-300 mb-1">
-                            <span>⚠️ API 回報錯誤</span>
+                const errMsg = json.message || JSON.stringify(json);
+                const isAuthRequired = /登入|未授權|授權|auth|login|unauthenticated|401/i.test(errMsg);
+
+                if (isAuthRequired) {
+                    html = `
+                        <div class="p-4 bg-amber-950/70 border-2 border-amber-500/80 rounded-xl text-amber-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                            <div class="flex items-center gap-3 min-w-0">
+                                <span class="text-2xl shrink-0">🔐</span>
+                                <div class="min-w-0">
+                                    <div class="font-black text-sm text-amber-200">請先登入 / 授權您的 Google 帳號</div>
+                                    <div class="font-mono text-xs text-amber-300/80 truncate mt-0.5">${this.escapeHtml(errMsg)}</div>
+                                </div>
+                            </div>
+                            <a href="${this.escapeHtml(url)}" target="_blank" rel="noopener noreferrer" class="px-3.5 py-1.5 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs rounded-lg border border-amber-300 shrink-0 transition-colors inline-flex items-center gap-1.5 shadow-sm">
+                                <span>🔑 前往 Google 登入授權</span>
+                                <span>➔</span>
+                            </a>
                         </div>
-                        <div class="font-mono text-xs text-rose-300 break-words leading-relaxed">${this.escapeHtml(json.message || JSON.stringify(json))}</div>
-                    </div>
-                `;
-                if (dotEl) dotEl.className = 'w-2.5 h-2.5 rounded-full bg-rose-500';
+                    `;
+                    if (dotEl) dotEl.className = 'w-2.5 h-2.5 rounded-full bg-amber-500';
+                } else {
+                    html = `
+                        <div class="p-3 bg-rose-950/60 border border-rose-800 rounded-lg text-rose-200">
+                            <div class="flex items-center gap-2 font-bold text-xs text-rose-300 mb-1">
+                                <span>⚠️ API 回報錯誤</span>
+                            </div>
+                            <div class="font-mono text-xs text-rose-300 break-words leading-relaxed">${this.escapeHtml(errMsg)}</div>
+                        </div>
+                    `;
+                    if (dotEl) dotEl.className = 'w-2.5 h-2.5 rounded-full bg-rose-500';
+                }
             } else if (typeof json === 'object' && json !== null) {
                 if (Array.isArray(json)) {
                     html = `<div class="text-[11px] text-emerald-400 mb-1">陣列資料 (共 ${json.length} 筆項目)：</div><pre class="overflow-x-auto text-[11px] leading-tight text-slate-300">${this.escapeHtml(JSON.stringify(json.slice(0, 5), null, 2))}</pre>`;
