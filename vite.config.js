@@ -6,6 +6,25 @@ export default defineConfig({
     outDir: 'dist',
     assetsDir: 'assets',
     emptyOutDir: true,
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_debugger: true,
+        passes: 3,
+        pure_getters: true,
+        unsafe: true,
+        unsafe_math: true,
+        unsafe_methods: true
+      },
+      format: {
+        comments: false
+      },
+      mangle: {
+        toplevel: false,
+        safari10: true
+      }
+    },
+    cssMinify: true
   },
   server: {
     port: 3000,

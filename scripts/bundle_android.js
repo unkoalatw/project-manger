@@ -118,6 +118,24 @@ const bridgeScript = `
 `;
 
 html = html.replace('</head>', `${bridgeScript}\n</head>`);
+
+// Perform maximum HTML compression
+try {
+    const { minify } = await import('html-minifier-terser');
+    html = await minify(html, {
+        collapseWhitespace: true,
+        removeComments: true,
+        removeRedundantAttributes: true,
+        removeScriptTypeAttributes: true,
+        removeStyleLinkTypeAttributes: true,
+        useShortDoctype: true,
+        minifyCSS: true,
+        minifyJS: true
+    });
+} catch (minErr) {
+    console.warn('HTML minification notice:', minErr.message);
+}
+
 fs.writeFileSync(indexPath, html, 'utf8');
 
-console.log('🎉 Successfully bundled modular Vite build into Android assets/www!');
+console.log('🎉 Successfully bundled & maximally compressed modular Vite build into Android assets/www!');
