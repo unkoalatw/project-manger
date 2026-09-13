@@ -35,9 +35,16 @@ export const aiDecompose = {
     renderAiDecomposeScopeSelector() {
         const container = document.getElementById('aiDecomposeScopeContainer');
         if (!container) return;
-        const p = this.getCurrentProject();
+        
+        let p = this.getCurrentProject();
+        if (!p && Array.isArray(this.state.projects) && this.state.projects.length > 0) {
+            p = this.state.projects.find(proj => proj.id === this.state.activeProjectId) || this.state.projects[0];
+            if (p) this.state.activeProjectId = p.id;
+        }
+
         if (!p) {
-            container.innerHTML = '<div class="text-xs text-slate-400 py-1 text-center">尚未選擇專案</div>';
+            container.innerHTML = '<div class="text-xs text-slate-400 py-3 text-center">尚未選擇專案</div>';
+            this.updateAiDecomposeScopeStats();
             return;
         }
 
@@ -45,41 +52,60 @@ export const aiDecompose = {
         const folders = Array.isArray(p.docFolders) ? p.docFolders : [];
 
         if (docs.length === 0 && folders.length === 0) {
-            container.innerHTML = '<div class="text-xs text-slate-400 py-1 text-center">目前專案尚無任何文檔</div>';
+            container.innerHTML = '<div class="text-xs text-slate-400 py-3 text-center">目前專案尚無任何文檔</div>';
+            this.updateAiDecomposeScopeStats();
             return;
         }
 
         let html = '';
 
-        // 1. 資料夾區塊
+        // 1. 渲染各資料夾及其內部文檔
         if (folders.length > 0) {
             folders.forEach(f => {
                 const folderDocs = docs.filter(d => d.folderId === f.id);
                 html += `
-                    <label class="flex items-center gap-2 p-1.5 hover:bg-white rounded cursor-pointer border border-transparent hover:border-slate-200 transition-colors">
-                        <input type="checkbox" name="aiScopeFolder" value="${f.id}" onchange="app.onAiScopeFolderToggle('${f.id}', this.checked)" class="rounded text-purple-600 focus:ring-purple-500">
-                        <span class="font-bold text-slate-800 flex items-center gap-1">
-                            <span>📁</span> <span>${this.escapeHtml(f.name || '未命名資料夾')}</span>
-                            <span class="text-[10px] text-slate-400 font-normal">(${folderDocs.length} 篇)</span>
-                        </span>
-                    </label>
+                    <div class="p-1.5 bg-white border border-slate-200/80 rounded-md mb-1.5 space-y-1">
+                        <label class="flex items-center gap-2 cursor-pointer font-bold text-slate-800 text-xs select-none">
+                            <input type="checkbox" name="aiScopeFolder" value="${f.id}" checked onchange="app.onAiScopeFolderToggle('${f.id}', this.checked)" class="rounded text-purple-600 focus:ring-purple-500">
+                            <span class="flex items-center gap-1">
+                                <span>📁</span> <span>${this.escapeHtml(f.name || '未命名資料夾')}</span>
+                                <span class="text-[10px] text-slate-400 font-normal">(${folderDocs.length} 篇)</span>
+                            </span>
+                        </label>
+                        <div class="pl-5 space-y-1 border-l-2 border-purple-100 ml-2">
+                            ${folderDocs.length === 0 ? '<div class="text-[11px] text-slate-400 py-0.5">空資料夾</div>' : folderDocs.map(d => `
+                                <label class="flex items-center gap-2 py-0.5 cursor-pointer text-slate-700 hover:text-slate-900 select-none">
+                                    <input type="checkbox" name="aiScopeDoc" value="${d.id}" data-folder-id="${f.id}" checked onchange="app.updateAiDecomposeScopeStats()" class="rounded text-purple-600 focus:ring-purple-500">
+                                    <span class="truncate flex items-center gap-1 text-[11px]">
+                                        <span>📄</span> <span>${this.escapeHtml(d.title || '未命名文檔')}</span>
+                                    </span>
+                                </label>
+                            `).join('')}
+                        </div>
+                    </div>
                 `;
             });
         }
 
-        // 2. 獨立文檔或根目錄文檔
-        docs.forEach(d => {
-            const parentFolder = folders.find(f => f.id === d.folderId);
-            const folderPrefix = parentFolder ? `[${parentFolder.name}] ` : '';
+        // 2. 根目錄獨立文檔 (未分類文檔)
+        const rootDocs = docs.filter(d => !d.folderId || !folders.some(f => f.id === d.folderId));
+        if (rootDocs.length > 0) {
             html += `
-                <label class="flex items-center gap-2 p-1.5 pl-3 hover:bg-white rounded cursor-pointer border border-transparent hover:border-slate-200 transition-colors">
-                    <input type="checkbox" name="aiScopeDoc" value="${d.id}" data-folder-id="${d.folderId || ''}" checked onchange="app.updateAiDecomposeScopeStats()" class="rounded text-purple-600 focus:ring-purple-500">
-                    <span class="text-slate-700 flex items-center gap-1 truncate">
-                        <span>📄</span> <span class="text-slate-400 text-[10px]">${folderPrefix}</span><span>${this.escapeHtml(d.title || '未命名文檔')}</span>
-                    </span>
-                </label>
+                <div class="p-1.5 bg-white border border-slate-200/80 rounded-md space-y-1">
+                    <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-1">根目錄文檔 (${rootDocs.length} 篇)</div>
+                    <div class="space-y-1 pl-1">
+                        ${rootDocs.map(d => `
+                            <label class="flex items-center gap-2 py-0.5 cursor-pointer text-slate-700 hover:text-slate-900 select-none">
+                                <input type="checkbox" name="aiScopeDoc" value="${d.id}" data-folder-id="" checked onchange="app.updateAiDecomposeScopeStats()" class="rounded text-purple-600 focus:ring-purple-500">
+                                <span class="truncate flex items-center gap-1 text-[11px]">
+                                    <span>📄</span> <span>${this.escapeHtml(d.title || '未命名文檔')}</span>
+                                </span>
+                            </label>
+                        `).join('')}
+                    </div>
+                </div>
             `;
-        });
+        }
 
         container.innerHTML = html;
         this.updateAiDecomposeScopeStats();
