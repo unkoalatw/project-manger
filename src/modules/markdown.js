@@ -583,30 +583,29 @@ export const markdown = {
                     return match;
                 });
 
-                // 2.8 分頁符號前處理 (Page Break - 支援 <!-- pagebreak -->, [pagebreak], [分頁], <div class="page-break"></div>, \pagebreak, \newpage, ---pagebreak---, ===pagebreak===)
+                // 2.9 & 2.95 文件內動態資料庫表格語法與個人小工具 Block、有狀態內容與 Live Data Block 前處理
+                const widgetBlocks = [];
+
+                // 2.8 分頁符號前處理
                 const isPageBreakActive = this.state.enablePageBreaks !== false;
                 const pageBreakRegex = /(?:<!--\s*pagebreak\s*-->|\[pagebreak\]|\[分頁\]|<div[^>]*class=["'][^"']*page[-_]?break[^"']*["'][^>]*>[\s\S]*?<\/div>|\\pagebreak|\\newpage|---pagebreak---|===pagebreak===)/gi;
-                if (isPageBreakActive) {
-                    text = text.replace(pageBreakRegex, '\n\n<div class="doc-page-break not-prose"><div class="doc-page-break-indicator no-print my-6 py-2 px-3 bg-zinc-100 border-2 border-dashed border-zinc-400 text-zinc-600 font-bold text-xs flex items-center justify-between select-none"><span class="flex items-center gap-1.5 font-mono">✂️ 📄 ── 分頁標記 (由此移至下一頁) ──</span><span class="text-[10px] bg-white border border-black px-1.5 py-0.5">PAGE BREAK</span></div></div>\n\n');
-                } else {
-                    text = text.replace(pageBreakRegex, '\n\n<div class="doc-page-break-disabled not-prose no-print my-3 py-1.5 px-3 bg-zinc-50 border border-dashed border-zinc-300 text-zinc-400 font-bold text-xs flex items-center justify-between select-none"><span>🚫 📄 分頁已停用 (忽略換頁)</span></div>\n\n');
-                }
-
-                // 2.9 文件內動態資料庫表格語法前處理 (支援 /table 資料表名稱 或 :::table 資料表名稱)
-                text = this.preprocessInlineDatabaseTables(text);
-
-                // 2.95 個人小工具 Block、有狀態內容與 Live Data Block 前處理
-                if (typeof this.preprocessDocWidgets === 'function') {
-                    text = this.preprocessDocWidgets(text);
-                }
-
-                // 2.96 提取並保護所有已生成的 HTML 區塊 (Doc Widgets, Database Tables, KPI Cards, Live Data)，防止 Marked.js 逃逸標籤或破壞排版
-                const widgetBlocks = [];
-                text = text.replace(/<div class="doc-(?:kpi-grid|kpi-card|widget-card|live-data-card|db-table-wrapper|table-wrapper|stateful|page-break)[^"]*"[\s\S]*?<\/div>(?:\s*<\/div>)?/g, (match) => {
-                    const placeholder = `DOCWIDGETBLOCKX${widgetBlocks.length}Z`;
-                    widgetBlocks.push(match);
-                    return `\n\n${placeholder}\n\n`;
+                text = text.replace(pageBreakRegex, () => {
+                    const token = `___FLATSPEC_WIDGET_BLOCK_${widgetBlocks.length}___`;
+                    if (isPageBreakActive) {
+                        widgetBlocks.push('<div class="doc-page-break not-prose"><div class="doc-page-break-indicator no-print my-6 py-2 px-3 bg-zinc-100 border-2 border-dashed border-zinc-400 text-zinc-600 font-bold text-xs flex items-center justify-between select-none"><span class="flex items-center gap-1.5 font-mono">✂️ 📄 ── 分頁標記 (由此移至下一頁) ──</span><span class="text-[10px] bg-white border border-black px-1.5 py-0.5">PAGE BREAK</span></div></div>');
+                    } else {
+                        widgetBlocks.push('<div class="doc-page-break-disabled not-prose no-print my-3 py-1.5 px-3 bg-zinc-50 border border-dashed border-zinc-300 text-zinc-400 font-bold text-xs flex items-center justify-between select-none"><span>🚫 📄 分頁已停用 (忽略換頁)</span></div>');
+                    }
+                    return `\n\n${token}\n\n`;
                 });
+
+                if (typeof this.preprocessInlineDatabaseTables === 'function') {
+                    text = this.preprocessInlineDatabaseTables(text, widgetBlocks);
+                }
+
+                if (typeof this.preprocessDocWidgets === 'function') {
+                    text = this.preprocessDocWidgets(text, widgetBlocks);
+                }
 
                 // 3. 執行全規格 Marked.js 解析
                 let html = '';
@@ -651,9 +650,9 @@ export const markdown = {
                     return `<details class="my-3 border-2 border-black rounded-none bg-white p-3 flat-box shadow-[3px_3px_0px_0px_#000]"><summary class="cursor-pointer font-bold text-xs sm:text-sm text-black select-none py-1">▶ ${title.trim()}</summary><div class="pt-2 text-xs sm:text-sm text-zinc-800 border-t-2 border-black mt-2 leading-relaxed">${body.trim()}</div></details>`;
                 });
 
-                // 5. 還原 Doc Widget Blocks 與資料庫元件
+                // 5. 還原 Doc Widget Blocks 與資料庫元件 (支援 <p> 包覆與純文字還原)
                 widgetBlocks.forEach((wb, idx) => {
-                    const tag = `DOCWIDGETBLOCKX${idx}Z`;
+                    const tag = `___FLATSPEC_WIDGET_BLOCK_${idx}___`;
                     html = html.split(`<p>${tag}</p>`).join(wb);
                     html = html.split(tag).join(wb);
                 });

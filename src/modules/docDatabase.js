@@ -1,11 +1,11 @@
 // FlatSpec Module: docDatabase
 export const docDatabase = {
 // ================= 📊 文件內動態資料庫表格引擎 (Inline Database Tables) =================
-            preprocessInlineDatabaseTables(text) {
+            preprocessInlineDatabaseTables(text, widgetStore = null) {
                 if (!text || typeof text !== 'string') return text || '';
 
                 // 匹配 /table <名稱> 或 :::table <名稱> 及其後續 Markdown 表格定義
-                const tableBlockRegex = /(?:^\/table\s+([^\n]+)|:::table\s+([^\n]+))\n([\s\S]*?)(?=(?:\n\/table|\n:::table|\n\n\n|$))/gm;
+                const tableBlockRegex = /(?:^\/table\s+([^\n]+)|:::table\s+([^\n]+))\n((?:\|[^\n]+\|\n?)+)/gm;
 
                 return text.replace(tableBlockRegex, (match, title1, title2, tableBody) => {
                     const tableName = (title1 || title2 || '動態資料庫').trim();
@@ -61,7 +61,7 @@ export const docDatabase = {
                         </tr>`;
                     });
 
-                    return `
+                    const renderedHtml = `
                         <div class="doc-inline-db-card not-prose my-6" data-db-id="${tableId}" data-db-name="${this.escapeHtml(tableName)}">
                             <div class="doc-inline-db-header">
                                 <div class="flex items-center gap-2">
@@ -83,6 +83,13 @@ export const docDatabase = {
                             </div>
                         </div>
                     `;
+
+                    if (Array.isArray(widgetStore)) {
+                        const token = `___FLATSPEC_WIDGET_BLOCK_${widgetStore.length}___`;
+                        widgetStore.push(renderedHtml);
+                        return `\n\n${token}\n\n`;
+                    }
+                    return renderedHtml;
                 });
             },
 
@@ -113,7 +120,7 @@ export const docDatabase = {
                 if (!doc || !doc.content) return;
 
                 // 搜尋文檔中對應的 /table 區塊並精確替換該儲存格
-                const tableBlockRegex = /(?:^\/table\s+([^\n]+)|:::table\s+([^\n]+))\n([\s\S]*?)(?=(?:\n\/table|\n:::table|\n\n\n|$))/gm;
+                const tableBlockRegex = /(?:^\/table\s+([^\n]+)|:::table\s+([^\n]+))\n((?:\|[^\n]+\|\n?)+)/gm;
 
                 let updated = false;
                 const newContent = doc.content.replace(tableBlockRegex, (match, title1, title2, tableBody) => {
@@ -162,7 +169,7 @@ export const docDatabase = {
                 const doc = p?.docs?.find(d => d.id === this.state.activeDocId);
                 if (!doc || !doc.content) return;
 
-                const tableBlockRegex = /(?:^\/table\s+([^\n]+)|:::table\s+([^\n]+))\n([\s\S]*?)(?=(?:\n\/table|\n:::table|\n\n\n|$))/gm;
+                const tableBlockRegex = /(?:^\/table\s+([^\n]+)|:::table\s+([^\n]+))\n((?:\|[^\n]+\|\n?)+)/gm;
 
                 let updated = false;
                 const newContent = doc.content.replace(tableBlockRegex, (match, title1, title2, tableBody) => {
@@ -193,7 +200,7 @@ export const docDatabase = {
                 const doc = p?.docs?.find(d => d.id === this.state.activeDocId);
                 if (!doc || !doc.content) return;
 
-                const tableBlockRegex = /(?:^\/table\s+([^\n]+)|:::table\s+([^\n]+))\n([\s\S]*?)(?=(?:\n\/table|\n:::table|\n\n\n|$))/gm;
+                const tableBlockRegex = /(?:^\/table\s+([^\n]+)|:::table\s+([^\n]+))\n((?:\|[^\n]+\|\n?)+)/gm;
 
                 let updated = false;
                 const newContent = doc.content.replace(tableBlockRegex, (match, title1, title2, tableBody) => {

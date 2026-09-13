@@ -6,10 +6,18 @@ export const docWidgets = {
     _widgetIntervals: {},
 
     // ================= 1. Personal Widgets (小工具 Block 預處理引擎) =================
-    preprocessDocWidgets(text) {
+    preprocessDocWidgets(text, widgetStore = null) {
         if (!text || typeof text !== 'string') return text || '';
 
-        
+        const storeWidget = (html) => {
+            if (Array.isArray(widgetStore)) {
+                const token = `___FLATSPEC_WIDGET_BLOCK_${widgetStore.length}___`;
+                widgetStore.push(html.trim());
+                return `\n\n${token}\n\n`;
+            }
+            return `\n\n${html.trim()}\n\n`;
+        };
+
         // 1.10 YouTube / KPI Stat Card (:::kpi 或 :::yt-stat 或 /yt-stat)
         // 語法: :::yt-stat [標題] | [數值] | [趨勢變更] | [進度%] | [目標值/備註]
         const kpiRegex = /(?:^\/yt-stat\s*([^\n]*)|:::yt-stat\s*([^\n:]+?)(?::::|\n([\s\S]*?):::)|:::yt-stat\s*([^\n]*)([\s\S]*?):::|:::kpi\s*([^\n:]+?)(?::::|\n([\s\S]*?):::)|:::kpi\s*([^\n]*)([\s\S]*?):::)/gm;
@@ -59,16 +67,17 @@ export const docWidgets = {
             </div>\n`;
         });
 
-        // 將連續相鄰的 doc-kpi-card 包覆在響應式 Grid 容器中
+        // 將連續相鄰的 doc-kpi-card 包覆在響應式 Grid 容器中，並納入 widgetStore
         text = text.replace(/(?:(?:\s*<div class="doc-kpi-card[\s\S]*?<\/div>\s*)+)/g, (groupMatch) => {
-            return `\n\n<div class="doc-kpi-grid not-prose my-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 w-full">${groupMatch.trim()}</div>\n\n`;
+            const gridHtml = `<div class="doc-kpi-grid not-prose my-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 w-full">${groupMatch.trim()}</div>`;
+            return storeWidget(gridHtml);
         });
 
         // 1.1 /calculator 或 :::calc [公式]
         text = text.replace(/(?:^\/calculator\s*([^\n]*)|:::calc\s*([^\n]*)([\s\S]*?):::)/gm, (match, p1, p2, p3) => {
             const initialExpr = (p1 || p2 || (p3 ? p3.trim() : '') || '').trim();
             const widgetId = 'calc_' + Math.abs(this.hashCode(match + Math.random()));
-            return `\n\n<div class="doc-widget-card not-prose my-4 p-4 border-2 border-black bg-white rounded-xl shadow-[4px_4px_0px_0px_#000]" data-widget="calc" id="${widgetId}">
+            const html = `<div class="doc-widget-card not-prose my-4 p-4 border-2 border-black bg-white rounded-xl shadow-[4px_4px_0px_0px_#000]" data-widget="calc" id="${widgetId}">
                 <div class="flex items-center justify-between border-b-2 border-black pb-2 mb-3">
                     <div class="flex items-center gap-2">
                         <span class="text-base">🧮</span>
@@ -86,7 +95,8 @@ export const docWidgets = {
                         <span class="result-val text-base font-black text-blue-700">${initialExpr ? this.safeEvalMath(initialExpr) : '0'}</span>
                     </div>
                 </div>
-            </div>\n\n`;
+            </div>`;
+            return storeWidget(html);
         });
 
         // 1.2 /countdown <時間/日期> 或 :::countdown <時間/日期> [標題]
@@ -94,7 +104,7 @@ export const docWidgets = {
             const rawArgs = (p1 || p2 || '').trim();
             const customTitle = (p3 ? p3.trim() : '') || '目標倒數計時';
             const widgetId = 'cd_' + Math.abs(this.hashCode(match + Math.random()));
-            return `\n\n<div class="doc-widget-card not-prose my-4 p-4 border-2 border-black bg-white rounded-xl shadow-[4px_4px_0px_0px_#000]" data-widget="countdown" data-target="${this.escapeHtml(rawArgs)}" id="${widgetId}">
+            const html = `<div class="doc-widget-card not-prose my-4 p-4 border-2 border-black bg-white rounded-xl shadow-[4px_4px_0px_0px_#000]" data-widget="countdown" data-target="${this.escapeHtml(rawArgs)}" id="${widgetId}">
                 <div class="flex items-center justify-between border-b-2 border-black pb-2 mb-3">
                     <div class="flex items-center gap-2">
                         <span class="text-base">⏳</span>
@@ -112,14 +122,15 @@ export const docWidgets = {
                     <div class="p-2 bg-zinc-50 border border-black rounded-lg min-w-[55px]"><span class="block text-xl font-black font-mono text-rose-600 secs">00</span><span class="text-[10px] text-zinc-500 font-bold">秒 SECS</span></div>
                 </div>
                 <div class="text-[10px] font-mono text-zinc-400 text-center mt-1">目標時間: ${this.escapeHtml(rawArgs)}</div>
-            </div>\n\n`;
+            </div>`;
+            return storeWidget(html);
         });
 
         // 1.3 /stopwatch 或 :::stopwatch
         text = text.replace(/(?:^\/stopwatch|:::stopwatch([\s\S]*?):::)/gm, (match, p1) => {
             const title = (p1 ? p1.trim() : '') || '碼錶計時器 Stopwatch';
             const widgetId = 'sw_' + Math.abs(this.hashCode(match + Math.random()));
-            return `\n\n<div class="doc-widget-card not-prose my-4 p-4 border-2 border-black bg-white rounded-xl shadow-[4px_4px_0px_0px_#000]" data-widget="stopwatch" id="${widgetId}">
+            const html = `<div class="doc-widget-card not-prose my-4 p-4 border-2 border-black bg-white rounded-xl shadow-[4px_4px_0px_0px_#000]" data-widget="stopwatch" id="${widgetId}">
                 <div class="flex items-center justify-between border-b-2 border-black pb-2 mb-3">
                     <div class="flex items-center gap-2">
                         <span class="text-base">⏱️</span>
@@ -136,14 +147,15 @@ export const docWidgets = {
                     </div>
                     <div id="${widgetId}_laps" class="w-full max-h-24 overflow-y-auto text-[11px] font-mono text-zinc-600 space-y-1"></div>
                 </div>
-            </div>\n\n`;
+            </div>`;
+            return storeWidget(html);
         });
 
         // 1.4 /random <選項1, 選項2... 或 1-100> 或 :::random
         text = text.replace(/(?:^\/random\s*([^\n]*)|:::random\s*([^\n]*)([\s\S]*?):::)/gm, (match, p1, p2, p3) => {
             const raw = (p1 || p2 || (p3 ? p3.trim() : '') || '1-100').trim();
             const widgetId = 'rnd_' + Math.abs(this.hashCode(match + Math.random()));
-            return `\n\n<div class="doc-widget-card not-prose my-4 p-4 border-2 border-black bg-white rounded-xl shadow-[4px_4px_0px_0px_#000]" data-widget="random" id="${widgetId}">
+            const html = `<div class="doc-widget-card not-prose my-4 p-4 border-2 border-black bg-white rounded-xl shadow-[4px_4px_0px_0px_#000]" data-widget="random" id="${widgetId}">
                 <div class="flex items-center justify-between border-b-2 border-black pb-2 mb-3">
                     <div class="flex items-center gap-2">
                         <span class="text-base">🎲</span>
@@ -160,7 +172,8 @@ export const docWidgets = {
                         <span class="text-base font-black text-purple-950">點擊「抽籤！」按鈕開始隨機選取</span>
                     </div>
                 </div>
-            </div>\n\n`;
+            </div>`;
+            return storeWidget(html);
         });
 
         // 1.5 /counter <初始值> <名稱> 或 :::counter
@@ -170,7 +183,7 @@ export const docWidgets = {
             const initVal = parseInt(parts[0], 10) || 0;
             const label = parts.slice(1).join(' ') || '計數統計';
             const widgetId = 'cnt_' + Math.abs(this.hashCode(match + Math.random()));
-            return `\n\n<div class="doc-widget-card not-prose my-4 p-4 border-2 border-black bg-white rounded-xl shadow-[4px_4px_0px_0px_#000]" data-widget="counter" id="${widgetId}">
+            const html = `<div class="doc-widget-card not-prose my-4 p-4 border-2 border-black bg-white rounded-xl shadow-[4px_4px_0px_0px_#000]" data-widget="counter" id="${widgetId}">
                 <div class="flex items-center justify-between border-b-2 border-black pb-2 mb-3">
                     <div class="flex items-center gap-2">
                         <span class="text-base">🔢</span>
@@ -184,7 +197,8 @@ export const docWidgets = {
                     <button type="button" onclick="app.updateDocCounter('${widgetId}', 1)" class="w-10 h-10 bg-emerald-500 hover:bg-emerald-600 text-white border-2 border-black font-black text-lg rounded-lg shadow-[2px_2px_0px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 transition-all">＋</button>
                     <button type="button" onclick="app.updateDocCounter('${widgetId}', 0, true)" class="px-2.5 py-2 bg-zinc-100 hover:bg-zinc-200 border border-black font-bold text-xs rounded text-zinc-600">重設</button>
                 </div>
-            </div>\n\n`;
+            </div>`;
+            return storeWidget(html);
         });
 
         // 1.6 /qr <文字或網址> 或 :::qr <文字或網址>
@@ -192,7 +206,7 @@ export const docWidgets = {
             const target = (p1 || p2 || (p3 ? p3.trim() : '') || '').trim();
             const widgetId = 'qr_' + Math.abs(this.hashCode(match + Math.random()));
             const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(target)}`;
-            return `\n\n<div class="doc-widget-card not-prose my-4 p-4 border-2 border-black bg-white rounded-xl shadow-[4px_4px_0px_0px_#000] max-w-sm" data-widget="qr" id="${widgetId}">
+            const html = `<div class="doc-widget-card not-prose my-4 p-4 border-2 border-black bg-white rounded-xl shadow-[4px_4px_0px_0px_#000] max-w-sm" data-widget="qr" id="${widgetId}">
                 <div class="flex items-center justify-between border-b-2 border-black pb-2 mb-3">
                     <div class="flex items-center gap-2">
                         <span class="text-base">📱</span>
@@ -206,7 +220,8 @@ export const docWidgets = {
                     </div>
                     <div class="text-[11px] font-mono text-zinc-600 truncate max-w-full px-2" title="${this.escapeHtml(target)}">${this.escapeHtml(target)}</div>
                 </div>
-            </div>\n\n`;
+            </div>`;
+            return storeWidget(html);
         });
 
         // 1.7 /clipboard <內容> 或 :::clipboard <內容>
@@ -214,7 +229,7 @@ export const docWidgets = {
             const label = (p2 || '快速複製常用片段').trim();
             const snippet = (p3 || p1 || '').trim();
             const widgetId = 'clip_' + Math.abs(this.hashCode(match + Math.random()));
-            return `\n\n<div class="doc-widget-card not-prose my-3 p-3 border-2 border-black bg-amber-50/50 rounded-xl shadow-[3px_3px_0px_0px_#000] flex items-center justify-between gap-3" data-widget="clipboard" id="${widgetId}">
+            const html = `<div class="doc-widget-card not-prose my-3 p-3 border-2 border-black bg-amber-50/50 rounded-xl shadow-[3px_3px_0px_0px_#000] flex items-center justify-between gap-3" data-widget="clipboard" id="${widgetId}">
                 <div class="flex items-center gap-2 min-w-0">
                     <span class="text-base">📋</span>
                     <div class="min-w-0">
@@ -223,13 +238,14 @@ export const docWidgets = {
                     </div>
                 </div>
                 <button type="button" onclick="navigator.clipboard.writeText(decodeURIComponent('${encodeURIComponent(snippet)}')); app.showToast('📋 已複製至剪貼簿！');" class="px-3 py-1.5 bg-black text-white hover:bg-zinc-800 font-bold text-xs rounded border border-black shrink-0 shadow-[1.5px_1.5px_0px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 transition-all">一鍵複製</button>
-            </div>\n\n`;
+            </div>`;
+            return storeWidget(html);
         });
 
         // 1.8 /converter 或 :::converter
         text = text.replace(/(?:^\/converter|:::converter([\s\S]*?):::)/gm, (match) => {
             const widgetId = 'conv_' + Math.abs(this.hashCode(match + Math.random()));
-            return `\n\n<div class="doc-widget-card not-prose my-4 p-4 border-2 border-black bg-white rounded-xl shadow-[4px_4px_0px_0px_#000]" data-widget="converter" id="${widgetId}">
+            const html = `<div class="doc-widget-card not-prose my-4 p-4 border-2 border-black bg-white rounded-xl shadow-[4px_4px_0px_0px_#000]" data-widget="converter" id="${widgetId}">
                 <div class="flex items-center justify-between border-b-2 border-black pb-2 mb-3">
                     <div class="flex items-center gap-2">
                         <span class="text-base">🔄</span>
@@ -249,7 +265,8 @@ export const docWidgets = {
                     </select>
                     <div id="${widgetId}_result" class="p-2 bg-cyan-50 border border-black rounded font-mono font-black text-xs flex items-center justify-center text-cyan-950">3,250 TWD</div>
                 </div>
-            </div>\n\n`;
+            </div>`;
+            return storeWidget(html);
         });
 
         // 1.9 /poll-self 或 :::poll <題目> | <選項1> | <選項2> ...
@@ -270,7 +287,7 @@ export const docWidgets = {
                 `;
             });
 
-            return `\n\n<div class="doc-widget-card not-prose my-4 p-4 border-2 border-black bg-white rounded-xl shadow-[4px_4px_0px_0px_#000]" data-widget="poll" id="${widgetId}">
+            const html = `<div class="doc-widget-card not-prose my-4 p-4 border-2 border-black bg-white rounded-xl shadow-[4px_4px_0px_0px_#000]" data-widget="poll" id="${widgetId}">
                 <div class="flex items-center justify-between border-b-2 border-black pb-2 mb-3">
                     <div class="flex items-center gap-2">
                         <span class="text-base">📊</span>
@@ -279,7 +296,8 @@ export const docWidgets = {
                     <span class="text-[10px] font-mono bg-purple-100 text-purple-900 border border-purple-800 font-bold px-1.5 py-0.5 rounded">POLL</span>
                 </div>
                 <div class="space-y-1.5" id="${widgetId}_options">${optsHtml}</div>
-            </div>\n\n`;
+            </div>`;
+            return storeWidget(html);
         });
 
         // ================= 2. Stateful Blocks (有狀態內容渲染) =================
@@ -322,7 +340,7 @@ export const docWidgets = {
             const refreshSec = refreshMatch ? parseInt(refreshMatch[1], 10) * (refreshMatch[2] === 'm' ? 60 : 1) : 0;
             const widgetId = 'data_' + Math.abs(this.hashCode(url + Math.random()));
 
-            return `\n\n<div class="doc-live-data-card not-prose my-4 p-4 border-2 border-black bg-slate-900 text-white rounded-xl shadow-[4px_4px_0px_0px_#000]" data-widget="livedata" data-url="${this.escapeHtml(url)}" data-refresh="${refreshSec}" id="${widgetId}">
+            const html = `<div class="doc-live-data-card not-prose my-4 p-4 border-2 border-black bg-slate-900 text-white rounded-xl shadow-[4px_4px_0px_0px_#000]" data-widget="livedata" data-url="${this.escapeHtml(url)}" data-refresh="${refreshSec}" id="${widgetId}">
                 <div class="flex items-center justify-between border-b border-slate-700 pb-2 mb-3">
                     <div class="flex items-center gap-2">
                         <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" id="${widgetId}_dot"></span>
@@ -337,7 +355,8 @@ export const docWidgets = {
                 <div id="${widgetId}_content" class="bg-slate-950 p-3 rounded-lg border border-slate-800 font-mono text-xs text-slate-200 min-h-[60px] flex items-center justify-center">
                     <span class="text-slate-500 animate-pulse">正在自遠端拉取即時數據...</span>
                 </div>
-            </div>\n\n`;
+            </div>`;
+            return storeWidget(html);
         });
 
         return text;
