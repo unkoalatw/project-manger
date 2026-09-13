@@ -85,7 +85,7 @@ export const docDatabase = {
                     `;
 
                     if (Array.isArray(widgetStore)) {
-                        const token = `___FLATSPEC_WIDGET_BLOCK_${widgetStore.length}___`;
+                        const token = `DOCWIDGETBLOCKX${widgetStore.length}Z`;
                         widgetStore.push(renderedHtml);
                         return `\n\n${token}\n\n`;
                     }

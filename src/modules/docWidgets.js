@@ -11,7 +11,7 @@ export const docWidgets = {
 
         const storeWidget = (html) => {
             if (Array.isArray(widgetStore)) {
-                const token = `___FLATSPEC_WIDGET_BLOCK_${widgetStore.length}___`;
+                const token = `DOCWIDGETBLOCKX${widgetStore.length}Z`;
                 widgetStore.push(html.trim());
                 return `\n\n${token}\n\n`;
             }
@@ -700,6 +700,12 @@ export const docWidgets = {
     initActiveWidgets(containerEl) {
         if (!containerEl) return;
 
+        // 清理所有先前運行的計時器與輪詢間隔，避免記憶體洩漏與 CPU 佔用
+        if (this._activeWidgetTimers && Array.isArray(this._activeWidgetTimers)) {
+            this._activeWidgetTimers.forEach(id => clearInterval(id));
+        }
+        this._activeWidgetTimers = [];
+
         containerEl.querySelectorAll('[data-widget="countdown"]').forEach(card => {
             const widgetId = card.id;
             const targetStr = card.getAttribute('data-target');
@@ -735,7 +741,8 @@ export const docWidgets = {
             };
 
             updateCd();
-            setInterval(updateCd, 1000);
+            const timerId = setInterval(updateCd, 1000);
+            this._activeWidgetTimers.push(timerId);
         });
 
         containerEl.querySelectorAll('[data-widget="livedata"]').forEach(card => {
@@ -743,9 +750,10 @@ export const docWidgets = {
             const refreshSec = parseInt(card.getAttribute('data-refresh'), 10) || 0;
             this.fetchDocLiveData(widgetId);
             if (refreshSec > 0) {
-                setInterval(() => {
+                const timerId = setInterval(() => {
                     this.fetchDocLiveData(widgetId);
-                }, refreshSec * 1000);
+                }, Math.max(5, refreshSec) * 1000);
+                this._activeWidgetTimers.push(timerId);
             }
         });
     },

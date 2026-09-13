@@ -590,7 +590,7 @@ export const markdown = {
                 const isPageBreakActive = this.state.enablePageBreaks !== false;
                 const pageBreakRegex = /(?:<!--\s*pagebreak\s*-->|\[pagebreak\]|\[分頁\]|<div[^>]*class=["'][^"']*page[-_]?break[^"']*["'][^>]*>[\s\S]*?<\/div>|\\pagebreak|\\newpage|---pagebreak---|===pagebreak===)/gi;
                 text = text.replace(pageBreakRegex, () => {
-                    const token = `___FLATSPEC_WIDGET_BLOCK_${widgetBlocks.length}___`;
+                    const token = `DOCWIDGETBLOCKX${widgetBlocks.length}Z`;
                     if (isPageBreakActive) {
                         widgetBlocks.push('<div class="doc-page-break not-prose"><div class="doc-page-break-indicator no-print my-6 py-2 px-3 bg-zinc-100 border-2 border-dashed border-zinc-400 text-zinc-600 font-bold text-xs flex items-center justify-between select-none"><span class="flex items-center gap-1.5 font-mono">✂️ 📄 ── 分頁標記 (由此移至下一頁) ──</span><span class="text-[10px] bg-white border border-black px-1.5 py-0.5">PAGE BREAK</span></div></div>');
                     } else {
@@ -652,15 +652,17 @@ export const markdown = {
 
                 // 5. 還原 Doc Widget Blocks 與資料庫元件 (支援 <p> 包覆與純文字還原)
                 widgetBlocks.forEach((wb, idx) => {
-                    const tag = `___FLATSPEC_WIDGET_BLOCK_${idx}___`;
-                    html = html.split(`<p>${tag}</p>`).join(wb);
+                    const tag = `DOCWIDGETBLOCKX${idx}Z`;
+                    const regex = new RegExp(`(?:<p>)?(?:<em><strong>|<strong><em>)?${tag}(?:<\\/strong><\\/em>|<\\/em><\\/strong>)?(?:<\\/p>)?`, 'g');
+                    html = html.replace(regex, wb);
                     html = html.split(tag).join(wb);
                 });
 
                 // 6. 還原數學公式 (Math Blocks)
                 mathBlocks.forEach((mb, idx) => {
                     const tag = `MATHBLOCKX${idx}Z`;
-                    html = html.split(`<p>${tag}</p>`).join(mb);
+                    const regex = new RegExp(`(?:<p>)?${tag}(?:<\\/p>)?`, 'g');
+                    html = html.replace(regex, mb);
                     html = html.split(tag).join(mb);
                 });
 
