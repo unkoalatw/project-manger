@@ -1,6 +1,22 @@
 // FlatSpec Module: docs
 export const docs = {
 // ================= 文檔編輯器與引用連結邏輯 =================
+            getCurrentDoc() {
+                const p = this.getCurrentProject();
+                if (!p || !p.docs) return null;
+                return p.docs.find(d => d.id === this.state.activeDocId) || p.docs[0] || null;
+            },
+
+            renderMarkdownToHtml(md) {
+                return this.parseMarkdown(md);
+            },
+
+            playAudioFeedback(type = 'click') {
+                if (typeof this.playSound === 'function') {
+                    this.playSound(type);
+                }
+            },
+
             openDoc(docId, targetMode) {
                 const p = this.getCurrentProject();
                 if (this.isProjectLocked(p)) {
