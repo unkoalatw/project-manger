@@ -507,7 +507,15 @@ export const markdown = {
 
                 let text = md;
 
-                // 0. 流程圖 / Mermaid 語法智慧容錯前處理
+                // 0. 保護程式碼區塊 (Fenced Code Blocks ```...```)，避免內部文字被視為 Widgets、Callouts 或 Math 進行誤替換
+                const codeBlocks = [];
+                text = text.replace(/(?:^|\n)(```[\s\S]*?```|~~~[\s\S]*?~~~)(?=\n|$)/g, (match) => {
+                    const placeholder = `CODEBLOCKX${codeBlocks.length}Z`;
+                    codeBlocks.push(match);
+                    return `\n${placeholder}\n`;
+                });
+
+                // 0.5 流程圖 / Mermaid 語法智慧容錯前處理
                 text = this.preprocessMermaidDiagrams(text);
 
                 // 1. 提取並保護數學公式 LaTeX / KaTeX ($$...$$, \[...\], $...$, \(...\))
@@ -606,6 +614,11 @@ export const markdown = {
                 if (typeof this.preprocessDocWidgets === 'function') {
                     text = this.preprocessDocWidgets(text, widgetBlocks);
                 }
+
+                // 還原程式碼區塊 (Code Blocks)，讓 Marked.js 正常高亮程式碼
+                codeBlocks.forEach((cb, idx) => {
+                    text = text.split(`CODEBLOCKX${idx}Z`).join(cb);
+                });
 
                 // 3. 執行全規格 Marked.js 解析
                 let html = '';

@@ -51,6 +51,10 @@ export const reader = {
 
             closeCleanReader() {
                 const overlay = document.getElementById('cleanReaderOverlay');
+                const contentEl = document.getElementById('cleanReaderContent');
+                if (contentEl && typeof this.disposeActiveWidgets === 'function') {
+                    this.disposeActiveWidgets(contentEl);
+                }
                 if (overlay) overlay.classList.add('hidden');
                 document.body.style.overflow = '';
             },

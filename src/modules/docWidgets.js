@@ -21,6 +21,7 @@ export const docWidgets = {
         // 1.10 YouTube / KPI Stat Card (:::kpi 或 :::yt-stat 或 /yt-stat)
         // 語法: :::yt-stat [標題] | [數值] | [趨勢變更] | [進度%] | [目標值/備註]
         const kpiRegex = /(?:^\/yt-stat\s*([^\n]*)|:::yt-stat\s*([^\n:]+?)(?::::|\n([\s\S]*?):::)|:::yt-stat\s*([^\n]*)([\s\S]*?):::|:::kpi\s*([^\n:]+?)(?::::|\n([\s\S]*?):::)|:::kpi\s*([^\n]*)([\s\S]*?):::)/gm;
+        const kpiCards = [];
         text = text.replace(kpiRegex, (match, p1, p2, p3, p4, p5, p6, p7, p8, p9) => {
             const raw = (p1 || p2 || p4 || p6 || p8 || (p3 ? p3.trim() : '') || (p5 ? p5.trim() : '') || (p7 ? p7.trim() : '') || (p9 ? p9.trim() : '') || '').trim();
             const parts = raw.split(/\||\n/).map(s => s.trim()).filter(Boolean);
@@ -42,7 +43,7 @@ export const docWidgets = {
             else if (/點閱|ctr|點擊/i.test(title)) icon = '🎯';
             else if (/續看|留存|retention/i.test(title)) icon = '📈';
 
-            return `\n<div class="doc-kpi-card p-4 border-2 border-black bg-white rounded-xl shadow-[4px_4px_0px_0px_#000] dark:bg-zinc-900 dark:border-zinc-700 dark:text-white flex flex-col justify-between">
+            const cardHtml = `<div class="doc-kpi-card p-4 border-2 border-black bg-white rounded-xl shadow-[4px_4px_0px_0px_#000] dark:bg-zinc-900 dark:border-zinc-700 dark:text-white flex flex-col justify-between">
                 <div>
                     <div class="flex items-center justify-between mb-2">
                         <div class="flex items-center gap-1.5 min-w-0">
@@ -64,19 +65,25 @@ export const docWidgets = {
                         </div>
                     </div>
                 ` : (note ? `<div class="text-[10px] font-mono text-zinc-600 dark:text-zinc-400 mt-2 truncate">${this.escapeHtml(note)}</div>` : '')}
-            </div>\n`;
+            </div>`;
+            const token = `YTKPICARDX${kpiCards.length}Z`;
+            kpiCards.push(cardHtml);
+            return `\n${token}\n`;
         });
 
-        // 將連續相鄰的 doc-kpi-card 包覆在響應式 Grid 容器中，並納入 widgetStore
-        text = text.replace(/(?:(?:\s*<div class="doc-kpi-card[\s\S]*?<\/div>\s*)+)/g, (groupMatch) => {
-            const gridHtml = `<div class="doc-kpi-grid not-prose my-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 w-full">${groupMatch.trim()}</div>`;
+        // 將連續相鄰的 doc-kpi-card 標記安全整合在響應式 Grid 容器中，並納入 widgetStore
+        text = text.replace(/(?:\s*YTKPICARDX\d+Z\s*)+/g, (groupMatch) => {
+            const cards = [...groupMatch.matchAll(/YTKPICARDX(\d+)Z/g)]
+                .map(m => kpiCards[Number(m[1])])
+                .join('');
+            const gridHtml = `<div class="doc-kpi-grid not-prose my-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 w-full">${cards}</div>`;
             return storeWidget(gridHtml);
         });
 
         // 1.1 /calculator 或 :::calc [公式]
         text = text.replace(/(?:^\/calculator\s*([^\n]*)|:::calc\s*([^\n]*)([\s\S]*?):::)/gm, (match, p1, p2, p3) => {
             const initialExpr = (p1 || p2 || (p3 ? p3.trim() : '') || '').trim();
-            const widgetId = 'calc_' + Math.abs(this.hashCode(match + Math.random()));
+            const widgetId = 'calc_' + Math.abs(this.hashCode(match));
             const html = `<div class="doc-widget-card not-prose my-4 p-4 border-2 border-black bg-white rounded-xl shadow-[4px_4px_0px_0px_#000]" data-widget="calc" id="${widgetId}">
                 <div class="flex items-center justify-between border-b-2 border-black pb-2 mb-3">
                     <div class="flex items-center gap-2">
@@ -99,12 +106,16 @@ export const docWidgets = {
             return storeWidget(html);
         });
 
-        // 1.2 /countdown <時間/日期> 或 :::countdown <時間/日期> [標題]
+        // 1.2 /countdown <時間/日期> [標題] 或 :::countdown <時間/日期> [標題]
         text = text.replace(/(?:^\/countdown\s+([^\n]+)|:::countdown\s+([^\n]+)([\s\S]*?):::)/gm, (match, p1, p2, p3) => {
             const rawArgs = (p1 || p2 || '').trim();
-            const customTitle = (p3 ? p3.trim() : '') || '目標倒數計時';
-            const widgetId = 'cd_' + Math.abs(this.hashCode(match + Math.random()));
-            const html = `<div class="doc-widget-card not-prose my-4 p-4 border-2 border-black bg-white rounded-xl shadow-[4px_4px_0px_0px_#000]" data-widget="countdown" data-target="${this.escapeHtml(rawArgs)}" id="${widgetId}">
+            // 解析日期時間與標題 (例: 2026-12-31 23:59:59 項目目標倒數 或 2026-12-31)
+            const dateMatch = rawArgs.match(/^(\d{4}-\d{2}-\d{2}(?:[ T]\d{2}:\d{2}(?::\d{2})?)?)(?:\s+(.+))?$/);
+            const targetDateStr = dateMatch ? dateMatch[1] : rawArgs;
+            const inlineTitle = dateMatch ? (dateMatch[2] || '') : '';
+            const customTitle = (p3 ? p3.trim() : '') || inlineTitle || '目標倒數計時';
+            const widgetId = 'cd_' + Math.abs(this.hashCode(match));
+            const html = `<div class="doc-widget-card not-prose my-4 p-4 border-2 border-black bg-white rounded-xl shadow-[4px_4px_0px_0px_#000]" data-widget="countdown" data-target="${this.escapeHtml(targetDateStr)}" id="${widgetId}">
                 <div class="flex items-center justify-between border-b-2 border-black pb-2 mb-3">
                     <div class="flex items-center gap-2">
                         <span class="text-base">⏳</span>
@@ -121,7 +132,7 @@ export const docWidgets = {
                     <span class="text-lg font-black">:</span>
                     <div class="p-2 bg-zinc-50 border border-black rounded-lg min-w-[55px]"><span class="block text-xl font-black font-mono text-rose-600 secs">00</span><span class="text-[10px] text-zinc-500 font-bold">秒 SECS</span></div>
                 </div>
-                <div class="text-[10px] font-mono text-zinc-400 text-center mt-1">目標時間: ${this.escapeHtml(rawArgs)}</div>
+                <div class="text-[10px] font-mono text-zinc-400 text-center mt-1">目標時間: ${this.escapeHtml(targetDateStr)}</div>
             </div>`;
             return storeWidget(html);
         });
@@ -129,7 +140,7 @@ export const docWidgets = {
         // 1.3 /stopwatch 或 :::stopwatch
         text = text.replace(/(?:^\/stopwatch|:::stopwatch([\s\S]*?):::)/gm, (match, p1) => {
             const title = (p1 ? p1.trim() : '') || '碼錶計時器 Stopwatch';
-            const widgetId = 'sw_' + Math.abs(this.hashCode(match + Math.random()));
+            const widgetId = 'sw_' + Math.abs(this.hashCode(match));
             const html = `<div class="doc-widget-card not-prose my-4 p-4 border-2 border-black bg-white rounded-xl shadow-[4px_4px_0px_0px_#000]" data-widget="stopwatch" id="${widgetId}">
                 <div class="flex items-center justify-between border-b-2 border-black pb-2 mb-3">
                     <div class="flex items-center gap-2">
@@ -154,7 +165,7 @@ export const docWidgets = {
         // 1.4 /random <選項1, 選項2... 或 1-100> 或 :::random
         text = text.replace(/(?:^\/random\s*([^\n]*)|:::random\s*([^\n]*)([\s\S]*?):::)/gm, (match, p1, p2, p3) => {
             const raw = (p1 || p2 || (p3 ? p3.trim() : '') || '1-100').trim();
-            const widgetId = 'rnd_' + Math.abs(this.hashCode(match + Math.random()));
+            const widgetId = 'rnd_' + Math.abs(this.hashCode(match));
             const html = `<div class="doc-widget-card not-prose my-4 p-4 border-2 border-black bg-white rounded-xl shadow-[4px_4px_0px_0px_#000]" data-widget="random" id="${widgetId}">
                 <div class="flex items-center justify-between border-b-2 border-black pb-2 mb-3">
                     <div class="flex items-center gap-2">
@@ -182,7 +193,7 @@ export const docWidgets = {
             const parts = raw.split(/\s+/);
             const initVal = parseInt(parts[0], 10) || 0;
             const label = parts.slice(1).join(' ') || '計數統計';
-            const widgetId = 'cnt_' + Math.abs(this.hashCode(match + Math.random()));
+            const widgetId = 'cnt_' + Math.abs(this.hashCode(match));
             const html = `<div class="doc-widget-card not-prose my-4 p-4 border-2 border-black bg-white rounded-xl shadow-[4px_4px_0px_0px_#000]" data-widget="counter" id="${widgetId}">
                 <div class="flex items-center justify-between border-b-2 border-black pb-2 mb-3">
                     <div class="flex items-center gap-2">
@@ -191,7 +202,7 @@ export const docWidgets = {
                     </div>
                     <span class="text-[10px] font-mono bg-emerald-100 text-emerald-900 border border-emerald-800 font-bold px-1.5 py-0.5 rounded">COUNTER</span>
                 </div>
-                <div class="flex items-center justify-center gap-4 py-2">
+                <div class="flex items-center justify-around gap-4 py-2">
                     <button type="button" onclick="app.updateDocCounter('${widgetId}', -1)" class="w-10 h-10 bg-zinc-100 hover:bg-zinc-200 border-2 border-black font-black text-lg rounded-lg shadow-[2px_2px_0px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 transition-all">－</button>
                     <div id="${widgetId}_val" class="min-w-[80px] text-center font-mono font-black text-3xl text-slate-900 px-4 py-1 bg-zinc-50 border-2 border-black rounded-lg">${initVal}</div>
                     <button type="button" onclick="app.updateDocCounter('${widgetId}', 1)" class="w-10 h-10 bg-emerald-500 hover:bg-emerald-600 text-white border-2 border-black font-black text-lg rounded-lg shadow-[2px_2px_0px_0px_#000] active:translate-x-0.5 active:translate-y-0.5 transition-all">＋</button>
@@ -204,7 +215,7 @@ export const docWidgets = {
         // 1.6 /qr <文字或網址> 或 :::qr <文字或網址>
         text = text.replace(/(?:^\/qr\s+([^\n]+)|:::qr\s+([^\n]+)([\s\S]*?):::)/gm, (match, p1, p2, p3) => {
             const target = (p1 || p2 || (p3 ? p3.trim() : '') || '').trim();
-            const widgetId = 'qr_' + Math.abs(this.hashCode(match + Math.random()));
+            const widgetId = 'qr_' + Math.abs(this.hashCode(match));
             const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=${encodeURIComponent(target)}`;
             const html = `<div class="doc-widget-card not-prose my-4 p-4 border-2 border-black bg-white rounded-xl shadow-[4px_4px_0px_0px_#000] max-w-sm" data-widget="qr" id="${widgetId}">
                 <div class="flex items-center justify-between border-b-2 border-black pb-2 mb-3">
@@ -228,7 +239,7 @@ export const docWidgets = {
         text = text.replace(/(?:^\/clipboard\s+([^\n]+)|:::clipboard\s*([^\n]*)\n([\s\S]*?):::)/gm, (match, p1, p2, p3) => {
             const label = (p2 || '快速複製常用片段').trim();
             const snippet = (p3 || p1 || '').trim();
-            const widgetId = 'clip_' + Math.abs(this.hashCode(match + Math.random()));
+            const widgetId = 'clip_' + Math.abs(this.hashCode(match));
             const html = `<div class="doc-widget-card not-prose my-3 p-3 border-2 border-black bg-amber-50/50 rounded-xl shadow-[3px_3px_0px_0px_#000] flex items-center justify-between gap-3" data-widget="clipboard" id="${widgetId}">
                 <div class="flex items-center gap-2 min-w-0">
                     <span class="text-base">📋</span>
@@ -244,7 +255,7 @@ export const docWidgets = {
 
         // 1.8 /converter 或 :::converter
         text = text.replace(/(?:^\/converter|:::converter([\s\S]*?):::)/gm, (match) => {
-            const widgetId = 'conv_' + Math.abs(this.hashCode(match + Math.random()));
+            const widgetId = 'conv_' + Math.abs(this.hashCode(match));
             const html = `<div class="doc-widget-card not-prose my-4 p-4 border-2 border-black bg-white rounded-xl shadow-[4px_4px_0px_0px_#000]" data-widget="converter" id="${widgetId}">
                 <div class="flex items-center justify-between border-b-2 border-black pb-2 mb-3">
                     <div class="flex items-center gap-2">
@@ -275,7 +286,7 @@ export const docWidgets = {
             const parts = raw.split(/\||\n/).map(s => s.trim()).filter(Boolean);
             const question = parts[0] || '自我狀態投票';
             const options = parts.slice(1);
-            const widgetId = 'poll_' + Math.abs(this.hashCode(match + Math.random()));
+            const widgetId = 'poll_' + Math.abs(this.hashCode(match));
             
             let optsHtml = '';
             options.forEach((opt, idx) => {
@@ -338,7 +349,7 @@ export const docWidgets = {
             const [url, ...options] = rawArgs.split(/\s+/);
             const refreshMatch = rawArgs.match(/refresh:(\d+)(s|m)?/i);
             const refreshSec = refreshMatch ? parseInt(refreshMatch[1], 10) * (refreshMatch[2] === 'm' ? 60 : 1) : 0;
-            const widgetId = 'data_' + Math.abs(this.hashCode(url + Math.random()));
+            const widgetId = 'data_' + Math.abs(this.hashCode(url));
 
             const html = `<div class="doc-live-data-card not-prose my-4 p-4 border-2 border-black bg-slate-900 text-white rounded-xl shadow-[4px_4px_0px_0px_#000]" data-widget="livedata" data-url="${this.escapeHtml(url)}" data-refresh="${refreshSec}" id="${widgetId}">
                 <div class="flex items-center justify-between border-b border-slate-700 pb-2 mb-3">
@@ -697,14 +708,23 @@ export const docWidgets = {
         }
     },
 
+    _widgetTimerScopes: new WeakMap(),
+
+    disposeActiveWidgets(containerEl) {
+        if (!containerEl) return;
+        const timers = this._widgetTimerScopes.get(containerEl);
+        if (Array.isArray(timers)) {
+            timers.forEach(id => clearInterval(id));
+        }
+        this._widgetTimerScopes.delete(containerEl);
+    },
+
     initActiveWidgets(containerEl) {
         if (!containerEl) return;
 
-        // 清理所有先前運行的計時器與輪詢間隔，避免記憶體洩漏與 CPU 佔用
-        if (this._activeWidgetTimers && Array.isArray(this._activeWidgetTimers)) {
-            this._activeWidgetTimers.forEach(id => clearInterval(id));
-        }
-        this._activeWidgetTimers = [];
+        // 清理當前容器先前運行的計時器與輪詢間隔，避免記憶體洩漏與 CPU 佔用，且不影響其他容器 (如 Reader / Preview 分離)
+        this.disposeActiveWidgets(containerEl);
+        const currentTimers = [];
 
         containerEl.querySelectorAll('[data-widget="countdown"]').forEach(card => {
             const widgetId = card.id;
@@ -742,7 +762,7 @@ export const docWidgets = {
 
             updateCd();
             const timerId = setInterval(updateCd, 1000);
-            this._activeWidgetTimers.push(timerId);
+            currentTimers.push(timerId);
         });
 
         containerEl.querySelectorAll('[data-widget="livedata"]').forEach(card => {
@@ -753,9 +773,11 @@ export const docWidgets = {
                 const timerId = setInterval(() => {
                     this.fetchDocLiveData(widgetId);
                 }, Math.max(5, refreshSec) * 1000);
-                this._activeWidgetTimers.push(timerId);
+                currentTimers.push(timerId);
             }
         });
+
+        this._widgetTimerScopes.set(containerEl, currentTimers);
     },
 
     // ================= 7. 斜線指令選單 (Slash Command Autocomplete `/`) =================
