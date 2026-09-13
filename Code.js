@@ -15,6 +15,22 @@ var SHEET_NAME_VIEW = '專案視覺化總覽';
  */
 function doGet(e) {
   try {
+    // 支援 GET 模式執行 AI 代理 (解決瀏覽器對 POST 302 redirect 偶發丟失連線的問題)
+    if (e && e.parameter && e.parameter.action) {
+      var act = e.parameter.action;
+      if (act === 'ai_task_decompose' || act === 'ai_decompose' || act === 'ai_doc_assist' || act === 'ai_get_key') {
+        var payload = {
+          action: act,
+          projectContext: e.parameter.projectContext || '',
+          userNotes: e.parameter.userNotes || '',
+          systemPrompt: e.parameter.systemPrompt || '',
+          userMessage: e.parameter.userMessage || '',
+          responseFormat: e.parameter.responseFormat || 'json_object'
+        };
+        return handleAiDecompositionProxy(payload);
+      }
+    }
+
     var ss = getTargetSpreadsheet();
     var sheet = getOrCreateDataSheet(ss);
     var rawData = readDataChunks(sheet);

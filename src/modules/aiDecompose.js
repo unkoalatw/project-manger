@@ -215,10 +215,10 @@ export const aiDecompose = {
 
         const userMessage = `${projectContext}\n額外指示: ${userNotes || '無'}`;
 
-        // 1. 優先透過 GAS 代理
+        // 1. 優先透過 GAS 代理 (支援 POST 與 GET 雙模式)
         if (this.state && this.state.gasUrl) {
             try {
-                const proxyResponse = await fetch(this.state.gasUrl, {
+                let proxyResponse = await fetch(this.state.gasUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     body: JSON.stringify({
@@ -243,7 +243,25 @@ export const aiDecompose = {
                     console.error('[AI Decompose] GAS HTTP Error:', proxyResponse.status, errText);
                 }
             } catch (proxyErr) {
-                console.error('[AI Decompose] GAS Fetch Failed:', proxyErr);
+                console.warn('[AI Decompose] GAS POST Failed, retrying via GET fallback...', proxyErr);
+                try {
+                    const params = new URLSearchParams({
+                        action: 'ai_task_decompose',
+                        projectContext: projectContext.slice(0, 1000),
+                        userNotes: (userNotes || '').slice(0, 500),
+                        t: Date.now().toString()
+                    });
+                    const getUrl = this.state.gasUrl + (this.state.gasUrl.includes('?') ? '&' : '?') + params.toString();
+                    const getRes = await fetch(getUrl, { method: 'GET', redirect: 'follow', cache: 'no-store' });
+                    if (getRes.ok) {
+                        const getResult = await getRes.json();
+                        if (getResult.status === 'success' && getResult.data) {
+                            return getResult.data;
+                        }
+                    }
+                } catch (getErr) {
+                    console.error('[AI Decompose] GAS GET Fallback Failed:', getErr);
+                }
             }
         }
 
