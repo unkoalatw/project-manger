@@ -76,7 +76,8 @@ export const aiDecompose = {
                 } else {
                     docs.forEach((doc, idx) => {
                         const title = doc.title || `文檔 ${idx + 1}`;
-                        const content = (doc.content || '').trim();
+                        let content = (doc.content || '').trim();
+                        if (content.length > 3000) content = content.slice(0, 3000) + '...(內容過長已自動精簡)';
                         context += `\n--- [文檔 ${idx + 1}] 《${title}》 ---\n${content || '(空白內容)'}\n`;
                     });
                 }
@@ -233,7 +234,7 @@ JSON 格式規範如下：
                         'Authorization': `Bearer ${clientKey}`
                     },
                     body: JSON.stringify({
-                        model: 'groq/compound-mini',
+                        model: 'llama-3.3-70b-versatile',
                         messages: [
                             { role: 'system', content: systemPrompt },
                             { role: 'user', content: userMessageContent }

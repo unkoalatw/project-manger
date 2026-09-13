@@ -107,7 +107,7 @@ function handleAiDecompositionProxy(payload) {
 
     var isJsonMode = payload.responseFormat !== 'text';
     var groqPayload = {
-      model: 'groq/compound-mini',
+      model: 'llama-3.3-70b-versatile',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userMessageContent }
