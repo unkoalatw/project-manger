@@ -24,7 +24,7 @@
     <!-- Mermaid.js 圖表流程圖即時視覺化渲染引擎 -->
     <script src="./libs/mermaid.min.js"></script>
     <!-- FlatSpec 核心模組化樣式表 -->
-  <script type="module" crossorigin src="./assets/index-DLNJpECY.js"></script>
+  <script type="module" crossorigin src="./assets/index-CY4MGb_V.js"></script>
   <link rel="stylesheet" crossorigin href="./assets/index-Dwq0Mm4Z.css">
 
     <!-- FlatSpec Kotlin Native Android Bridge Integration -->
@@ -756,6 +756,9 @@
                 <button type="button" id="tabSettings_cloud" onclick="app.switchSettingsTab('cloud')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-black flat-box shrink-0 flex items-center gap-1 transition-colors">
                     <span>☁️</span> <span>雲端同步</span>
                 </button>
+                <button type="button" id="tabSettings_ai" onclick="app.switchSettingsTab('ai')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-purple-700 flat-box shrink-0 flex items-center gap-1 transition-colors font-bold">
+                    <span>🤖</span> <span>AI 核心配置</span>
+                </button>
                 <button type="button" id="tabSettings_project" onclick="app.switchSettingsTab('project')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-black flat-box shrink-0 flex items-center gap-1 transition-colors">
                     <span>📁</span> <span>專案管理</span>
                 </button>
@@ -1051,6 +1054,55 @@
                             <li>務必將「誰可以存取 (Who has access)」設定為<strong>「所有人 (Anyone)」</strong>。</li>
                             <li>確認部署網址以 <code>/exec</code> 結尾，複製貼入上方輸入框並點擊測試。</li>
                         </ol>
+                    </div>
+                </div>
+
+                <!-- Tab: AI 核心設定 (AI Backend & API Key) -->
+                <div id="panelSettings_ai" class="hidden space-y-4">
+                    <div class="p-4 bg-purple-50 border border-purple-200 rounded-xl space-y-3">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="text-xl">🤖</span>
+                                <div>
+                                    <h4 class="font-bold text-sm text-purple-950">AI 任務拆解與文件助理核心</h4>
+                                    <p class="text-xs text-purple-700">提供超高速 Llama-3.3 專案任務三階段拆解、風格改寫、文件問答與講稿生成</p>
+                                </div>
+                            </div>
+                            <span class="px-2 py-0.5 text-[10px] font-bold bg-purple-200 text-purple-900 rounded font-mono">Groq Llama-3.3</span>
+                        </div>
+                    </div>
+
+                    <!-- API Key 設定區塊 -->
+                    <div class="p-4 bg-white border border-slate-200 rounded-xl space-y-3">
+                        <div class="flex items-center justify-between">
+                            <label class="font-bold text-xs text-slate-800 flex items-center gap-1.5">
+                                <span>🔑</span> <span>Groq API Key (本機/備用金鑰)</span>
+                            </label>
+                            <span id="settingsAiKeyStatus" class="text-xs font-bold font-mono text-slate-500">檢測中...</span>
+                        </div>
+                        <p class="text-xs text-slate-500 leading-relaxed">
+                            若您使用的是原生試算表綁定版或未在 GAS 指令碼屬性中填寫金鑰，可直接在此輸入您的 Groq API Key（<a href="https://console.groq.com/keys" target="_blank" class="text-purple-600 underline font-semibold">免費取得 Groq Key ↗</a>），將自動存於本機並同步支援雲端中繼。
+                        </p>
+                        <div class="flex gap-2">
+                            <input type="password" id="settingsGroqApiKeyInput" placeholder="gsk_..." class="flat-input flex-1 p-2 text-xs font-mono bg-slate-50 border border-slate-200 rounded-lg">
+                            <button type="button" onclick="app.saveGroqApiKeyFromSettings()" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-bold text-xs rounded-lg shadow-xs shrink-0 transition-colors">
+                                儲存金鑰
+                            </button>
+                            <button type="button" onclick="app.clearGroqApiKeyFromSettings()" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold text-xs rounded-lg border border-slate-200 shrink-0 transition-colors">
+                                清除
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 快速說明卡片 -->
+                    <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-600 space-y-1.5">
+                        <div class="font-bold text-slate-700 flex items-center gap-1">
+                            <span>💡</span> <span>兩種 AI 驅動方式：</span>
+                        </div>
+                        <ul class="list-disc pl-5 space-y-1 text-[11px] leading-relaxed">
+                            <li><strong>方式一 (免每台裝置配置)：</strong>在 Google Apps Script 專案設定 ➔「指令碼屬性」中新增 <code>GROQ_API_KEY</code>，所有連線的裝置皆可直接使用。</li>
+                            <li><strong>方式二 (本機即時直連)：</strong>直接在上方貼上您的 Groq API Key，立即享受極速三階段任務拆解與 AI 文件助理。</li>
+                        </ul>
                     </div>
                 </div>
 

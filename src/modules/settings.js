@@ -1,91 +1,128 @@
 // FlatSpec Module: settings
 export const settings = {
 // ================= ⚙️ 系統與專案設定中心 (Settings Hub Modal) =================
-            openSettingsModal(tab = 'appearance') {
-                this.closeModals();
-                const modal = document.getElementById('settingsModal');
-                if (modal) {
-                    modal.classList.remove('hidden');
-                    this.switchSettingsTab(tab);
+    openSettingsModal(tab = 'appearance') {
+        this.closeModals();
+        const modal = document.getElementById('settingsModal');
+        if (modal) {
+            modal.classList.remove('hidden');
+            this.switchSettingsTab(tab);
+        }
+    },
+
+    closeSettingsModal() {
+        const modal = document.getElementById('settingsModal');
+        if (modal) modal.classList.add('hidden');
+    },
+
+    switchSettingsTab(tabId) {
+        const tabs = ['appearance', 'preferences', 'history', 'backup', 'cloud', 'ai', 'project'];
+        tabs.forEach(t => {
+            const tabBtn = document.getElementById('tabSettings_' + t);
+            const panel = document.getElementById('panelSettings_' + t);
+            if (tabBtn) {
+                if (t === tabId) {
+                    tabBtn.className = 'px-3 py-1.5 bg-black text-white flat-box shrink-0 flex items-center gap-1 font-bold text-xs';
+                } else {
+                    tabBtn.className = 'px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 text-black flat-box shrink-0 flex items-center gap-1 transition-colors font-bold text-xs';
                 }
-            },
-
-            closeSettingsModal() {
-                const modal = document.getElementById('settingsModal');
-                if (modal) modal.classList.add('hidden');
-            },
-
-            switchSettingsTab(tabId) {
-                const tabs = ['appearance', 'preferences', 'history', 'backup', 'cloud', 'project'];
-                tabs.forEach(t => {
-                    const tabBtn = document.getElementById(`tabSettings_${t}`);
-                    const panel = document.getElementById(`panelSettings_${t}`);
-                    if (tabBtn) {
-                        if (t === tabId) {
-                            tabBtn.className = 'px-3 py-1.5 bg-black text-white flat-box shrink-0 flex items-center gap-1 font-bold text-xs';
-                        } else {
-                            tabBtn.className = 'px-3 py-1.5 bg-zinc-100 hover:bg-zinc-200 text-black flat-box shrink-0 flex items-center gap-1 transition-colors font-bold text-xs';
-                        }
-                    }
-                    if (panel) {
-                        if (t === tabId) {
-                            panel.classList.remove('hidden');
-                        } else {
-                            panel.classList.add('hidden');
-                        }
-                    }
-                });
-
-                // Tab-specific data initialization
-                if (tabId === 'appearance') {
-                    const currentScope = localStorage.getItem('flatSpecFontScope') || 'all';
-                    const scopeRadio = document.querySelector(`input[name="fontTargetScope"][value="${currentScope}"]`);
-                    if (scopeRadio) scopeRadio.checked = true;
-
-                    const currentName = localStorage.getItem('flatSpecFontName') || 'Inter (系統預設)';
-                    const badge = document.getElementById('currentFontBadge');
-                    if (badge) badge.textContent = currentName;
-
-                    const currentFamily = localStorage.getItem('flatSpecFontFamily') || "'Inter', sans-serif";
-                    const sample = document.getElementById('fontPreviewSample');
-                    if (sample) sample.style.fontFamily = currentFamily;
-
-                    const fileLabel = document.getElementById('fontFileLabelText');
-                    if (fileLabel) {
-                        const fontType = localStorage.getItem('flatSpecFontType');
-                        if (fontType === 'file') {
-                            fileLabel.textContent = `📁 已載入本機字體: ${currentName}`;
-                        } else {
-                            fileLabel.textContent = '📂 選擇字體檔案...';
-                        }
-                    }
-                } else if (tabId === 'preferences') {
-                    this.updateSettingsPreferencesUI();
-                } else if (tabId === 'history') {
-                    this.renderSnapshots();
-                } else if (tabId === 'backup') {
-                    this.renderBackupModalInfo();
-                } else if (tabId === 'cloud') {
-                    const el = document.getElementById('gasUrlInput');
-                    if (el) el.value = this.state.gasUrl;
-                } else if (tabId === 'project') {
-                    this.populateEditProjectModalFields();
+            }
+            if (panel) {
+                if (t === tabId) {
+                    panel.classList.remove('hidden');
+                } else {
+                    panel.classList.add('hidden');
                 }
-            },
+            }
+        });
 
-            updateSettingsPreferencesUI() {
-                const soundBtn = document.getElementById('settingsSoundToggleBtn');
-                if (soundBtn) {
-                    soundBtn.innerText = this.soundEnabled ? '🔊 音效已開啟' : '🔇 音效已關閉';
-                    soundBtn.className = this.soundEnabled 
-                        ? 'px-3 py-1.5 font-bold text-xs border-2 border-black bg-black text-white flat-box' 
-                        : 'px-3 py-1.5 font-bold text-xs border-2 border-zinc-500 bg-zinc-200 text-zinc-600 flat-box';
+        // Tab-specific data initialization
+        if (tabId === 'appearance') {
+            const currentScope = localStorage.getItem('flatSpecFontScope') || 'all';
+            const scopeRadio = document.querySelector('input[name="fontTargetScope"][value="' + currentScope + '"]');
+            if (scopeRadio) scopeRadio.checked = true;
+
+            const currentName = localStorage.getItem('flatSpecFontName') || 'Inter (系統預設)';
+            const badge = document.getElementById('currentFontBadge');
+            if (badge) badge.textContent = currentName;
+
+            const currentFamily = localStorage.getItem('flatSpecFontFamily') || "'Inter', sans-serif";
+            const sample = document.getElementById('fontPreviewSample');
+            if (sample) sample.style.fontFamily = currentFamily;
+
+            const fileLabel = document.getElementById('fontFileLabelText');
+            if (fileLabel) {
+                const fontType = localStorage.getItem('flatSpecFontType');
+                if (fontType === 'file') {
+                    fileLabel.textContent = '📁 已載入本機字體: ' + currentName;
+                } else {
+                    fileLabel.textContent = '📂 選擇字體檔案...';
                 }
-                const pageBreaksBtn = document.getElementById('settingsPageBreaksToggleBtn');
-                const isBreaksEnabled = this.state.enablePageBreaks !== false;
-                if (pageBreaksBtn) {
-                    pageBreaksBtn.innerText = isBreaksEnabled ? '已開啟' : '已關閉';
-                    pageBreaksBtn.className = isBreaksEnabled
+            }
+        } else if (tabId === 'preferences') {
+            this.updateSettingsPreferencesUI();
+        } else if (tabId === 'history') {
+            this.renderSnapshots();
+        } else if (tabId === 'backup') {
+            this.renderBackupModalInfo();
+        } else if (tabId === 'cloud') {
+            const el = document.getElementById('gasUrlInput');
+            if (el) el.value = this.state.gasUrl;
+        } else if (tabId === 'ai') {
+            this.initAiSettingsTab();
+        } else if (tabId === 'project') {
+            this.populateEditProjectModalFields();
+        }
+    },
+
+    initAiSettingsTab() {
+        const keyInput = document.getElementById('settingsGroqApiKeyInput');
+        const statusEl = document.getElementById('settingsAiKeyStatus');
+        const localKey = localStorage.getItem('flatSpecGroqApiKey') || '';
+        if (keyInput) keyInput.value = localKey;
+        if (statusEl) {
+            if (localKey) {
+                statusEl.innerHTML = '<span class="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-100 text-emerald-800 border border-emerald-400 font-bold rounded">🟢 已配置專屬 Groq API Key (' + localKey.substring(0, 7) + '...' + localKey.slice(-4) + ')</span>';
+            } else {
+                statusEl.innerHTML = '<span class="inline-flex items-center gap-1 px-2 py-0.5 bg-zinc-100 text-zinc-600 border border-zinc-300 font-bold rounded">⚪ 尚未配置本地 Key（使用 GAS 雲端後端或自訂 Key）</span>';
+            }
+        }
+    },
+
+    saveGroqApiKeyFromSettings() {
+        const keyInput = document.getElementById('settingsGroqApiKeyInput');
+        const val = (keyInput ? keyInput.value : '').trim();
+        if (val) {
+            localStorage.setItem('flatSpecGroqApiKey', val);
+            this.showToast('✅ Groq API Key 已成功儲存！');
+        } else {
+            localStorage.removeItem('flatSpecGroqApiKey');
+            this.showToast('ℹ️ 已清除本地 Groq API Key');
+        }
+        this.initAiSettingsTab();
+    },
+
+    clearGroqApiKeyFromSettings() {
+        localStorage.removeItem('flatSpecGroqApiKey');
+        const keyInput = document.getElementById('settingsGroqApiKeyInput');
+        if (keyInput) keyInput.value = '';
+        this.initAiSettingsTab();
+        this.showToast('🗑️ 已清除本地 API Key');
+    },
+
+    updateSettingsPreferencesUI() {
+        const soundBtn = document.getElementById('settingsSoundToggleBtn');
+        if (soundBtn) {
+            soundBtn.innerText = this.soundEnabled ? '🔊 音效已開啟' : '🔇 音效已關閉';
+            soundBtn.className = this.soundEnabled 
+                ? 'px-3 py-1.5 font-bold text-xs border-2 border-black bg-black text-white flat-box' 
+                : 'px-3 py-1.5 font-bold text-xs border-2 border-zinc-500 bg-zinc-200 text-zinc-600 flat-box';
+        }
+        const pageBreaksBtn = document.getElementById('settingsPageBreaksToggleBtn');
+        const isBreaksEnabled = this.state.enablePageBreaks !== false;
+        if (pageBreaksBtn) {
+            pageBreaksBtn.innerText = isBreaksEnabled ? '已開啟' : '已關閉';
+            pageBreaksBtn.className = isBreaksEnabled
                         ? 'px-3 py-1.5 font-bold text-xs border-2 border-black bg-black text-white flat-box'
                         : 'px-3 py-1.5 font-bold text-xs border-2 border-zinc-500 bg-zinc-200 text-zinc-600 flat-box';
                 }
