@@ -218,41 +218,66 @@ function handleAiDecompositionProxy(payload) {
   }
 }
 
+// 預設 YouTube API Key (亦可於 ScriptProperties 中的 YOUTUBE_API_KEY 配置)
+var DEFAULT_YOUTUBE_API_KEY = 'AIzaSyBmoF9zY2zqTX4m7K_Xwrae3F-Akhb8bNs';
+
 /**
- * ================= 🔴 永久免過期 YouTube Data API 端點 =================
- * 採用 Google API Key 模式，完全無需 OAuth 2.0 / Refresh Token，永不過期！
+ * ================= 🔴 YouTube Data API 端點 (支援登入授權模式 / API Key 模式) =================
+ * 1. 登入授權模式 (預設)：直接使用您 Google 帳號授權的 OAuth Token (ScriptApp.getOAuthToken())
+ *    - 免去手動維護 Refresh Token / Client ID
+ *    - 只需在 GAS 編輯器執行一次 testAuthorizeYouTube() 完成登入授權即可！
+ * 2. API Key 模式：若有配置 YOUTUBE_API_KEY 亦支援無縫切換。
  */
 function handleYouTubeEndpoint(params) {
   try {
     var scriptProps = PropertiesService.getScriptProperties();
-    var apiKey = scriptProps.getProperty('YOUTUBE_API_KEY') || (params ? params.apiKey : '') || '';
+    var apiKey = scriptProps.getProperty('YOUTUBE_API_KEY') || DEFAULT_YOUTUBE_API_KEY || (params ? params.apiKey : '') || '';
     var channelId = scriptProps.getProperty('YOUTUBE_CHANNEL_ID') || (params ? params.channelId : '') || '';
     var handle = (params ? params.handle : '') || scriptProps.getProperty('YOUTUBE_HANDLE') || '';
 
-    if (!apiKey) {
+    // 優先嘗試取得當前 Google 帳號授權的 OAuth Token
+    var oauthToken = '';
+    try {
+      oauthToken = ScriptApp.getOAuthToken();
+    } catch (tokenErr) {
+      Logger.log('無法獲取 ScriptApp OAuth Token: ' + tokenErr.toString());
+    }
+
+    var headers = {};
+    var authQuery = '';
+
+    if (oauthToken) {
+      headers['Authorization'] = 'Bearer ' + oauthToken;
+    } else if (apiKey) {
+      authQuery = '&key=' + apiKey;
+    } else {
       return ContentService.createTextOutput(JSON.stringify({
         status: 'error',
-        message: '尚未配置 YOUTUBE_API_KEY。請至 Apps Script「專案設定 ➔ 指令碼屬性」新增 YOUTUBE_API_KEY，或在網址加上 &apiKey=YOUR_KEY'
+        message: '尚未完成 YouTube 授權。請在 Apps Script 編輯器選取「testAuthorizeYouTube」函式並點擊「執行」完成一次性 Google 登入授權，或在指令碼屬性中填入 YOUTUBE_API_KEY。'
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
-    // 1. 查詢頻道基本資訊與統計
+    // 1. 查詢頻道基本資訊與統計 (若未指定 channelId/handle 且有 OAuth Token，直接查詢登入者自己的 mine=true 頻道)
     var channelQuery = '';
     if (channelId) {
       channelQuery = 'id=' + encodeURIComponent(channelId);
     } else if (handle) {
       var cleanHandle = handle.replace(/^@/, '');
       channelQuery = 'forHandle=' + encodeURIComponent(cleanHandle);
+    } else if (oauthToken) {
+      channelQuery = 'mine=true';
     } else {
-      // 預設抓取由 API Key 授權建立之預設或指定的頻道
       return ContentService.createTextOutput(JSON.stringify({
         status: 'error',
-        message: '請在「指令碼屬性」設定 YOUTUBE_CHANNEL_ID 或在網址傳入 &channelId=UCxxxx / &handle=@channel'
+        message: '請在「指令碼屬性」設定 YOUTUBE_CHANNEL_ID，或在網址傳入 &channelId=UCxxxx / &handle=@channel'
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
-    var channelUrl = 'https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics,contentDetails&' + channelQuery + '&key=' + apiKey;
-    var respChannel = UrlFetchApp.fetch(channelUrl, { muteHttpExceptions: true });
+    var channelUrl = 'https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics,contentDetails&' + channelQuery + authQuery;
+    var respChannel = UrlFetchApp.fetch(channelUrl, {
+      headers: headers,
+      muteHttpExceptions: true
+    });
     var jsonChannel = JSON.parse(respChannel.getContentText());
 
     if (jsonChannel.error) {
@@ -265,27 +290,30 @@ function handleYouTubeEndpoint(params) {
     if (!jsonChannel.items || jsonChannel.items.length === 0) {
       return ContentService.createTextOutput(JSON.stringify({
         status: 'error',
-        message: '找不到指定的 YouTube 頻道，請確認 Channel ID 或 Handle 是否正確。'
+        message: '找不到指定的 YouTube 頻道。若是登入授權模式，請確認該 Google 帳號底下已建立 YouTube 頻道。'
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
     var item = jsonChannel.items[0];
     var stats = item.statistics || {};
     var snippet = item.snippet || {};
-    var uploadsPlaylistId = item.contentDetails?.relatedPlaylists?.uploads || '';
+    var uploadsPlaylistId = item.contentDetails && item.contentDetails.relatedPlaylists ? item.contentDetails.relatedPlaylists.uploads : '';
 
     // 2. 獲取最新影片列表 (最多 5 部)
     var recentVideos = [];
     if (uploadsPlaylistId) {
       try {
-        var videosUrl = 'https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=5&playlistId=' + uploadsPlaylistId + '&key=' + apiKey;
-        var respVideos = UrlFetchApp.fetch(videosUrl, { muteHttpExceptions: true });
+        var videosUrl = 'https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&maxResults=5&playlistId=' + uploadsPlaylistId + authQuery;
+        var respVideos = UrlFetchApp.fetch(videosUrl, {
+          headers: headers,
+          muteHttpExceptions: true
+        });
         var jsonVideos = JSON.parse(respVideos.getContentText());
         if (jsonVideos.items && Array.isArray(jsonVideos.items)) {
           recentVideos = jsonVideos.items.map(function(v) {
             return {
-              title: v.snippet?.title || '未命名影片',
-              publishedAt: v.snippet?.publishedAt || ''
+              title: v.snippet && v.snippet.title ? v.snippet.title : '未命名影片',
+              publishedAt: v.snippet && v.snippet.publishedAt ? v.snippet.publishedAt : ''
             };
           });
         }
@@ -315,6 +343,23 @@ function handleYouTubeEndpoint(params) {
       message: '處理 YouTube 數據失敗: ' + err.toString()
     })).setMimeType(ContentService.MimeType.JSON);
   }
+}
+
+/**
+ * 🔑 一鍵授權測試函式：
+ * 請在 Apps Script 編輯器上方下拉選單選取此函式「testAuthorizeYouTube」並點擊「執行 (Run)」，
+ * 彈出 Google 帳號授權視窗後點擊允許，即可直接使用登入授權模式！
+ */
+function testAuthorizeYouTube() {
+  var token = ScriptApp.getOAuthToken();
+  Logger.log('✅ 成功取得 Google 登入授權 Token (長度: ' + (token ? token.length : 0) + ')');
+  var testUrl = 'https://www.googleapis.com/youtube/v3/channels?part=snippet,statistics&mine=true';
+  var resp = UrlFetchApp.fetch(testUrl, {
+    headers: { 'Authorization': 'Bearer ' + token },
+    muteHttpExceptions: true
+  });
+  Logger.log('測試回應碼: ' + resp.getResponseCode());
+  Logger.log('測試內容: ' + resp.getContentText());
 }
 
 /**
