@@ -12,7 +12,7 @@ export const memorySearch = {
         const modal = document.getElementById('globalSearchModal');
         if (!modal) return;
         modal.classList.remove('hidden');
-        const input = document.getElementById('globalSearchInput');
+        const input = document.getElementById('memorySearchInput');
         if (input) {
             setTimeout(() => {
                 input.focus();
@@ -41,7 +41,7 @@ export const memorySearch = {
     },
 
     runMemorySearch() {
-        const input = document.getElementById('globalSearchInput');
+        const input = document.getElementById('memorySearchInput');
         const query = (input ? input.value : this._memorySearchState.query || '').trim();
         this._memorySearchState.query = query;
 
