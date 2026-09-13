@@ -227,7 +227,8 @@ export const aiDecompose = {
                         userNotes: userNotes,
                         clientApiKey: clientKey
                     }),
-                    redirect: 'follow'
+                    redirect: 'follow',
+                    cache: 'no-store'
                 });
 
                 if (proxyResponse.ok) {
