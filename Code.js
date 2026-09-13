@@ -51,7 +51,13 @@ function doPost(e) {
     var parsedPayload = JSON.parse(contents);
 
     // ================= 🤖 安全 AI 任務拆解代理 (Cloud Groq Proxy) =================
-    if (parsedPayload && typeof parsedPayload === 'object' && (parsedPayload.action === 'ai_decompose' || parsedPayload.action === 'ai_doc_assist')) {
+    if (parsedPayload && typeof parsedPayload === 'object' && (
+      parsedPayload.action === 'ai_decompose' || 
+      parsedPayload.action === 'ai_task_decompose' || 
+      parsedPayload.action === 'ai_doc_assist' ||
+      parsedPayload.systemPrompt || 
+      parsedPayload.projectContext
+    )) {
       return handleAiDecompositionProxy(parsedPayload);
     }
 
@@ -104,6 +110,12 @@ function handleAiDecompositionProxy(payload) {
 
     var systemPrompt = payload.systemPrompt || '你是一個精簡專業的專案助理。';
     var userMessageContent = payload.userMessage || '';
+    if (!userMessageContent && (payload.projectContext || payload.userNotes)) {
+      userMessageContent = (payload.projectContext || '') + '\n額外指示: ' + (payload.userNotes || '無');
+      if (!payload.systemPrompt) {
+        systemPrompt = '你是一個敏捷專案管理專家。請將專案/目標精準拆解為三階段結構化任務：\n1. preTasks: 前期準備 (2-3項)\n2. inProgressTasks: 進行時步驟 (3-4項，含 sequence: 1, 2, 3...)\n3. postTasks: 善後與驗收 (2-3項)\n\n必須輸出標準 JSON，格式如下：\n{\n  "preTasks": [{ "title": "...", "desc": "...", "priority": "HIGH"|"MED"|"LOW" }],\n  "inProgressTasks": [{ "sequence": 1, "title": "...", "desc": "...", "priority": "HIGH"|"MED"|"LOW" }],\n  "postTasks": [{ "title": "...", "desc": "...", "priority": "HIGH"|"MED"|"LOW" }]\n}';
+      }
+    }
 
     var isJsonMode = payload.responseFormat !== 'text';
     var groqPayload = {
