@@ -74,6 +74,7 @@ export const storage = {
                             this.state.docMode = savedDocMode;
                         }
                         const savedExecMode = localStorage.getItem('flatSpecLastExecMode');
+
                         if (savedExecMode && ['list', 'kanban'].includes(savedExecMode)) {
                             this.state.execViewMode = savedExecMode;
                         }
@@ -112,16 +113,31 @@ export const storage = {
                     } catch(e) {}
                     if (!Array.isArray(history)) history = [];
 
-                    // 瘦身處理：歷史快照去除大型 base64 附件，防止迅速吃滿 LocalStorage 5MB 配額
+                    // 瘦身處理：歷史快照去除大型 base64 附件與語音，防止迅速吃滿 LocalStorage 5MB 配額
                     const leanProjects = projects.map(proj => {
                         const clone = JSON.parse(JSON.stringify(proj));
+                        if (Array.isArray(clone.docs)) {
+                            clone.docs.forEach(doc => {
+                                if (doc.attachments && typeof doc.attachments === 'object') {
+                                    Object.keys(doc.attachments).forEach(k => {
+                                        const att = doc.attachments[k];
+                                        if (att && att.data && att.data.length > 200) {
+                                            doc.attachments[k] = { ...att, data: '[Attachment]' };
+                                        }
+                                    });
+                                }
+                                if (Array.isArray(doc.audioList)) {
+                                    doc.audioList = doc.audioList.map(a => ({
+                                        ...a,
+                                        data: a.data && a.data.length > 200 ? '[VoiceMemo]' : a.data
+                                    }));
+                                }
+                            });
+                        }
                         if (Array.isArray(clone.attachments)) {
                             clone.attachments = clone.attachments.map(att => ({
-                                id: att.id,
-                                name: att.name,
-                                type: att.type,
-                                size: att.size,
-                                data: att.data && att.data.length > 300 ? '[Attachment]' : att.data
+                                ...att,
+                                data: att.data && att.data.length > 200 ? '[Attachment]' : att.data
                             }));
                         }
                         return clone;

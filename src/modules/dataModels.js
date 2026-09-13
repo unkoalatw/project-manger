@@ -25,9 +25,12 @@ export const dataModels = {
                         tech: ''
                     };
                 } else {
-                    p.wizard.vision = p.wizard.vision || p.vision || '';
-                    p.wizard.features = p.wizard.features || '';
-                    p.wizard.tech = p.wizard.tech || '';
+                    p.wizard = {
+                        ...p.wizard,
+                        vision: p.wizard.vision || p.vision || '',
+                        features: p.wizard.features || '',
+                        tech: p.wizard.tech || ''
+                    };
                 }
 
                 // 資料夾陣列
@@ -35,22 +38,26 @@ export const dataModels = {
                     p.docFolders = [];
                 } else {
                     p.docFolders = p.docFolders.map((f, idx) => ({
+                        ...f,
                         id: f.id || 'fld_' + (Date.now() + idx),
                         name: f.name || '未命名資料夾',
                         parentId: f.parentId || null
                     }));
                 }
 
-                // 文檔陣列
+                // 文檔陣列 (保留 history, audioList, deletedAt 等完整 metadata)
                 if (!Array.isArray(p.docs) || p.docs.length === 0) {
-                    p.docs = [{ id: 'doc_' + Date.now(), title: '核心規格書', content: '# ' + p.title + '\n\n寫下您的規格...', folderId: null, attachments: {} }];
+                    p.docs = [{ id: 'doc_' + Date.now(), title: '核心規格書', content: '# ' + p.title + '\n\n寫下您的規格...', folderId: null, attachments: {}, history: [], audioList: [] }];
                 } else {
                     p.docs = p.docs.map((d, idx) => ({
+                        ...d,
                         id: d.id || 'doc_' + (Date.now() + idx),
                         title: d.title || '未命名文檔',
                         content: d.content || '',
                         folderId: d.folderId || null,
-                        attachments: (d && typeof d.attachments === 'object' && d.attachments !== null) ? d.attachments : {}
+                        attachments: (d && typeof d.attachments === 'object' && d.attachments !== null) ? d.attachments : {},
+                        history: Array.isArray(d?.history) ? d.history : (d?.history ? [d.history] : []),
+                        audioList: Array.isArray(d?.audioList) ? d.audioList : []
                     }));
                 }
 
@@ -61,6 +68,7 @@ export const dataModels = {
                     ];
                 } else {
                     p.members = p.members.map((m, idx) => ({
+                        ...m,
                         id: m.id || 'mem_' + (Date.now() + idx),
                         name: m.name || '成員',
                         role: m.role || '成員',
@@ -73,7 +81,7 @@ export const dataModels = {
                     p.activities = [];
                 }
 
-                // 任務陣列
+                // 任務陣列 (保留 audioList, subtasks, deletedAt 等完整 metadata)
                 if (!Array.isArray(p.tasks)) {
                     p.tasks = [];
                 } else {
@@ -86,13 +94,15 @@ export const dataModels = {
                         if (!['HIGH', 'MED', 'LOW'].includes(priority)) priority = 'MED';
 
                         return {
+                            ...t,
                             id: t.id || 'task_' + (Date.now() + idx),
                             title: t.title || '未命名任務',
                             desc: t.desc || '',
                             status: status,
                             priority: priority,
                             assignee: t.assignee || '',
-                            comments: Array.isArray(t.comments) ? t.comments : []
+                            comments: Array.isArray(t.comments) ? t.comments : [],
+                            audioList: Array.isArray(t?.audioList) ? t.audioList : []
                         };
                     });
                 }

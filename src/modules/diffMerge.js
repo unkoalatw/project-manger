@@ -1,17 +1,39 @@
 // FlatSpec Module: diffMerge
 export const diffMerge = {
-// ================= 3-Way 文本智慧無損合併演算法 (3-Way Diff Merge Engine) =================
+// // ================= 3-Way 文本智慧無損合併演算法 (3-Way Diff Merge Engine) =================
             threeWayMergeText(baseText, localText, remoteText) {
                 if (localText === remoteText) return localText;
-                if (!baseText || baseText === localText) return remoteText;
+                if (baseText === localText) return remoteText;
                 if (baseText === remoteText) return localText;
+
+                // 若 baseText 為空或未定義，兩端皆有修改時以本地為優先，並保留遠端協作內容
+                if (!baseText) {
+                    if (localText && remoteText) {
+                        return `${localText}\n\n> 🔹 **[隊友協作並存內容]**\n> ${remoteText.split('\n').join('\n> ')}`;
+                    }
+                    return localText || remoteText || '';
+                }
 
                 const baseLines = (baseText || '').split('\n');
                 const localLines = (localText || '').split('\n');
                 const remoteLines = (remoteText || '').split('\n');
 
+                // 大文件防凍結安全防護：若文本過長 (m * n > 4,000,000) 則退回段落快速合併避免卡死主執行緒
                 function getLCS(a, b) {
                     const m = a.length, n = b.length;
+                    if (m * n > 4000000) {
+                        // 快速粗粒度錨點退避策略
+                        const setB = new Set(b);
+                        const common = [];
+                        a.forEach((line, aIndex) => {
+                            if (setB.has(line)) {
+                                const bIndex = b.indexOf(line);
+                                if (bIndex !== -1) common.push({ aIndex, bIndex, line });
+                            }
+                        });
+                        return common;
+                    }
+
                     const dp = Array.from({ length: m + 1 }, () => new Int32Array(n + 1));
                     for (let i = 1; i <= m; i++) {
                         for (let j = 1; j <= n; j++) {
@@ -114,11 +136,26 @@ export const diffMerge = {
                     const localProj = localList.find(p => p.id === projId);
                     const baseProj = baseList.find(p => p.id === projId);
 
+                    // 3-Way 專案刪除判定：若 Base 存在且兩端其中一端已刪除，且另一端未被修改過，則認定為刪除
                     if (cloudProj && !localProj) {
+                        if (baseProj) {
+                            const cloudUnchanged = JSON.stringify(cloudProj) === JSON.stringify(baseProj);
+                            if (cloudUnchanged) {
+                                // 本地主動刪除了專案，且雲端無新變更 -> 確認刪除
+                                return;
+                            }
+                        }
                         mergedMap.set(projId, this.normalizeProject(cloudProj));
                         return;
                     }
                     if (!cloudProj && localProj) {
+                        if (baseProj) {
+                            const localUnchanged = JSON.stringify(localProj) === JSON.stringify(baseProj);
+                            if (localUnchanged) {
+                                // 遠端主動刪除了專案，且本地無新變更 -> 確認刪除
+                                return;
+                            }
+                        }
                         mergedMap.set(projId, this.normalizeProject(localProj));
                         return;
                     }
@@ -176,66 +213,93 @@ export const diffMerge = {
                         const lDoc = lNorm.docs?.find(d => d.id === docId);
                         const bDoc = bNorm?.docs?.find(d => d.id === docId);
 
+                        // 3-Way 文檔刪除判定：若 Base 有，且一端已刪除，且另一端未修改 -> 執行刪除
                         if (cDoc && !lDoc) {
+                            if (bDoc && cDoc.content === bDoc.content && cDoc.title === bDoc.title) {
+                                return; // 本地刪除此文檔
+                            }
                             mergedDocs.push({ ...cDoc });
-                        } else if (!cDoc && lDoc) {
+                            return;
+                        }
+                        if (!cDoc && lDoc) {
+                            if (bDoc && lDoc.content === bDoc.content && lDoc.title === bDoc.title) {
+                                return; // 遠端刪除此文檔
+                            }
                             mergedDocs.push({ ...lDoc });
-                        } else {
-                            // 兩端皆有
-                            let mTitle = lDoc.title;
-                            let mContent = lDoc.content;
+                            return;
+                        }
 
-                            // 1. 若本地與雲端完全相同，直接使用
-                            if (lDoc.content === cDoc.content && lDoc.title === cDoc.title) {
+                        // 兩端皆有
+                        let mTitle = lDoc.title;
+                        let mContent = lDoc.content;
+
+                        // 1. 若本地與雲端完全相同，直接使用
+                        if (lDoc.content === cDoc.content && lDoc.title === cDoc.title) {
+                            mTitle = lDoc.title;
+                            mContent = lDoc.content;
+                        }
+                        // 2. 若當前文檔是本地使用者正在編輯/有未存修改的文檔，本地 100% 絕對優先，絕不被舊雲端覆蓋或插入偽衝突
+                        else if (docId === this.state.activeDocId && (this.state.hasUnsavedChanges || this.state.isUserTyping)) {
+                            mTitle = lDoc.title || cDoc.title;
+                            mContent = lDoc.content;
+                        }
+                        // 3. 若有歷史 Base 版本進行比對
+                        else if (bDoc) {
+                            const localChanged = lDoc.content !== bDoc.content || lDoc.title !== bDoc.title;
+                            const cloudChanged = cDoc.content !== bDoc.content || cDoc.title !== bDoc.title;
+
+                            if (localChanged && !cloudChanged) {
+                                // 本地有改，雲端沒改 -> 以本地為準
+                                mTitle = lDoc.title;
+                                mContent = lDoc.content;
+                            } else if (!localChanged && cloudChanged) {
+                                // 雲端有改，本地沒改 -> 以雲端為準
+                                mTitle = cDoc.title;
+                                mContent = cDoc.content;
+                            } else if (localChanged && cloudChanged) {
+                                // 兩端皆有真正修改，執行 3-Way 文本智慧合併
+                                mTitle = (lDoc.title !== bDoc.title) ? lDoc.title : cDoc.title;
+                                mContent = this.threeWayMergeText(bDoc.content || '', lDoc.content || '', cDoc.content || '');
+                            } else {
                                 mTitle = lDoc.title;
                                 mContent = lDoc.content;
                             }
-                            // 2. 若當前文檔是本地使用者正在編輯/有未存修改的文檔，本地 100% 絕對優先，絕不被舊雲端覆蓋或插入偽衝突
-                            else if (docId === this.state.activeDocId && (this.state.hasUnsavedChanges || this.state.isUserTyping)) {
-                                mTitle = lDoc.title || cDoc.title;
-                                mContent = lDoc.content;
-                            }
-                            // 3. 若有歷史 Base 版本進行比對
-                            else if (bDoc) {
-                                const localChanged = lDoc.content !== bDoc.content || lDoc.title !== bDoc.title;
-                                const cloudChanged = cDoc.content !== bDoc.content || cDoc.title !== bDoc.title;
-
-                                if (localChanged && !cloudChanged) {
-                                    // 本地有改，雲端沒改 -> 以本地為準
-                                    mTitle = lDoc.title;
-                                    mContent = lDoc.content;
-                                } else if (!localChanged && cloudChanged) {
-                                    // 雲端有改，本地沒改 -> 以雲端為準
-                                    mTitle = cDoc.title;
-                                    mContent = cDoc.content;
-                                } else if (localChanged && cloudChanged) {
-                                    // 兩端皆有真正修改，執行 3-Way 文本智慧合併
-                                    mTitle = (lDoc.title !== bDoc.title) ? lDoc.title : cDoc.title;
-                                    mContent = this.threeWayMergeText(bDoc.content || '', lDoc.content || '', cDoc.content || '');
-                                } else {
-                                    mTitle = lDoc.title;
-                                    mContent = lDoc.content;
-                                }
-                            }
-                            // 4. 若無 Base 歷史紀錄，以本地最新內容為準
-                            else {
-                                mTitle = lDoc.title || cDoc.title;
-                                mContent = lDoc.content || cDoc.content || '';
-                            }
-
-                            const mFolderId = (lDoc && lDoc.folderId !== undefined) ? lDoc.folderId : (cDoc ? cDoc.folderId : null);
-                            const mAttachments = {
-                                ...((cDoc && typeof cDoc.attachments === 'object') ? cDoc.attachments : {}),
-                                ...((lDoc && typeof lDoc.attachments === 'object') ? lDoc.attachments : {})
-                            };
-                            mergedDocs.push({
-                                id: docId,
-                                title: mTitle || '未命名文檔',
-                                content: mContent || '',
-                                folderId: mFolderId || null,
-                                attachments: mAttachments
-                            });
                         }
+                        // 4. 若無 Base 歷史紀錄，以本地最新內容為準
+                        else {
+                            mTitle = lDoc.title || cDoc.title;
+                            mContent = lDoc.content || cDoc.content || '';
+                        }
+
+                        const mFolderId = (lDoc && lDoc.folderId !== undefined) ? lDoc.folderId : (cDoc ? cDoc.folderId : null);
+                        const mAttachments = {
+                            ...((cDoc && typeof cDoc.attachments === 'object') ? cDoc.attachments : {}),
+                            ...((lDoc && typeof lDoc.attachments === 'object') ? lDoc.attachments : {})
+                        };
+
+                        // 合併 history (去重保留)
+                        const histMap = new Map();
+                        (cDoc?.history || []).forEach(h => { if (h && h.id) histMap.set(h.id, h); });
+                        (lDoc?.history || []).forEach(h => { if (h && h.id) histMap.set(h.id, h); });
+                        const mHistory = Array.from(histMap.values());
+
+                        // 合併 audioList (去重保留)
+                        const audioMap = new Map();
+                        (cDoc?.audioList || []).forEach(a => { if (a && a.id) audioMap.set(a.id, a); });
+                        (lDoc?.audioList || []).forEach(a => { if (a && a.id) audioMap.set(a.id, a); });
+                        const mAudioList = Array.from(audioMap.values());
+
+                        mergedDocs.push({
+                            ...cDoc,
+                            ...lDoc,
+                            id: docId,
+                            title: mTitle || '未命名文檔',
+                            content: mContent || '',
+                            folderId: mFolderId || null,
+                            attachments: mAttachments,
+                            history: mHistory,
+                            audioList: mAudioList
+                        });
                     });
                     mergedProj.docs = mergedDocs;
 
@@ -245,7 +309,7 @@ export const diffMerge = {
                     (lNorm.docFolders || []).forEach(f => { if (f && f.id) folderMap.set(f.id, f); });
                     mergedProj.docFolders = Array.from(folderMap.values());
 
-                    // 任務細粒度合併
+                    // 任務細粒度合併 (含 3-Way 刪除判定與 audioList 合併)
                     const allTaskIds = new Set([
                         ...(cNorm.tasks || []).map(t => t.id),
                         ...(lNorm.tasks || []).map(t => t.id)
@@ -258,32 +322,49 @@ export const diffMerge = {
                         const bTask = bNorm?.tasks?.find(t => t.id === taskId);
 
                         if (cTask && !lTask) {
+                            if (bTask && JSON.stringify(cTask) === JSON.stringify(bTask)) {
+                                return; // 本地刪除此任務
+                            }
                             mergedTasks.push({ ...cTask });
-                        } else if (!cTask && lTask) {
-                            mergedTasks.push({ ...lTask });
-                        } else {
-                            // 兩端皆有同一個任務
-                            const mTitle = (bTask && lTask.title !== bTask.title) ? lTask.title : cTask.title;
-                            const mDesc = (bTask && lTask.desc !== bTask.desc) ? lTask.desc : (cTask.desc || lTask.desc);
-                            const mStatus = (bTask && lTask.status !== bTask.status) ? lTask.status : cTask.status;
-                            const mPriority = (bTask && lTask.priority !== bTask.priority) ? lTask.priority : cTask.priority;
-                            const mAssignee = (bTask && lTask.assignee !== bTask.assignee) ? lTask.assignee : cTask.assignee;
-
-                            // 留言聯集去重合併 (CRDT append-only)
-                            const commentMap = new Map();
-                            (cTask.comments || []).forEach(c => { if (c) commentMap.set(c.id || c.time + c.text, c); });
-                            (lTask.comments || []).forEach(c => { if (c) commentMap.set(c.id || c.time + c.text, c); });
-
-                            mergedTasks.push({
-                                id: taskId,
-                                title: mTitle,
-                                desc: mDesc || '',
-                                status: mStatus,
-                                priority: mPriority,
-                                assignee: mAssignee || '',
-                                comments: Array.from(commentMap.values())
-                            });
+                            return;
                         }
+                        if (!cTask && lTask) {
+                            if (bTask && JSON.stringify(lTask) === JSON.stringify(bTask)) {
+                                return; // 遠端刪除此任務
+                            }
+                            mergedTasks.push({ ...lTask });
+                            return;
+                        }
+
+                        // 兩端皆有同一個任務
+                        const mTitle = (bTask && lTask.title !== bTask.title) ? lTask.title : cTask.title;
+                        const mDesc = (bTask && lTask.desc !== bTask.desc) ? lTask.desc : (cTask.desc || lTask.desc);
+                        const mStatus = (bTask && lTask.status !== bTask.status) ? lTask.status : cTask.status;
+                        const mPriority = (bTask && lTask.priority !== bTask.priority) ? lTask.priority : cTask.priority;
+                        const mAssignee = (bTask && lTask.assignee !== bTask.assignee) ? lTask.assignee : cTask.assignee;
+
+                        // 留言聯集去重合併 (CRDT append-only)
+                        const commentMap = new Map();
+                        (cTask.comments || []).forEach(c => { if (c) commentMap.set(c.id || c.time + c.text, c); });
+                        (lTask.comments || []).forEach(c => { if (c) commentMap.set(c.id || c.time + c.text, c); });
+
+                        // 語音備忘聯集合併
+                        const taskAudioMap = new Map();
+                        (cTask.audioList || []).forEach(a => { if (a && a.id) taskAudioMap.set(a.id, a); });
+                        (lTask.audioList || []).forEach(a => { if (a && a.id) taskAudioMap.set(a.id, a); });
+
+                        mergedTasks.push({
+                            ...cTask,
+                            ...lTask,
+                            id: taskId,
+                            title: mTitle,
+                            desc: mDesc || '',
+                            status: mStatus,
+                            priority: mPriority,
+                            assignee: mAssignee || '',
+                            comments: Array.from(commentMap.values()),
+                            audioList: Array.from(taskAudioMap.values())
+                        });
                     });
                     mergedProj.tasks = mergedTasks;
 
