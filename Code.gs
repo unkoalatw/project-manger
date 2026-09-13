@@ -258,16 +258,9 @@ function handleYouTubeEndpoint(params) {
     var channelId = scriptProps.getProperty('YOUTUBE_CHANNEL_ID') || (params ? params.channelId : '') || '';
     var handle = (params ? params.handle : '') || scriptProps.getProperty('YOUTUBE_HANDLE') || '';
 
-    // 優先嘗試取得使用者傳入的 OAuth Access Token 或當前 Google 帳號授權的 OAuth Token
+    // 決定使用 OAuth Token 還是 API Key：
+    // 若有明確傳入 access_token 則優先使用；若無則優先使用 API Key (最穩定且永不過期)
     var oauthToken = (params ? params.access_token : '') || '';
-    if (!oauthToken) {
-      try {
-        oauthToken = ScriptApp.getOAuthToken();
-      } catch (tokenErr) {
-        Logger.log('無法獲取 ScriptApp OAuth Token: ' + tokenErr.toString());
-      }
-    }
-
     var headers = {};
     var authQuery = '';
 
@@ -276,13 +269,22 @@ function handleYouTubeEndpoint(params) {
     } else if (apiKey) {
       authQuery = '&key=' + apiKey;
     } else {
+      try {
+        oauthToken = ScriptApp.getOAuthToken();
+        if (oauthToken) headers['Authorization'] = 'Bearer ' + oauthToken;
+      } catch (tokenErr) {
+        Logger.log('無法獲取 ScriptApp OAuth Token: ' + tokenErr.toString());
+      }
+    }
+
+    if (!oauthToken && !apiKey) {
       return ContentService.createTextOutput(JSON.stringify({
         status: 'error',
-        message: '尚未完成 YouTube 授權。請在 Apps Script 編輯器選取「testAuthorizeYouTube」函式並點擊「執行」完成一次性 Google 登入授權，或在指令碼屬性中填入 YOUTUBE_API_KEY。'
+        message: '尚未完成 YouTube 授權。請在 Apps Script「指令碼屬性」設定 YOUTUBE_API_KEY，或點擊「Google 登入」進行授權。'
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
-    // 1. 查詢頻道基本資訊與統計 (若未指定 channelId/handle 且有 OAuth Token，直接查詢登入者自己的 mine=true 頻道)
+    // 1. 查詢頻道基本資訊與統計 (若未指定 channelId/handle 且有 OAuth Token，查詢 mine=true)
     var channelQuery = '';
     if (channelId) {
       channelQuery = 'id=' + encodeURIComponent(channelId);
@@ -294,7 +296,7 @@ function handleYouTubeEndpoint(params) {
     } else {
       return ContentService.createTextOutput(JSON.stringify({
         status: 'error',
-        message: '請在「指令碼屬性」設定 YOUTUBE_CHANNEL_ID，或在網址傳入 &channelId=UCxxxx / &handle=@channel'
+        message: '請在網址傳入 &handle=@您的頻道名稱 或在指令碼屬性設定 YOUTUBE_CHANNEL_ID'
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
