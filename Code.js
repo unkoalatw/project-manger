@@ -160,11 +160,9 @@ function handleAiDecompositionProxy(payload) {
 
     var candidateModels = [
       'llama-3.1-8b-instant',
-      'llama-3.2-1b-preview',
       'llama-3.2-3b-preview',
-      'llama-3.3-70b-specdec',
-      'llama3-70b-8192',
-      'llama3-8b-8192'
+      'llama-3.2-1b-preview',
+      'llama-3.3-70b-versatile'
     ];
 
     var response = null;
@@ -172,12 +170,16 @@ function handleAiDecompositionProxy(payload) {
     var responseBody = '';
 
     for (var m = 0; m < candidateModels.length; m++) {
-      groqPayload.model = candidateModels[m];
-      options.payload = JSON.stringify(groqPayload);
-      response = UrlFetchApp.fetch('https://api.groq.com/openai/v1/chat/completions', options);
-      responseCode = response.getResponseCode();
-      responseBody = response.getContentText();
-      if (responseCode === 200) break;
+      try {
+        groqPayload.model = candidateModels[m];
+        options.payload = JSON.stringify(groqPayload);
+        response = UrlFetchApp.fetch('https://api.groq.com/openai/v1/chat/completions', options);
+        responseCode = response.getResponseCode();
+        responseBody = response.getContentText();
+        if (responseCode === 200) break;
+      } catch (callErr) {
+        responseBody = callErr.toString();
+      }
     }
 
     if (responseCode !== 200) {
