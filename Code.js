@@ -10,14 +10,25 @@ var TARGET_SPREADSHEET_ID = '';
 var SHEET_NAME_DATA = 'FlatSpecData';
 var SHEET_NAME_VIEW = '專案視覺化總覽';
 
+// 提示：請於 Apps Script「專案設定 ➔ 指令碼屬性」配置 OAUTH_CLIENT_ID, OAUTH_CLIENT_SECRET, YOUTUBE_API_KEY
+var DEFAULT_OAUTH_CLIENT_ID = '';
+var DEFAULT_OAUTH_CLIENT_SECRET = '';
+var DEFAULT_YOUTUBE_API_KEY = '';
+
 /**
  * 處理 GET 請求：讀取 JSON 全量專案資料
  */
 function doGet(e) {
   try {
-    // 支援 GET 模式執行 AI 代理 (解決瀏覽器對 POST 302 redirect 偶發丟失連線的問題)
+    // 支援 GET 模式執行 OAuth 登入、YouTube 數據、AI 代理
     if (e && e.parameter && e.parameter.action) {
       var act = e.parameter.action;
+      if (act === 'oauth_login' || act === 'login') {
+        return handleOAuthLoginRedirect(e);
+      }
+      if (act === 'oauth_callback') {
+        return handleOAuthCallback(e);
+      }
       if (act === 'youtube' || act === 'yt') {
         return handleYouTubeEndpoint(e.parameter);
       }
@@ -204,22 +215,34 @@ function handleAiDecompositionProxy(payload) {
       }
     }
 
-    return ContentService.createTextOutput(JSON.stringify({
-      status: 'success',
-      data: outputData,
-      rawText: rawText
-    })).setMimeType(ContentService.MimeType.JSON);
+/**
+ * ================= 🔐 Google OAuth 2.0 登入授權導向與 Token 存取 =================
+ */
+function handleOAuthLoginRedirect(e) {
+  var scriptProps = PropertiesService.getScriptProperties();
+  var clientId = scriptProps.getProperty('OAUTH_CLIENT_ID') || DEFAULT_OAUTH_CLIENT_ID;
+  var redirectUri = 'https://unkoalatw.github.io/project-manger/';
+  var scope = encodeURIComponent('https://www.googleapis.com/auth/youtube.readonly');
+  
+  var authUrl = 'https://accounts.google.com/o/oauth2/v2/auth?' +
+    'client_id=' + encodeURIComponent(clientId) +
+    '&redirect_uri=' + encodeURIComponent(redirectUri) +
+    '&response_type=token' +
+    '&scope=' + scope +
+    '&include_granted_scopes=true' +
+    '&prompt=consent';
 
-  } catch (proxyErr) {
-    return ContentService.createTextOutput(JSON.stringify({
-      status: 'error',
-      message: 'AI 雲端中繼代理發生異常: ' + proxyErr.toString()
-    })).setMimeType(ContentService.MimeType.JSON);
-  }
+  var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>正在前往 Google 登入授權...</title>' +
+    '<script>window.location.href = "' + authUrl + '";<\/script></head>' +
+    '<body style="font-family:sans-serif; text-align:center; padding:40px;">' +
+    '<h3>🔐 正在跳轉至 Google 帳號授權頁面...</h3>' +
+    '<p>若未自動跳轉，請 <a href="' + authUrl + '">點擊此處手動前往</a></p>' +
+    '</body></html>';
+
+  return HtmlService.createHtmlOutput(html)
+    .setTitle('Google 登入授權')
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
 }
-
-// 預設 YouTube API Key (亦可於 ScriptProperties 中的 YOUTUBE_API_KEY 配置)
-var DEFAULT_YOUTUBE_API_KEY = 'AIzaSyBmoF9zY2zqTX4m7K_Xwrae3F-Akhb8bNs';
 
 /**
  * ================= 🔴 YouTube Data API 端點 (支援登入授權模式 / API Key 模式) =================
@@ -235,12 +258,14 @@ function handleYouTubeEndpoint(params) {
     var channelId = scriptProps.getProperty('YOUTUBE_CHANNEL_ID') || (params ? params.channelId : '') || '';
     var handle = (params ? params.handle : '') || scriptProps.getProperty('YOUTUBE_HANDLE') || '';
 
-    // 優先嘗試取得當前 Google 帳號授權的 OAuth Token
-    var oauthToken = '';
-    try {
-      oauthToken = ScriptApp.getOAuthToken();
-    } catch (tokenErr) {
-      Logger.log('無法獲取 ScriptApp OAuth Token: ' + tokenErr.toString());
+    // 優先嘗試取得使用者傳入的 OAuth Access Token 或當前 Google 帳號授權的 OAuth Token
+    var oauthToken = (params ? params.access_token : '') || '';
+    if (!oauthToken) {
+      try {
+        oauthToken = ScriptApp.getOAuthToken();
+      } catch (tokenErr) {
+        Logger.log('無法獲取 ScriptApp OAuth Token: ' + tokenErr.toString());
+      }
     }
 
     var headers = {};

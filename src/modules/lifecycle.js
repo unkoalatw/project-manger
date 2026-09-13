@@ -33,7 +33,32 @@ export const lifecycle = {
                         }
                     } catch(e) {}
 
-                    // 0. 檢查是否有邀請連結參數 (?gasUrl=...&proj=...)
+                    // 0. 檢查是否有 OAuth 授權回傳 Token (#access_token=... 或 ?access_token=...)
+                    try {
+                        let token = '';
+                        if (window.location.hash && window.location.hash.includes('access_token=')) {
+                            const hashParams = new URLSearchParams(window.location.hash.substring(1));
+                            token = hashParams.get('access_token');
+                        }
+                        if (!token && window.location.search && window.location.search.includes('access_token=')) {
+                            const searchParams = new URLSearchParams(window.location.search);
+                            token = searchParams.get('access_token');
+                        }
+
+                        if (token) {
+                            localStorage.setItem('flatSpecGoogleOAuthToken', token);
+                            this.showToast('🎉 Google 帳號授權成功！YouTube 數據已解鎖！');
+                            // 清除網址列中的 Token 雜訊，保護隱私
+                            if (window.history && window.history.replaceState) {
+                                const cleanUrl = window.location.origin + window.location.pathname;
+                                window.history.replaceState(null, '', cleanUrl);
+                            }
+                        }
+                    } catch (oauthErr) {
+                        console.warn("OAuth token parsing error", oauthErr);
+                    }
+
+                    // 0.5 檢查是否有邀請連結參數 (?gasUrl=...&proj=...)
                     try {
                         const urlParams = new URLSearchParams(window.location.search);
                         const inviteGasUrl = urlParams.get('gasUrl');

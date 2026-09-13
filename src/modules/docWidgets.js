@@ -592,14 +592,22 @@ export const docWidgets = {
     async fetchDocLiveData(widgetId) {
         const card = document.getElementById(widgetId);
         if (!card) return;
-        const url = card.getAttribute('data-url');
+        let url = card.getAttribute('data-url');
         const contentEl = document.getElementById(`${widgetId}_content`);
         const dotEl = document.getElementById(`${widgetId}_dot`);
         if (!url || !contentEl) return;
 
         try {
             contentEl.innerHTML = `<span class="text-slate-400 animate-pulse font-mono text-xs">正在連線 API (${url.substring(0, 45)}...)...</span>`;
-            const resp = await fetch(url);
+            
+            // 若本地已存在 Google OAuth 授權 Token 且網址包含 script.google.com / youtube，自動附帶 Token
+            const savedOAuthToken = localStorage.getItem('flatSpecGoogleOAuthToken');
+            let fetchUrl = url;
+            if (savedOAuthToken && url.includes('script.google.com') && !url.includes('access_token=')) {
+                fetchUrl += (fetchUrl.includes('?') ? '&' : '?') + `access_token=${encodeURIComponent(savedOAuthToken)}`;
+            }
+
+            const resp = await fetch(fetchUrl);
             if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
             const json = await resp.json();
 
