@@ -71,31 +71,37 @@ export const docs = {
                 }
             },
 
+            closeAllToolbarDropdowns() {
+                const toolbar = document.getElementById('docEditToolbar');
+                if (toolbar) {
+                    toolbar.querySelectorAll('[id$="Dropdown"]').forEach(el => el.classList.add('hidden'));
+                }
+            },
+
             toggleDocLinkDropdown(e) {
-                if (e) e.stopPropagation();
+                if (e && e.stopPropagation) e.stopPropagation();
                 const dropdown = document.getElementById('docLinkDropdown');
                 if (!dropdown) return;
 
-                if (!dropdown.classList.contains('hidden')) {
-                    dropdown.classList.add('hidden');
-                    return;
+                const isHidden = dropdown.classList.contains('hidden');
+                this.closeAllToolbarDropdowns();
+
+                if (isHidden) {
+                    const p = this.getCurrentProject();
+                    const otherDocs = (p?.docs || []).filter(d => d.id !== this.state.activeDocId);
+
+                    if (otherDocs.length === 0) {
+                        dropdown.innerHTML = `<div class="p-2 text-xs text-zinc-400 italic">專案內無其他文檔可引用</div>`;
+                    } else {
+                        dropdown.innerHTML = otherDocs.map(d => `
+                            <div onclick="app.insertDocLink('${this.escapeHtml(d.title)}')" class="p-2 hover:bg-zinc-100 cursor-pointer font-bold text-xs flex items-center justify-between border-b last:border-b-0 border-zinc-100">
+                                <span class="truncate">📄 ${this.escapeHtml(d.title)}</span>
+                                <span class="text-[10px] text-zinc-400">插入</span>
+                            </div>
+                        `).join('');
+                    }
+                    dropdown.classList.remove('hidden');
                 }
-
-                const p = this.getCurrentProject();
-                const otherDocs = (p?.docs || []).filter(d => d.id !== this.state.activeDocId);
-
-                if (otherDocs.length === 0) {
-                    dropdown.innerHTML = `<div class="p-2 text-xs text-zinc-400 italic">專案內無其他文檔可引用</div>`;
-                } else {
-                    dropdown.innerHTML = otherDocs.map(d => `
-                        <div onclick="app.insertDocLink('${this.escapeHtml(d.title)}')" class="p-2 hover:bg-zinc-100 cursor-pointer font-bold text-xs flex items-center justify-between border-b last:border-b-0 border-zinc-100">
-                            <span class="truncate">📄 ${this.escapeHtml(d.title)}</span>
-                            <span class="text-[10px] text-zinc-400">插入</span>
-                        </div>
-                    `).join('');
-                }
-
-                dropdown.classList.remove('hidden');
             },
 
             closeDocLinkDropdown() {
@@ -1629,18 +1635,9 @@ pie title 影片流量與曝光來源佔比 (%)
                 const dropdown = document.getElementById('docToolsDropdown');
                 if (!dropdown) return;
                 const isHidden = dropdown.classList.contains('hidden');
-                document.querySelectorAll('#docEditToolbar .absolute:not(.hidden)').forEach(m => m.classList.add('hidden'));
+                this.closeAllToolbarDropdowns();
                 if (isHidden) {
                     dropdown.classList.remove('hidden');
-                    const closeHandler = (evt) => {
-                        if (!dropdown.contains(evt.target)) {
-                            dropdown.classList.add('hidden');
-                            document.removeEventListener('click', closeHandler);
-                        }
-                    };
-                    setTimeout(() => document.addEventListener('click', closeHandler), 10);
-                } else {
-                    dropdown.classList.add('hidden');
                 }
             },
 
@@ -1654,18 +1651,9 @@ pie title 影片流量與曝光來源佔比 (%)
                 const dropdown = document.getElementById('docWidgetsDropdown');
                 if (!dropdown) return;
                 const isHidden = dropdown.classList.contains('hidden');
-                document.querySelectorAll('#docEditToolbar .absolute:not(.hidden)').forEach(m => m.classList.add('hidden'));
+                this.closeAllToolbarDropdowns();
                 if (isHidden) {
                     dropdown.classList.remove('hidden');
-                    const closeHandler = (evt) => {
-                        if (!dropdown.contains(evt.target)) {
-                            dropdown.classList.add('hidden');
-                            document.removeEventListener('click', closeHandler);
-                        }
-                    };
-                    setTimeout(() => document.addEventListener('click', closeHandler), 10);
-                } else {
-                    dropdown.classList.add('hidden');
                 }
             },
 
@@ -1676,25 +1664,13 @@ pie title 影片流量與曝光來源佔比 (%)
 
             // ================= 📊 圖表插入與選單邏輯 (Charts: Bar, Line, Pie) =================
             toggleDocChartDropdown(e) {
-                if (e) e.stopPropagation();
+                if (e && e.stopPropagation) e.stopPropagation();
                 const dropdown = document.getElementById('docChartDropdown');
                 if (!dropdown) return;
                 const isHidden = dropdown.classList.contains('hidden');
-                // 關閉其他可能開啟的選單
-                const allMenus = document.querySelectorAll('#docEditToolbar .absolute:not(.hidden)');
-                allMenus.forEach(m => m.classList.add('hidden'));
-
+                this.closeAllToolbarDropdowns();
                 if (isHidden) {
                     dropdown.classList.remove('hidden');
-                    const closeHandler = (evt) => {
-                        if (!dropdown.contains(evt.target)) {
-                            dropdown.classList.add('hidden');
-                            document.removeEventListener('click', closeHandler);
-                        }
-                    };
-                    setTimeout(() => document.addEventListener('click', closeHandler), 10);
-                } else {
-                    dropdown.classList.add('hidden');
                 }
             },
 

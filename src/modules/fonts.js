@@ -473,13 +473,20 @@ this.closeModals();
 
                 this.showToast('🔄 已還原為系統預設 Inter 字體');
             },
-        
+
             // ================= 🎨 編輯器彩色標記與字體色彩選單 =================
             toggleDocColorDropdown(e) {
-                if (e) e.stopPropagation();
+                if (e && e.stopPropagation) e.stopPropagation();
                 const dropdown = document.getElementById('docColorDropdown');
-                if (dropdown) {
-                    dropdown.classList.toggle('hidden');
+                if (!dropdown) return;
+                const isHidden = dropdown.classList.contains('hidden');
+                if (this.closeAllToolbarDropdowns) {
+                    this.closeAllToolbarDropdowns();
+                } else {
+                    document.querySelectorAll('#docEditToolbar [id$="Dropdown"]').forEach(el => el.classList.add('hidden'));
+                }
+                if (isHidden) {
+                    dropdown.classList.remove('hidden');
                 }
             },
 

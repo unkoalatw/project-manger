@@ -192,19 +192,27 @@ export const lifecycle = {
                     }
                 });
 
-                // 點擊外部關閉引用清單、色彩選單與分頁選單
+                // 點擊外部關閉工具列所有下拉選單
                 document.addEventListener('click', (e) => {
-                    const linkContainer = document.getElementById('docLinkPickerContainer');
-                    if (linkContainer && !linkContainer.contains(e.target)) {
-                        this.closeDocLinkDropdown();
-                    }
-                    const colorContainer = document.getElementById('docColorPickerContainer');
-                    if (colorContainer && !colorContainer.contains(e.target)) {
-                        this.closeDocColorDropdown();
-                    }
-                    const pageBreakContainer = document.getElementById('docPageBreakContainer');
-                    if (pageBreakContainer && !pageBreakContainer.contains(e.target)) {
-                        this.closeDocPageBreakMenu();
+                    const toolbar = document.getElementById('docEditToolbar');
+                    if (toolbar && !toolbar.contains(e.target)) {
+                        toolbar.querySelectorAll('[id$="Dropdown"]').forEach(el => el.classList.add('hidden'));
+                    } else if (toolbar) {
+                        const containers = [
+                            'docLinkPickerContainer',
+                            'docColorPickerContainer',
+                            'docChartPickerContainer',
+                            'docWidgetsPickerContainer',
+                            'docPageBreakContainer',
+                            'docToolsPickerContainer'
+                        ];
+                        containers.forEach(id => {
+                            const c = document.getElementById(id);
+                            if (c && !c.contains(e.target)) {
+                                const dd = c.querySelector('[id$="Dropdown"]');
+                                if (dd) dd.classList.add('hidden');
+                            }
+                        });
                     }
                 });
 

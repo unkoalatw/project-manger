@@ -1,27 +1,33 @@
 // FlatSpec Module: pagination
 export const pagination = {
-// ================= 📄 編輯器分頁標記與換頁控制引擎 =================
-            toggleDocPageBreakMenu(e) {
-                if (e && e.stopPropagation) e.stopPropagation();
-                const dropdown = document.getElementById('docPageBreakDropdown');
-                if (dropdown) {
-                    dropdown.classList.toggle('hidden');
-                    this.updatePageBreakButtonUI();
-                }
-            },
+    toggleDocPageBreakMenu(e) {
+        if (e && e.stopPropagation) e.stopPropagation();
+        const dropdown = document.getElementById('docPageBreakDropdown');
+        if (!dropdown) return;
+        const isHidden = dropdown.classList.contains('hidden');
+        if (this.closeAllToolbarDropdowns) {
+            this.closeAllToolbarDropdowns();
+        } else {
+            document.querySelectorAll('#docEditToolbar [id$="Dropdown"]').forEach(el => el.classList.add('hidden'));
+        }
+        if (isHidden) {
+            dropdown.classList.remove('hidden');
+            this.updatePageBreakButtonUI();
+        }
+    },
 
-            closeDocPageBreakMenu() {
-                const dropdown = document.getElementById('docPageBreakDropdown');
-                if (dropdown) dropdown.classList.add('hidden');
-            },
+    closeDocPageBreakMenu() {
+        const dropdown = document.getElementById('docPageBreakDropdown');
+        if (dropdown) dropdown.classList.add('hidden');
+    },
 
-            insertPageBreak() {
-                const editor = document.getElementById('docEditor');
-                if (!editor) return;
-                this.insertMarkdown('\n\n<!-- pagebreak -->\n\n', '');
-                this.updateDocContent(editor.value);
-                this.showToast('📄 已插入分頁標記 (該段落將從新頁面開始)');
-            },
+    insertPageBreak() {
+        const editor = document.getElementById('docEditor');
+        if (!editor) return;
+        this.insertMarkdown('\n\n<!-- pagebreak -->\n\n', '');
+        this.updateDocContent(editor.value);
+        this.showToast('📄 已插入分頁標記 (該段落將從新頁面開始)');
+    },
 
             togglePageBreaksState() {
                 this.state.enablePageBreaks = !(this.state.enablePageBreaks !== false);
