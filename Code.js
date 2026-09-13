@@ -215,6 +215,20 @@ function handleAiDecompositionProxy(payload) {
       }
     }
 
+    return ContentService.createTextOutput(JSON.stringify({
+      status: 'success',
+      data: outputData,
+      rawText: rawText
+    })).setMimeType(ContentService.MimeType.JSON);
+
+  } catch (proxyErr) {
+    return ContentService.createTextOutput(JSON.stringify({
+      status: 'error',
+      message: 'AI 雲端中繼代理發生異常: ' + proxyErr.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
 /**
  * ================= 🔐 Google OAuth 2.0 登入授權導向與 Token 存取 =================
  */
