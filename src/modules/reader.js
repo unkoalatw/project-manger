@@ -207,10 +207,13 @@ export const reader = {
                     wordCountBadge.innerText = `${content.length} 字`;
                 }
 
+                const codeEditorContainer = document.getElementById('codeEditorContainer');
+
                 if (this.state.docMode === 'preview') {
                     if (editHeader) editHeader.classList.add('hidden');
                     if (editToolbar) editToolbar.classList.add('hidden');
                     editorEl.classList.add('hidden');
+                    if (codeEditorContainer) codeEditorContainer.classList.add('hidden');
 
                     if (previewHeader) previewHeader.classList.remove('hidden');
                     if (previewActions) previewActions.classList.remove('hidden');
@@ -231,10 +234,14 @@ export const reader = {
                     if (editHeader) editHeader.classList.remove('hidden');
                     if (editToolbar) editToolbar.classList.remove('hidden');
                     editorEl.classList.remove('hidden');
+                    if (codeEditorContainer) codeEditorContainer.classList.remove('hidden');
 
                     if (previewHeader) previewHeader.classList.add('hidden');
                     if (previewActions) previewActions.classList.add('hidden');
                     previewEl.classList.add('hidden');
+
+                    if (typeof this.updateLineNumbers === 'function') this.updateLineNumbers();
+                    if (typeof this.updateIdeStatusBar === 'function') this.updateIdeStatusBar();
 
                     btnEdit.className = 'px-3 py-1 bg-black text-white font-bold text-xs transition-colors flex items-center gap-1';
                     btnPrev.className = 'px-3 py-1 bg-zinc-100 text-black font-bold text-xs transition-colors hover:bg-zinc-200 flex items-center gap-1';

@@ -112,6 +112,10 @@ export const docs = {
                 const editor = document.getElementById('docEditor');
                 if (!editor) return;
 
+                if (typeof this.initCodeEditorEnhancements === 'function') {
+                    this.initCodeEditorEnhancements();
+                }
+
                 if (typeof this.setupSlashCommandAutocomplete === 'function') {
                     this.setupSlashCommandAutocomplete();
                 }

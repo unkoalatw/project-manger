@@ -33,6 +33,7 @@ import { docCollapsible } from './modules/docCollapsible.js';
 import { docDatabase } from './modules/docDatabase.js';
 import { docWidgets } from './modules/docWidgets.js';
 import { memorySearch } from './modules/memorySearch.js';
+import { codeEditor } from './modules/codeEditor.js';
 
 export const app = {
     state,
@@ -68,7 +69,8 @@ export const app = {
     ...docCollapsible,
     ...docDatabase,
     ...docWidgets,
-    ...memorySearch
+    ...memorySearch,
+    ...codeEditor
 };
 
 // 啟動應用程式
