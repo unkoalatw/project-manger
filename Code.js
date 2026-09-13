@@ -5,8 +5,8 @@
  * 指定試算表 ID: 1WSViTq8yVVtOt8ubh01l1441-HzgUWcJiiBD4MZgmnU
  */
 
-// 強制綁定指定 Google 試算表 ID
-var TARGET_SPREADSHEET_ID = '1WSViTq8yVVtOt8ubh01l1441-HzgUWcJiiBD4MZgmnU';
+// 做法 A：原生綁定當前 Google 試算表 (無需手動填寫 ID，由試算表直接開啟)
+var TARGET_SPREADSHEET_ID = '';
 var SHEET_NAME_DATA = 'FlatSpecData';
 var SHEET_NAME_VIEW = '專案視覺化總覽';
 
@@ -51,7 +51,7 @@ function doPost(e) {
     var parsedPayload = JSON.parse(contents);
 
     // ================= 🤖 安全 AI 任務拆解代理 (Cloud Groq Proxy) =================
-    if (parsedPayload && typeof parsedPayload === 'object' && parsedPayload.action === 'ai_decompose') {
+    if (parsedPayload && typeof parsedPayload === 'object' && (parsedPayload.action === 'ai_decompose' || parsedPayload.action === 'ai_doc_assist')) {
       return handleAiDecompositionProxy(parsedPayload);
     }
 
@@ -105,6 +105,7 @@ function handleAiDecompositionProxy(payload) {
     var systemPrompt = payload.systemPrompt || '你是一個敏捷專案管理專家。';
     var userMessageContent = payload.userMessage || '';
 
+    var isJsonMode = payload.responseFormat !== 'text';
     var groqPayload = {
       model: 'groq/compound-mini',
       messages: [
@@ -112,9 +113,12 @@ function handleAiDecompositionProxy(payload) {
         { role: 'user', content: userMessageContent }
       ],
       temperature: 0.3,
-      max_tokens: 3500,
-      response_format: { type: 'json_object' }
+      max_tokens: 3500
     };
+
+    if (isJsonMode) {
+      groqPayload.response_format = { type: 'json_object' };
+    }
 
     var options = {
       method: 'post',
@@ -138,14 +142,22 @@ function handleAiDecompositionProxy(payload) {
     }
 
     var groqData = JSON.parse(responseBody);
-    var rawText = groqData.choices && groqData.choices[0] && groqData.choices[0].message ? groqData.choices[0].message.content : '{}';
+    var rawText = groqData.choices && groqData.choices[0] && groqData.choices[0].message ? groqData.choices[0].message.content : '';
 
-    var cleanedJson = rawText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
-    var parsedStructure = JSON.parse(cleanedJson);
+    var outputData = rawText;
+    if (isJsonMode) {
+      try {
+        var cleanedJson = rawText.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+        outputData = JSON.parse(cleanedJson);
+      } catch (parseErr) {
+        outputData = { text: rawText };
+      }
+    }
 
     return ContentService.createTextOutput(JSON.stringify({
       status: 'success',
-      data: parsedStructure
+      data: outputData,
+      rawText: rawText
     })).setMimeType(ContentService.MimeType.JSON);
 
   } catch (proxyErr) {
@@ -191,9 +203,18 @@ function readDataChunks(sheet) {
 }
 
 /**
- * 輔助函式：安全開啟或建立試算表
+ * 輔助函式：安全開啟或建立試算表 (做法 A：優先使用當前綁定的試算表)
  */
 function getTargetSpreadsheet() {
+  // 1. 優先獲取當前試算表 (做法 A 原生模式，永遠最穩定)
+  try {
+    var activeSs = SpreadsheetApp.getActiveSpreadsheet();
+    if (activeSs) return activeSs;
+  } catch (e) {
+    Logger.log('無法透過 getActiveSpreadsheet 獲取: ' + e.message);
+  }
+
+  // 2. 若有指定外部 ID 則嘗試開啟
   var targetId = (TARGET_SPREADSHEET_ID || '').trim();
   if (targetId) {
     try {
@@ -204,7 +225,7 @@ function getTargetSpreadsheet() {
     }
   }
   
-  // 嘗試獲取先前自動建立並持久化於 ScriptProperties 的試算表 ID
+  // 3. 嘗試獲取先前自動建立並持久化於 ScriptProperties 的試算表 ID
   try {
     var savedId = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID');
     if (savedId) {
@@ -213,13 +234,7 @@ function getTargetSpreadsheet() {
     }
   } catch (e) {}
 
-  // 嘗試獲取當前綁定的試算表
-  try {
-    var activeSs = SpreadsheetApp.getActiveSpreadsheet();
-    if (activeSs) return activeSs;
-  } catch (e) {}
-
-  // 自動建立一份新試算表作為資料庫備份並記錄其 ID (防止重複產生孤立試算表)
+  // 4. 自動建立一份新試算表作為資料庫備份並記錄其 ID
   try {
     var newSs = SpreadsheetApp.create('FlatSpec Drive 專案資料庫');
     if (newSs) {

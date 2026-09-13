@@ -1,11 +1,3 @@
-# Ignore all files except GAS files
 **/*
 !appsscript.json
-!google_apps_script.js
-!*.gs
-!*.js
-index.html
-package*.json
-README.md
-.gitignore
-.git/**
+!Code.js

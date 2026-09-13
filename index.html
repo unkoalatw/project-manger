@@ -273,8 +273,13 @@
                         </span>
                     </div>
 
-                    <!-- 右側操作按鈕區 (大綱目錄、搜尋取代、純檢視專屬按鈕) -->
+                    <!-- 右側操作按鈕區 (大綱目錄、搜尋取代、AI 文件助理、純檢視專屬按鈕) -->
                     <div class="flex items-center gap-1.5 shrink-0">
+                        <!-- 🤖 AI 文件助理側邊面板開關 -->
+                        <button type="button" id="btnToggleAiDocAssistant" onclick="app.toggleAiDocAssistant()" class="px-2.5 py-1 bg-gradient-to-r from-purple-50 to-indigo-50 hover:from-purple-100 hover:to-indigo-100 text-purple-700 border border-purple-200 font-semibold text-xs rounded-md flex items-center gap-1.5 transition-all shadow-xs shrink-0" title="開啟 AI 文件助理側邊面板 (風格改寫、自動摘要、待辦提取、邏輯查核、問答)">
+                            <span class="text-xs">🤖</span>
+                            <span class="font-bold">AI 助理</span>
+                        </button>
                         <button type="button" id="btnToggleFindReplace" onclick="app.toggleDocFindReplace()" class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 font-semibold text-xs rounded-md flex items-center gap-1 transition-colors shadow-xs" title="在文檔中尋找與取代 (Ctrl+F)">
                             <span>🔍</span> <span class="hidden sm:inline">尋找</span>
                         </button>
@@ -1795,6 +1800,233 @@
             </div>
         </div>
     </div>
+
+    <!-- 🤖 特製側邊面板：AI 文件助理 (AI Doc Assistant Floating Panel) -->
+    <aside id="aiDocAssistantDrawer" class="drawer-closed fixed top-0 right-0 h-full w-[380px] sm:w-[420px] max-w-[100vw] bg-white border-l border-slate-200 z-[60] flex flex-col shadow-2xl">
+        <!-- 頂部 Header -->
+        <div class="p-4 bg-gradient-to-r from-purple-50 via-indigo-50/60 to-white border-b border-purple-100/80 flex items-center justify-between shrink-0">
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-purple-600 to-indigo-600 text-white flex items-center justify-center font-bold text-base shadow-sm">
+                    ✨
+                </div>
+                <div>
+                    <h3 class="font-bold text-sm text-slate-900 tracking-tight flex items-center gap-1.5">
+                        <span>AI 文件助理</span>
+                        <span class="text-[9px] font-mono bg-purple-100 text-purple-800 px-1.5 py-0.2 rounded font-bold">Groq Mini</span>
+                    </h3>
+                    <p class="text-[11px] text-slate-500 font-normal">風格改寫 · 智慧摘要 · 待辦提取 · 邏輯查核 · 內容問答</p>
+                </div>
+            </div>
+            <button type="button" onclick="app.toggleAiDocAssistant(false)" class="w-7 h-7 rounded-md bg-white hover:bg-slate-100 border border-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center font-bold text-sm transition-colors" title="關閉 AI 文件助理 (Esc)">
+                ✕
+            </button>
+        </div>
+
+        <!-- 快速功能 Tabs -->
+        <div class="flex border-b border-slate-200 bg-slate-50/70 p-1 gap-1 text-xs font-semibold shrink-0 overflow-x-auto no-scrollbar">
+            <button type="button" id="tabAiDoc_rewrite" onclick="app.switchAiDocAssistantTab('rewrite')" class="flex-1 py-1.5 px-2 rounded-md bg-white text-purple-700 shadow-xs border border-purple-200/60 text-center transition-all whitespace-nowrap">
+                ✍️ 風格改寫
+            </button>
+            <button type="button" id="tabAiDoc_summary" onclick="app.switchAiDocAssistantTab('summary')" class="flex-1 py-1.5 px-2 rounded-md text-slate-600 hover:text-slate-900 hover:bg-white/60 text-center transition-all whitespace-nowrap">
+                📑 自動摘要
+            </button>
+            <button type="button" id="tabAiDoc_tasks" onclick="app.switchAiDocAssistantTab('tasks')" class="flex-1 py-1.5 px-2 rounded-md text-slate-600 hover:text-slate-900 hover:bg-white/60 text-center transition-all whitespace-nowrap">
+                ☑️ 待辦提取
+            </button>
+            <button type="button" id="tabAiDoc_audit" onclick="app.switchAiDocAssistantTab('audit')" class="flex-1 py-1.5 px-2 rounded-md text-slate-600 hover:text-slate-900 hover:bg-white/60 text-center transition-all whitespace-nowrap">
+                🔍 矛盾/證據
+            </button>
+            <button type="button" id="tabAiDoc_qa" onclick="app.switchAiDocAssistantTab('qa')" class="flex-1 py-1.5 px-2 rounded-md text-slate-600 hover:text-slate-900 hover:bg-white/60 text-center transition-all whitespace-nowrap">
+                💬 問文件
+            </button>
+        </div>
+
+        <!-- 側邊面板內容主體 -->
+        <div class="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/40">
+            
+            <!-- Tab 1: 選取文字風格改寫 (Rewrite) -->
+            <div id="panelAiDoc_rewrite" class="space-y-3">
+                <div class="p-3 bg-purple-50/60 border border-purple-100 rounded-xl space-y-2 text-xs">
+                    <div class="flex items-center justify-between">
+                        <span class="font-bold text-purple-900 flex items-center gap-1.5">
+                            <span>📌</span> <span>當前選取之文字區段</span>
+                        </span>
+                        <button type="button" onclick="app.syncSelectionFromEditor()" class="text-[10px] text-purple-700 hover:underline font-semibold">重新抓取選取處</button>
+                    </div>
+                    <textarea id="aiDocSelectedTextInput" class="w-full p-2.5 bg-white border border-purple-200 rounded-lg text-xs font-mono leading-relaxed h-24 placeholder-slate-400 focus:outline-none focus:border-purple-500" placeholder="請在文檔中反白選取一段文字，或直接貼入此處..."></textarea>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-xs text-slate-700 mb-1.5">選擇改寫風格：</label>
+                    <div class="grid grid-cols-2 gap-1.5 text-xs">
+                        <button type="button" onclick="app.runAiRewrite('formal')" class="p-2 bg-white hover:bg-purple-50 border border-slate-200 hover:border-purple-300 rounded-lg font-semibold text-slate-800 flex items-center gap-1.5 transition-all text-left shadow-xs">
+                            <span>👔</span>
+                            <div>
+                                <div class="font-bold text-[11px]">正式商務風</div>
+                                <div class="text-[9px] text-slate-400 font-normal">專業俐落、用詞嚴謹</div>
+                            </div>
+                        </button>
+                        <button type="button" onclick="app.runAiRewrite('concise')" class="p-2 bg-white hover:bg-purple-50 border border-slate-200 hover:border-purple-300 rounded-lg font-semibold text-slate-800 flex items-center gap-1.5 transition-all text-left shadow-xs">
+                            <span>✂️</span>
+                            <div>
+                                <div class="font-bold text-[11px]">精簡凝練風</div>
+                                <div class="text-[9px] text-slate-400 font-normal">去除贅字、直切重點</div>
+                            </div>
+                        </button>
+                        <button type="button" onclick="app.runAiRewrite('casual')" class="p-2 bg-white hover:bg-purple-50 border border-slate-200 hover:border-purple-300 rounded-lg font-semibold text-slate-800 flex items-center gap-1.5 transition-all text-left shadow-xs">
+                            <span>🗣️</span>
+                            <div>
+                                <div class="font-bold text-[11px]">親切口語風</div>
+                                <div class="text-[9px] text-slate-400 font-normal">自然流暢、淺顯易懂</div>
+                            </div>
+                        </button>
+                        <button type="button" onclick="app.runAiRewrite('report')" class="p-2 bg-white hover:bg-purple-50 border border-slate-200 hover:border-purple-300 rounded-lg font-semibold text-slate-800 flex items-center gap-1.5 transition-all text-left shadow-xs">
+                            <span>📊</span>
+                            <div>
+                                <div class="font-bold text-[11px]">報告結構風</div>
+                                <div class="text-[9px] text-slate-400 font-normal">條列分明、論點佐證</div>
+                            </div>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 改寫自訂指令 (選填) -->
+                <div>
+                    <input type="text" id="aiRewriteCustomPrompt" placeholder="自訂改寫要求（選填，例如：加入正能量、加強吸引力）..." class="w-full p-2 bg-white border border-slate-200 rounded-lg text-xs placeholder-slate-400">
+                </div>
+            </div>
+
+            <!-- Tab 2: 自動摘要整份文件 (Summary) -->
+            <div id="panelAiDoc_summary" class="hidden space-y-3">
+                <div class="p-3 bg-indigo-50/60 border border-indigo-100 rounded-xl text-xs space-y-2">
+                    <div class="font-bold text-indigo-900 flex items-center gap-1.5">
+                        <span>📑</span> <span>整篇文檔智慧摘要與核心精華</span>
+                    </div>
+                    <p class="text-[11px] text-indigo-700 font-normal">
+                        AI 將完整閱讀當前文檔的所有段落，快速提煉出 3 點核心摘要、關鍵結論與行動方針。
+                    </p>
+                </div>
+                <button type="button" onclick="app.runAiDocSummary()" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-colors">
+                    <span>⚡</span> <span>一鍵生成全文結構化摘要</span>
+                </button>
+            </div>
+
+            <!-- Tab 3: 根據文件產生待辦事項 (Tasks Extraction) -->
+            <div id="panelAiDoc_tasks" class="hidden space-y-3">
+                <div class="p-3 bg-emerald-50/60 border border-emerald-100 rounded-xl text-xs space-y-2">
+                    <div class="font-bold text-emerald-900 flex items-center gap-1.5">
+                        <span>☑️</span> <span>從文檔中深度萃取待辦與執行要點</span>
+                    </div>
+                    <p class="text-[11px] text-emerald-700 font-normal">
+                        自動掃描內文提及的承諾、規劃步驟、待確認項目，並直接轉換為可匯入專案看板的 Action Items。
+                    </p>
+                </div>
+                <button type="button" onclick="app.runAiDocExtractTasks()" class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-colors">
+                    <span>⚡</span> <span>掃描並產生待辦清單</span>
+                </button>
+            </div>
+
+            <!-- Tab 4: 矛盾檢查與證據支持查核 (Audit & Logic Check) -->
+            <div id="panelAiDoc_audit" class="hidden space-y-3">
+                <div class="p-3 bg-amber-50/70 border border-amber-200/80 rounded-xl text-xs space-y-2">
+                    <div class="font-bold text-amber-950 flex items-center gap-1.5">
+                        <span>🔍</span> <span>邏輯一致性與證據支持雙重檢查</span>
+                    </div>
+                    <p class="text-[11px] text-amber-900 font-normal">
+                        檢查文檔前後是否有自相矛盾、時間線不符、或缺乏數據/事實支撐的武斷論述。
+                    </p>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                    <button type="button" onclick="app.runAiDocCheckContradictions()" class="p-2.5 bg-white hover:bg-amber-50 border border-amber-200 rounded-xl font-bold text-xs text-amber-900 flex flex-col items-center justify-center gap-1 transition-all shadow-xs text-center">
+                        <span class="text-base">⚡</span>
+                        <span>找出前後矛盾內容</span>
+                    </button>
+                    <button type="button" onclick="app.runAiDocCheckEvidence()" class="p-2.5 bg-white hover:bg-blue-50 border border-blue-200 rounded-xl font-bold text-xs text-blue-900 flex flex-col items-center justify-center gap-1 transition-all shadow-xs text-center">
+                        <span class="text-base">🔬</span>
+                        <span>檢查證據支持度</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tab 5: 問文件 (QA & Criteria Check) -->
+            <div id="panelAiDoc_qa" class="hidden space-y-3">
+                <div class="p-3 bg-blue-50/60 border border-blue-100 rounded-xl text-xs space-y-2">
+                    <div class="font-bold text-blue-900 flex items-center gap-1.5">
+                        <span>💬</span> <span>與當前文檔進行智能問答</span>
+                    </div>
+                    <p class="text-[11px] text-blue-700 font-normal">
+                        提出任何疑問或驗證要求（例如：比對老師要求的 3 個重點、確認合約條款、檢查是否有漏掉章節）。
+                    </p>
+                </div>
+
+                <!-- 常用快捷提問範本 -->
+                <div class="space-y-1.5">
+                    <label class="block font-bold text-[11px] text-slate-500 uppercase tracking-wider">💡 快速預設問句：</label>
+                    <div class="flex flex-wrap gap-1 text-[11px]">
+                        <button type="button" onclick="app.setAiDocQaQuestion('老師要求的三個重點我都有寫到嗎？請逐項比對並說明缺少或不足之處。')" class="p-1.5 px-2 bg-white hover:bg-blue-50 border border-slate-200 rounded-md text-slate-700 hover:text-blue-700 text-left transition-colors">
+                            🎯 老師要求的三個重點我有寫到嗎？
+                        </button>
+                        <button type="button" onclick="app.setAiDocQaQuestion('請指出這份文檔中最具說服力的論點與最薄弱的部分。')" class="p-1.5 px-2 bg-white hover:bg-blue-50 border border-slate-200 rounded-md text-slate-700 hover:text-blue-700 text-left transition-colors">
+                            ⚖️ 最強論點與最薄弱部分？
+                        </button>
+                        <button type="button" onclick="app.setAiDocQaQuestion('從讀者或評審的角度來看，這份文檔有哪些潛在疑問尚未解答？')" class="p-1.5 px-2 bg-white hover:bg-blue-50 border border-slate-200 rounded-md text-slate-700 hover:text-blue-700 text-left transition-colors">
+                            🧐 評審可能會質疑什麼？
+                        </button>
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <textarea id="aiDocQaInput" class="w-full p-2.5 bg-white border border-slate-200 rounded-xl text-xs leading-relaxed h-20 placeholder-slate-400 focus:outline-none focus:border-blue-500" placeholder="輸入你想詢問文檔的問題..."></textarea>
+                    <button type="button" onclick="app.runAiDocQA()" class="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs flex items-center justify-center gap-1.5 transition-colors">
+                        <span>🚀</span> <span>向 AI 發問</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- AI 執行中 Loading 動畫 -->
+            <div id="aiDocLoadingArea" class="hidden p-6 bg-white border border-purple-100 rounded-xl shadow-xs flex flex-col items-center justify-center space-y-3">
+                <div class="w-8 h-8 border-3 border-purple-200 border-t-purple-600 rounded-full animate-spin"></div>
+                <div class="text-center">
+                    <div id="aiDocLoadingText" class="font-bold text-xs text-purple-900">AI 正在深度分析文檔...</div>
+                    <div class="text-[10px] text-slate-400 font-mono mt-0.5">Groq 高速推理引擎處理中</div>
+                </div>
+            </div>
+
+            <!-- AI 回應與結果產出卡片 -->
+            <div id="aiDocResultContainer" class="hidden space-y-3">
+                <div class="ai-feature-card p-3.5 space-y-2.5 border-purple-200">
+                    <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+                        <span id="aiDocResultBadge" class="text-[11px] font-bold text-purple-900 flex items-center gap-1">
+                            <span>✨</span> <span>AI 分析與建議</span>
+                        </span>
+                        <div class="flex items-center gap-1">
+                            <button type="button" onclick="app.copyAiDocResult()" class="p-1 px-2 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded text-[10px] font-bold border border-slate-200" title="複製結果">
+                                📋 複製
+                            </button>
+                            <button type="button" id="btnApplyAiDocResultToEditor" onclick="app.applyAiDocResultToEditor()" class="p-1 px-2 bg-purple-600 hover:bg-purple-700 text-white rounded text-[10px] font-bold shadow-xs" title="替換選取文字或插入文檔">
+                                ✍️ 插入文檔
+                            </button>
+                        </div>
+                    </div>
+                    <div id="aiDocResultText" class="text-xs text-slate-800 leading-relaxed font-sans whitespace-pre-wrap select-text max-h-96 overflow-y-auto pr-1">
+                        <!-- 動態注入 AI 回應結果 -->
+                    </div>
+                </div>
+
+                <!-- 待辦事項專屬一鍵匯入區 -->
+                <div id="aiDocTaskImportBar" class="hidden p-3 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between gap-2">
+                    <div>
+                        <div class="font-bold text-xs text-emerald-950">📋 萃取出的待辦事項</div>
+                        <div class="text-[10px] text-emerald-700 font-medium">可直接將這些任務注入到專案執行看板中</div>
+                    </div>
+                    <button type="button" onclick="app.importExtractedTasksToProject()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg shadow-xs flex items-center gap-1 shrink-0">
+                        <span>➕</span> <span>匯入看板</span>
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </aside>
 
     <script type="module" src="./src/app.js"></script>
 </body>
