@@ -565,7 +565,7 @@ pie title 影片流量與曝光來源佔比 (%)
 
 ## 5. 即時頻道 API 串流 (Live API Data Stream)
 
-/data https://api.github.com/repos/unkoalatw/project-manger refresh:60s
+/data https://script.google.com/macros/s/AKfycbxPLTdFYgqSv3PrGxK7U-UTIj3YIiJPU-QbMhLYq4NVyRd77263-xFsbFaFovHoKoC3/exec?action=youtube refresh:60s
 `;
 
                     case 'meeting':

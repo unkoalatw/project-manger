@@ -558,18 +558,90 @@ export const docWidgets = {
         if (!url || !contentEl) return;
 
         try {
-            contentEl.innerHTML = `<span class="text-slate-500 animate-pulse font-mono text-xs">正在請求 API (${url})...</span>`;
+            contentEl.innerHTML = `<span class="text-slate-400 animate-pulse font-mono text-xs">正在連線 API (${url.substring(0, 45)}...)...</span>`;
             const resp = await fetch(url);
             if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-            const data = await resp.json();
+            const json = await resp.json();
 
             let html = '';
-            if (typeof data === 'object' && data !== null) {
-                if (Array.isArray(data)) {
-                    html = `<div class="text-[11px] text-emerald-400 mb-1">陣列資料 (共 ${data.length} 筆項目)：</div><pre class="overflow-x-auto text-[11px] leading-tight text-slate-300">${this.escapeHtml(JSON.stringify(data.slice(0, 5), null, 2))}</pre>`;
+            // 🔴 專屬優化：YouTube 創作者 API 回應渲染 (Real YouTube Studio Data)
+            if (json && json.status === 'success' && json.data && json.data.channelTitle) {
+                const yt = json.data;
+                html = `
+                    <div class="w-full space-y-4">
+                        <!-- 頻道名稱與狀態標籤 -->
+                        <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
+                            <div class="flex items-center gap-2">
+                                <span class="text-2xl">🔴</span>
+                                <div>
+                                    <div class="text-sm font-black text-white flex items-center gap-1.5">
+                                        <span>${this.escapeHtml(yt.channelTitle)}</span>
+                                        <span class="text-[10px] px-1.5 py-0.5 bg-red-600 text-white font-bold rounded">LIVE</span>
+                                    </div>
+                                    <div class="text-[11px] text-slate-400 font-mono">共 ${yt.videoCount || 0} 部影片 | 總觀看 ${(yt.totalViews || 0).toLocaleString()} 次</div>
+                                </div>
+                            </div>
+                            <div class="text-[10px] font-mono text-emerald-400 bg-emerald-950/60 border border-emerald-800 px-2 py-1 rounded">
+                                ● 官方數據同步中 (${new Date(yt.updatedAt || Date.now()).toLocaleTimeString()})
+                            </div>
+                        </div>
+
+                        <!-- 4 格核心指標卡 -->
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                            <div class="p-3 bg-slate-900 border border-slate-800 rounded-xl">
+                                <div class="text-[10px] text-slate-400 font-bold mb-1">🔴 總訂閱人數</div>
+                                <div class="text-xl font-black font-mono text-white">${(yt.subscribers || 0).toLocaleString()}</div>
+                                <div class="text-[10px] font-mono ${yt.netSubscribers28d >= 0 ? 'text-emerald-400' : 'text-rose-400'} mt-1">
+                                    ${yt.netSubscribers28d >= 0 ? '▲ +' : '▼ '}${yt.netSubscribers28d || 0} (近28天)
+                                </div>
+                            </div>
+
+                            <div class="p-3 bg-slate-900 border border-slate-800 rounded-xl">
+                                <div class="text-[10px] text-slate-400 font-bold mb-1">👁️ 28天觀看次數</div>
+                                <div class="text-xl font-black font-mono text-white">${(yt.views28d || yt.totalViews || 0).toLocaleString()}</div>
+                                <div class="text-[10px] font-mono text-slate-400 mt-1">平均時長 ${Math.floor((yt.avgViewDurationSec || 0) / 60)}分${(yt.avgViewDurationSec || 0) % 60}秒</div>
+                            </div>
+
+                            <div class="p-3 bg-slate-900 border border-slate-800 rounded-xl">
+                                <div class="text-[10px] text-slate-400 font-bold mb-1">⏱️ 獲利時長進度</div>
+                                <div class="text-xl font-black font-mono text-amber-400">${yt.watchHours28d || 0} <span class="text-xs font-normal text-slate-400">/ 4,000h</span></div>
+                                <div class="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden mt-1.5">
+                                    <div class="bg-amber-400 h-full rounded-full" style="width: ${Math.min(100, Math.round(((yt.watchHours28d || 0) / 4000) * 100))}%;"></div>
+                                </div>
+                            </div>
+
+                            <div class="p-3 bg-slate-900 border border-slate-800 rounded-xl">
+                                <div class="text-[10px] text-slate-400 font-bold mb-1">💰 預估收益 (TWD)</div>
+                                <div class="text-xl font-black font-mono text-emerald-400">NT$ ${(yt.estimatedRevenueTWD || 0).toLocaleString()}</div>
+                                <div class="text-[10px] font-mono text-slate-400 mt-1">約 ${yt.estimatedRevenueUSD || 0} USD</div>
+                            </div>
+                        </div>
+
+                        ${yt.recentVideos && yt.recentVideos.length > 0 ? `
+                            <!-- 最新影片列表 -->
+                            <div class="pt-2 border-t border-slate-800">
+                                <div class="text-[11px] font-bold text-slate-400 mb-2">🎬 最新發布影片表現：</div>
+                                <div class="space-y-1.5">
+                                    ${yt.recentVideos.map(v => `
+                                        <div class="p-2 bg-slate-900 border border-slate-800 rounded-lg flex items-center justify-between gap-2 text-xs">
+                                            <div class="truncate text-slate-200 font-bold">${this.escapeHtml(v.title)}</div>
+                                            <div class="shrink-0 flex items-center gap-3 font-mono text-[11px]">
+                                                <span class="text-slate-400">👁️ ${(v.views || 0).toLocaleString()}</span>
+                                                <span class="text-emerald-400">👍 ${(v.likes || 0).toLocaleString()}</span>
+                                            </div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            } else if (typeof json === 'object' && json !== null) {
+                if (Array.isArray(json)) {
+                    html = `<div class="text-[11px] text-emerald-400 mb-1">陣列資料 (共 ${json.length} 筆項目)：</div><pre class="overflow-x-auto text-[11px] leading-tight text-slate-300">${this.escapeHtml(JSON.stringify(json.slice(0, 5), null, 2))}</pre>`;
                 } else {
                     html = `<div class="grid grid-cols-2 sm:grid-cols-3 gap-2">`;
-                    for (const [k, v] of Object.entries(data)) {
+                    for (const [k, v] of Object.entries(json.data || json)) {
                         const strVal = typeof v === 'object' ? JSON.stringify(v) : String(v);
                         html += `
                             <div class="p-2 bg-slate-900 border border-slate-800 rounded">
@@ -581,7 +653,7 @@ export const docWidgets = {
                     html += `</div>`;
                 }
             } else {
-                html = `<div class="text-xs font-mono font-bold text-emerald-400">${this.escapeHtml(String(data))}</div>`;
+                html = `<div class="text-xs font-mono font-bold text-emerald-400">${this.escapeHtml(String(json))}</div>`;
             }
 
             contentEl.innerHTML = html;
