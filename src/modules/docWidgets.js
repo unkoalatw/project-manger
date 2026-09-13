@@ -350,16 +350,25 @@ export const docWidgets = {
             const refreshMatch = rawArgs.match(/refresh:(\d+)(s|m)?/i);
             const refreshSec = refreshMatch ? parseInt(refreshMatch[1], 10) * (refreshMatch[2] === 'm' ? 60 : 1) : 0;
             const widgetId = 'data_' + Math.abs(this.hashCode(url));
+            const isGoogleEndpoint = url.includes('script.google.com') || url.includes('youtube');
+
+            // 構建 Google OAuth 直接登入網址
+            let loginUrl = '';
+            if (isGoogleEndpoint) {
+                const baseUrl = url.split('?')[0];
+                loginUrl = `${baseUrl}?action=login`;
+            }
 
             const html = `<div class="doc-live-data-card not-prose my-4 p-4 border-2 border-black bg-slate-900 text-white rounded-xl shadow-[4px_4px_0px_0px_#000]" data-widget="livedata" data-url="${this.escapeHtml(url)}" data-refresh="${refreshSec}" id="${widgetId}">
-                <div class="flex items-center justify-between border-b border-slate-700 pb-2 mb-3">
+                <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-700 pb-2 mb-3">
                     <div class="flex items-center gap-2">
                         <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" id="${widgetId}_dot"></span>
                         <span class="font-mono font-bold text-xs text-emerald-400 uppercase tracking-wider">LIVE DATA DASHBOARD</span>
                     </div>
                     <div class="flex items-center gap-2">
+                        ${isGoogleEndpoint ? `<a href="${this.escapeHtml(loginUrl)}" target="_blank" rel="noopener noreferrer" class="px-2.5 py-1 bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold rounded border border-amber-300 transition-colors inline-flex items-center gap-1 shadow-sm" title="登入 Google 帳號授權 YouTube 數據存取">🔐 Google 登入</a>` : ''}
                         ${refreshSec > 0 ? `<span class="text-[10px] font-mono text-slate-400">🔄 ${refreshSec}s 自動刷新</span>` : ''}
-                        <button type="button" onclick="app.fetchDocLiveData('${widgetId}')" class="px-2 py-0.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-mono rounded border border-slate-600 transition-colors">刷新 ⚡</button>
+                        <button type="button" onclick="app.fetchDocLiveData('${widgetId}')" class="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-mono rounded border border-slate-600 transition-colors">刷新 ⚡</button>
                     </div>
                 </div>
                 <div class="text-[11px] font-mono text-slate-400 truncate mb-2">Endpoint: ${this.escapeHtml(url)}</div>
