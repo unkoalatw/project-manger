@@ -1623,6 +1623,57 @@ pie title 影片流量與曝光來源佔比 (%)
                 this.showToast('🗑️ 快照已刪除');
             },
 
+            
+            toggleDocToolsDropdown(e) {
+                if (e && e.stopPropagation) e.stopPropagation();
+                const dropdown = document.getElementById('docToolsDropdown');
+                if (!dropdown) return;
+                const isHidden = dropdown.classList.contains('hidden');
+                document.querySelectorAll('#docEditToolbar .absolute:not(.hidden)').forEach(m => m.classList.add('hidden'));
+                if (isHidden) {
+                    dropdown.classList.remove('hidden');
+                    const closeHandler = (evt) => {
+                        if (!dropdown.contains(evt.target)) {
+                            dropdown.classList.add('hidden');
+                            document.removeEventListener('click', closeHandler);
+                        }
+                    };
+                    setTimeout(() => document.addEventListener('click', closeHandler), 10);
+                } else {
+                    dropdown.classList.add('hidden');
+                }
+            },
+
+            closeDocToolsDropdown() {
+                const dropdown = document.getElementById('docToolsDropdown');
+                if (dropdown) dropdown.classList.add('hidden');
+            },
+
+            toggleDocWidgetsDropdown(e) {
+                if (e && e.stopPropagation) e.stopPropagation();
+                const dropdown = document.getElementById('docWidgetsDropdown');
+                if (!dropdown) return;
+                const isHidden = dropdown.classList.contains('hidden');
+                document.querySelectorAll('#docEditToolbar .absolute:not(.hidden)').forEach(m => m.classList.add('hidden'));
+                if (isHidden) {
+                    dropdown.classList.remove('hidden');
+                    const closeHandler = (evt) => {
+                        if (!dropdown.contains(evt.target)) {
+                            dropdown.classList.add('hidden');
+                            document.removeEventListener('click', closeHandler);
+                        }
+                    };
+                    setTimeout(() => document.addEventListener('click', closeHandler), 10);
+                } else {
+                    dropdown.classList.add('hidden');
+                }
+            },
+
+            closeDocWidgetsDropdown() {
+                const dropdown = document.getElementById('docWidgetsDropdown');
+                if (dropdown) dropdown.classList.add('hidden');
+            },
+
             // ================= 📊 圖表插入與選單邏輯 (Charts: Bar, Line, Pie) =================
             toggleDocChartDropdown(e) {
                 if (e) e.stopPropagation();
