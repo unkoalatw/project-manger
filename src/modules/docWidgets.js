@@ -9,6 +9,51 @@ export const docWidgets = {
     preprocessDocWidgets(text) {
         if (!text || typeof text !== 'string') return text || '';
 
+        
+        // 1.10 YouTube / KPI Stat Card (:::kpi 或 :::yt-stat 或 /yt-stat)
+        // 語法: :::yt-stat [標題] | [數值] | [趨勢變更] | [進度%] | [目標值/備註]
+        text = text.replace(/(?:^\/yt-stat\s*([^\n]*)|:::yt-stat\s*([^\n]*)([\s\S]*?):::|:::kpi\s*([^\n]*)([\s\S]*?):::)/gm, (match, p1, p2, p3, p4, p5) => {
+            const raw = (p1 || p2 || p4 || (p3 ? p3.trim() : '') || (p5 ? p5.trim() : '') || '').trim();
+            const parts = raw.split(/\||\n/).map(s => s.trim()).filter(Boolean);
+            const title = parts[0] || 'YouTube 指標';
+            const value = parts[1] || '0';
+            const trend = parts[2] || '';
+            const progress = parts[3] ? parseInt(parts[3].replace(/[^0-9]/g, ''), 10) : null;
+            const note = parts[4] || '';
+
+            const isPositive = trend.includes('+') || trend.includes('▲') || trend.includes('↑');
+            const isNegative = trend.includes('-') || trend.includes('▼') || trend.includes('↓');
+            const trendColor = isPositive ? 'text-emerald-700 bg-emerald-100 border-emerald-300 dark:text-emerald-300 dark:bg-emerald-950/60 dark:border-emerald-700' : (isNegative ? 'text-rose-700 bg-rose-100 border-rose-300 dark:text-rose-300 dark:bg-rose-950/60 dark:border-rose-700' : 'text-zinc-600 bg-zinc-100 border-zinc-300 dark:text-zinc-400 dark:bg-zinc-800 dark:border-zinc-700');
+
+            let icon = '📊';
+            if (/訂閱|sub/i.test(title)) icon = '🔴';
+            else if (/觀看|view/i.test(title)) icon = '👁️';
+            else if (/時長|時數|watch/i.test(title)) icon = '⏱️';
+            else if (/營收|收益|revenue|rpm|cpm/i.test(title)) icon = '💰';
+            else if (/點閱|ctr|點擊/i.test(title)) icon = '🎯';
+            else if (/續看|留存|retention/i.test(title)) icon = '📈';
+
+            return `\n\n<div class="doc-kpi-card not-prose my-3 p-4 border-2 border-black bg-white rounded-xl shadow-[4px_4px_0px_0px_#000] dark:bg-zinc-900 dark:border-zinc-700 dark:text-white inline-block w-full sm:w-[calc(50%-0.5rem)] lg:w-[calc(25%-0.75rem)] mr-2 mb-3 align-top">
+                <div class="flex items-center justify-between mb-2">
+                    <div class="flex items-center gap-1.5 min-w-0">
+                        <span class="text-base shrink-0">${icon}</span>
+                        <span class="font-bold text-xs text-zinc-600 dark:text-zinc-400 truncate">${this.escapeHtml(title)}</span>
+                    </div>
+                    ${trend ? `<span class="text-[10px] font-black font-mono px-1.5 py-0.5 rounded border ${trendColor}">${this.escapeHtml(trend)}</span>` : ''}
+                </div>
+                <div class="text-2xl font-black font-mono tracking-tight text-slate-900 dark:text-white my-1">${this.escapeHtml(value)}</div>
+                ${progress !== null && !isNaN(progress) ? `
+                    <div class="w-full bg-zinc-100 dark:bg-zinc-800 h-2 rounded-full border border-black/30 overflow-hidden my-2">
+                        <div class="bg-red-600 h-full rounded-full transition-all duration-500" style="width: ${Math.min(100, Math.max(0, progress))}%;"></div>
+                    </div>
+                    <div class="flex justify-between items-center text-[10px] font-mono text-zinc-600 dark:text-zinc-400">
+                        <span>進度 ${progress}%</span>
+                        ${note ? `<span>${this.escapeHtml(note)}</span>` : ''}
+                    </div>
+                ` : (note ? `<div class="text-[10px] font-mono text-zinc-600 dark:text-zinc-400 mt-1 truncate">${this.escapeHtml(note)}</div>` : '')}
+            </div>\n\n`;
+        });
+
         // 1.1 /calculator 或 :::calc [公式]
         text = text.replace(/(?:^\/calculator\s*([^\n]*)|:::calc\s*([^\n]*)([\s\S]*?):::)/gm, (match, p1, p2, p3) => {
             const initialExpr = (p1 || p2 || (p3 ? p3.trim() : '') || '').trim();
@@ -606,6 +651,9 @@ export const docWidgets = {
 
     // ================= 7. 斜線指令選單 (Slash Command Autocomplete `/`) =================
     _slashCommands: [
+        { id: 'yt_kpi', icon: '🔴', title: 'YouTube 數據指標卡 (KPI Card)', desc: '插入 YouTube 訂閱/觀看/時長/營收指標卡', cmd: ':::yt-stat 訂閱者總數 | 128,450 | ▲ +12.4% | 85% | 目標 150,000:::\n' },
+        { id: 'yt_views', icon: '👁️', title: '觀看次數指標 (Views KPI)', desc: '近 28 天觀看次數與成長率', cmd: ':::yt-stat 48小時即時觀看 | 32,800 | ▲ +24.8% | 65% | 預期達標 50,000:::\n' },
+        { id: 'yt_watchtime', icon: '⏱️', title: '獲利時長進度 (4000h Watch Time)', desc: '獲利資格 4,000 小時觀看進度條', cmd: ':::yt-stat 公開影片觀看時長 | 3,420 小時 | ▲ +310h | 85% | 獲利門檻 4,000h:::\n' },
         { id: 'calc', icon: '🧮', title: '計算機 (Calculator)', desc: '插入可互動運算的個人計算機', cmd: '/calculator (120 * 4.5) + 300\n' },
         { id: 'countdown', icon: '⏳', title: '倒數計時器 (Countdown)', desc: '目標時間與截止倒數 (日/時/分/秒)', cmd: '/countdown 2026-12-31 23:59:59 項目目標倒數\n' },
         { id: 'stopwatch', icon: '⏱️', title: '碼錶計時 (Stopwatch)', desc: '精確到毫秒的碼錶與計圈功能', cmd: '/stopwatch 任務計時碼錶\n' },

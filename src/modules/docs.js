@@ -512,50 +512,60 @@ executeTask({ debug: true })
 - 注意邊界異常處理與記憶體釋放。
 `;
 
-                    case 'dashboard':
+                                        case 'dashboard':
                     case 'dashboards':
                     case 'live_dashboard':
-                        return `# 📊 即時數據與監控儀表板：${safeTitle}
+                    case 'youtube_dashboard':
+                        return `# 🔴 YouTube 創作者數據監控儀表板：${safeTitle}
 
-> **更新頻率**: 每 30 秒自動更新  
-> **數據來源**: Live API / 專案狀態指標  
+> **頻道名稱**: ${author} 的 YouTube 頻道  
+> **統計週期**: 近 28 天 (即時動態追蹤)  
 > **建立日期**: ${today}  
+> **資料來源**: YouTube Studio Analytics / Live Creator Stream  
 
 ---
 
-## 1. 即時服務與 API 狀態 (Live Data Stream)
+## 1. 核心營運指標 (Channel Overview KPIs)
 
-/data https://api.github.com/repos/unkoalatw/project-manger refresh:30s
-
----
-
-## 2. 專案關鍵指標 (Key Metrics)
-
-| 指標項目 (Metric) | 目標值 (Target) | 當前狀態 (Status) | 趨勢 (Trend) |
-| :--- | :---: | :---: | :---: |
-| 系統可用性 (Uptime) | 99.9% | 🟢 99.95% | ⬆️ 穩定 |
-| API 響應延遲 (Latency) | < 200ms | 🟢 120ms | ⬇️ 優化 |
-| 任務完成率 (Completion) | > 85% | 🟡 82% | ➡️ 持平 |
+:::yt-stat 總訂閱人數 | 128,450 | ▲ +1,240 (+12.4%) | 85% | 目標 150,000 (銀牌進度):::
+:::yt-stat 總觀看次數 (28天) | 1,482,900 | ▲ +18.2% | 74% | 目標 2,000,000:::
+:::yt-stat 4,000小時獲利時長 | 3,420 小時 | ▲ +310h (+9.8%) | 85% | 獲利門檻 4,000h:::
+:::yt-stat 預估總收益 (RPM $3.2) | NT$ 142,500 | ▲ +15.6% | 95% | 目標 NT$ 150,000:::
 
 ---
 
-## 3. 趨勢與分佈圖表 (Visual Analytics)
+## 2. 影片流量來源分佈 (Traffic Sources Distribution)
 
 \`\`\`mermaid
-pie title 專案任務分類與佔比
-    "功能開發" : 45
-    "架構優化" : 25
-    "缺陷修復" : 20
-    "文檔維護" : 10
+pie title 影片流量與曝光來源佔比 (%)
+    "YouTube 推薦影片 (Browse & Suggested)" : 58
+    "YouTube 搜尋 (YouTube Search)" : 24
+    "首頁最新發布推播 (Feed & Notifications)" : 12
+    "外部社群與網站連結 (External / Social)" : 6
 \`\`\`
 
 ---
 
-## 4. 快速工具箱 (Control Widgets)
+## 3. 近期發布影片成效排行榜 (Top Performing Videos)
 
-/counter 0 今日處理請求數
+| 影片標題 (Video Title) | 發布天數 | 觀看次數 | 點閱率 (CTR) | 平均觀看比例 | 預估收益 | 狀態 |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| 🔥 **2026 最強 AI 開發工具實測！效率直接提升 10 倍** | 3 天前 | 48,200 | 🟢 11.4% | 58.2% | NT$ 4,820 | [read:Finished] |
+| ⚡ **零基礎 10 分鐘學會自動化工作流完整教學** | 7 天前 | 32,150 | 🟢 9.8% | 52.0% | NT$ 3,210 | [read:Finished] |
+| 🛠️ **終極版 Neo-Brutalist 專案管理架構深度解析** | 14 天前 | 21,400 | 🟡 7.2% | 46.5% | NT$ 2,140 | [read:Finished] |
+| 💡 **下一代 PWA 離線應用開發架構心得** | 21 天前 | 15,800 | 🟡 6.5% | 41.2% | NT$ 1,580 | [read:Revisit] |
 
-/stopwatch 監控與壓測計時
+---
+
+## 4. 下支影片籌備排程與發布倒數 (Next Video Countdown)
+
+/countdown 2026-09-20 18:00:00 🎬 下支新片《手把手打造全自動 YouTube 數據中台》首播倒數
+
+---
+
+## 5. 即時頻道 API 串流 (Live API Data Stream)
+
+/data https://api.github.com/repos/unkoalatw/project-manger refresh:60s
 `;
 
                     case 'meeting':
@@ -628,7 +638,7 @@ pie title 專案任務分類與佔比
                     proposal: '例如：功能提案書：即時協作同步系統',
                     tech_spec: '例如：技術規格書：狀態管理與快取架構',
                     code: '例如：代碼模組：狀態流轉與資料庫連接器',
-                    dashboard: '例如：數據儀表板：服務健康度與流量監控',
+                    dashboard: '例如：YouTube 數據儀表板：主頻道流量與營運追蹤',
                     meeting: '例如：第 5 次專案衝刺會議紀錄',
                     bug_report: '例如：問題排查：離線狀態資料衝突處理',
                     blank: '例如：核心設計構想'
@@ -640,7 +650,7 @@ pie title 專案任務分類與佔比
                     if (templateKey === 'proposal') titleEl.value = '功能提案書：';
                     else if (templateKey === 'tech_spec') titleEl.value = '技術規格書：';
                     else if (templateKey === 'code') titleEl.value = '代碼模組：';
-                    else if (templateKey === 'dashboard') titleEl.value = '數據儀表板：';
+                    else if (templateKey === 'dashboard') titleEl.value = 'YouTube 數據儀表板：';
                     else if (templateKey === 'meeting') titleEl.value = '專案會議紀錄：';
                     else if (templateKey === 'bug_report') titleEl.value = '缺陷排查：';
                     else if (templateKey === 'blank') titleEl.value = '';
