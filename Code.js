@@ -102,18 +102,18 @@ function handleAiDecompositionProxy(payload) {
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
-    var systemPrompt = payload.systemPrompt || '你是一個敏捷專案管理專家。';
+    var systemPrompt = payload.systemPrompt || '你是一個精簡專業的專案助理。';
     var userMessageContent = payload.userMessage || '';
 
     var isJsonMode = payload.responseFormat !== 'text';
     var groqPayload = {
-      model: 'llama-3.3-70b-versatile',
+      model: 'llama-3.1-8b-instant',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userMessageContent }
       ],
-      temperature: 0.3,
-      max_tokens: 3500
+      temperature: 0.2,
+      max_tokens: 1200
     };
 
     if (isJsonMode) {
@@ -131,14 +131,11 @@ function handleAiDecompositionProxy(payload) {
     };
 
     var candidateModels = [
-      payload.model,
       'llama-3.1-8b-instant',
       'llama3-8b-8192',
-      'llama3-70b-8192',
-      'llama-3.3-70b-versatile',
       'mixtral-8x7b-32768',
       'gemma2-9b-it'
-    ].filter(Boolean);
+    ];
 
     var response = null;
     var responseCode = 0;
@@ -156,7 +153,7 @@ function handleAiDecompositionProxy(payload) {
     if (responseCode !== 200) {
       return ContentService.createTextOutput(JSON.stringify({
         status: 'error',
-        message: 'Groq API 回應錯誤 (HTTP ' + responseCode + '): ' + responseBody
+        message: 'Groq 雲端請求異常 (HTTP ' + responseCode + '): ' + responseBody
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
