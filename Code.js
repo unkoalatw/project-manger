@@ -130,9 +130,28 @@ function handleAiDecompositionProxy(payload) {
       muteHttpExceptions: true
     };
 
-    var response = UrlFetchApp.fetch('https://api.groq.com/openai/v1/chat/completions', options);
-    var responseCode = response.getResponseCode();
-    var responseBody = response.getContentText();
+    var candidateModels = [
+      payload.model,
+      'llama-3.1-8b-instant',
+      'llama3-8b-8192',
+      'llama3-70b-8192',
+      'llama-3.3-70b-versatile',
+      'mixtral-8x7b-32768',
+      'gemma2-9b-it'
+    ].filter(Boolean);
+
+    var response = null;
+    var responseCode = 0;
+    var responseBody = '';
+
+    for (var m = 0; m < candidateModels.length; m++) {
+      groqPayload.model = candidateModels[m];
+      options.payload = JSON.stringify(groqPayload);
+      response = UrlFetchApp.fetch('https://api.groq.com/openai/v1/chat/completions', options);
+      responseCode = response.getResponseCode();
+      responseBody = response.getContentText();
+      if (responseCode === 200) break;
+    }
 
     if (responseCode !== 200) {
       return ContentService.createTextOutput(JSON.stringify({
