@@ -73,7 +73,7 @@ export const aiDecompose = {
             const folderPrefix = parentFolder ? `[${parentFolder.name}] ` : '';
             html += `
                 <label class="flex items-center gap-2 p-1.5 pl-3 hover:bg-white rounded cursor-pointer border border-transparent hover:border-slate-200 transition-colors">
-                    <input type="checkbox" name="aiScopeDoc" value="${d.id}" data-folder-id="${d.folderId || ''}" checked class="rounded text-purple-600 focus:ring-purple-500">
+                    <input type="checkbox" name="aiScopeDoc" value="${d.id}" data-folder-id="${d.folderId || ''}" checked onchange="app.updateAiDecomposeScopeStats()" class="rounded text-purple-600 focus:ring-purple-500">
                     <span class="text-slate-700 flex items-center gap-1 truncate">
                         <span>📄</span> <span class="text-slate-400 text-[10px]">${folderPrefix}</span><span>${this.escapeHtml(d.title || '未命名文檔')}</span>
                     </span>
@@ -82,11 +82,13 @@ export const aiDecompose = {
         });
 
         container.innerHTML = html;
+        this.updateAiDecomposeScopeStats();
     },
 
     onAiScopeFolderToggle(folderId, isChecked) {
         const docCheckboxes = document.querySelectorAll(`input[name="aiScopeDoc"][data-folder-id="${folderId}"]`);
         docCheckboxes.forEach(cb => cb.checked = isChecked);
+        this.updateAiDecomposeScopeStats();
     },
 
     setAiDecomposeScopeSelectAll(selectAll) {
@@ -94,6 +96,41 @@ export const aiDecompose = {
         const docCheckboxes = document.querySelectorAll('input[name="aiScopeDoc"]');
         fldCheckboxes.forEach(cb => cb.checked = selectAll);
         docCheckboxes.forEach(cb => cb.checked = selectAll);
+        this.updateAiDecomposeScopeStats();
+    },
+
+    updateAiDecomposeScopeStats() {
+        const docCheckboxes = document.querySelectorAll('input[name="aiScopeDoc"]');
+        const checkedDocs = document.querySelectorAll('input[name="aiScopeDoc"]:checked');
+        const badge = document.getElementById('aiScopeCountBadge');
+        const warning = document.getElementById('aiScopeLimitWarning');
+
+        const total = docCheckboxes.length;
+        const count = checkedDocs.length;
+
+        if (badge) {
+            badge.textContent = `已選 ${count}/${total} 篇`;
+            if (count === 0) {
+                badge.className = 'text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-red-100 text-red-800';
+            } else if (count > 8) {
+                badge.className = 'text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-amber-100 text-amber-800';
+            } else {
+                badge.className = 'text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-purple-100 text-purple-800';
+            }
+        }
+
+        if (warning) {
+            // 超過 8 篇時自動提示，若 0 篇亦提示
+            if (count > 8) {
+                warning.classList.remove('hidden');
+                warning.innerHTML = `<span>⚠️</span> <span>已選取 ${count} 篇文檔（建議 1~8 篇），AI 將自動進行極限壓縮以確保在免費額度內順暢完成拆解。</span>`;
+            } else if (count === 0) {
+                warning.classList.remove('hidden');
+                warning.innerHTML = `<span>ℹ️</span> <span>未選取任何文檔，AI 將僅根據專案名稱與補充目標進行基礎拆解。</span>`;
+            } else {
+                warning.classList.add('hidden');
+            }
+        }
     },
 
     // 壓縮並提取指定選取文檔之極簡上下文（精準聚焦並節省 90% 以上 Token）

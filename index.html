@@ -1817,11 +1817,12 @@
                         </div>
                     </div>
 
-                    <!-- 🗂️ 拆解範圍選擇區 (支援全專案、複選特定文檔或資料夾) -->
+                    <!-- 🗂️ 拆解範圍選擇區 (支援全專案、複選特定文檔或資料夾，含即時統計與上限防禦) -->
                     <div class="bg-white border border-slate-200 rounded-lg p-3 space-y-2">
-                        <div class="flex items-center justify-between">
+                        <div class="flex items-center justify-between flex-wrap gap-1">
                             <span class="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                                <span>📑</span> <span>參考文檔範疇 (可複選)：</span>
+                                <span>📑</span> <span>參考文檔範疇：</span>
+                                <span id="aiScopeCountBadge" class="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-purple-100 text-purple-800">已選 0 篇</span>
                             </span>
                             <div class="flex items-center gap-2 text-[11px]">
                                 <button type="button" onclick="app.setAiDecomposeScopeSelectAll(true)" class="text-purple-600 hover:text-purple-800 font-semibold">全選</button>
@@ -1829,6 +1830,12 @@
                                 <button type="button" onclick="app.setAiDecomposeScopeSelectAll(false)" class="text-slate-500 hover:text-slate-700 font-semibold">取消全選</button>
                             </div>
                         </div>
+
+                        <!-- 超過建議上限提示條 -->
+                        <div id="aiScopeLimitWarning" class="hidden p-2 rounded bg-amber-50 border border-amber-200 text-amber-800 text-[11px] font-medium flex items-center gap-1.5">
+                            <span>⚠️</span> <span>已選取較多文檔（建議不超過 8 篇以保持最佳精度與極速響應），AI 將自動進行極限精簡摘要。</span>
+                        </div>
+
                         <div id="aiDecomposeScopeContainer" class="max-h-36 overflow-y-auto p-2 bg-slate-50/60 border border-slate-200/60 rounded-md space-y-1.5 text-xs">
                             <!-- 動態注入專案內之資料夾與文檔複選核取方塊 -->
                         </div>
