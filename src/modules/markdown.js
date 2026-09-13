@@ -600,6 +600,14 @@ export const markdown = {
                     text = this.preprocessDocWidgets(text);
                 }
 
+                // 2.96 提取並保護所有已生成的 HTML 區塊 (Doc Widgets, Database Tables, KPI Cards, Live Data)，防止 Marked.js 逃逸標籤或破壞排版
+                const widgetBlocks = [];
+                text = text.replace(/<div class="doc-(?:kpi-grid|kpi-card|widget-card|live-data-card|db-table-wrapper|table-wrapper|stateful|page-break)[^"]*"[\s\S]*?<\/div>(?:\s*<\/div>)?/g, (match) => {
+                    const placeholder = `DOCWIDGETBLOCKX${widgetBlocks.length}Z`;
+                    widgetBlocks.push(match);
+                    return `\n\n${placeholder}\n\n`;
+                });
+
                 // 3. 執行全規格 Marked.js 解析
                 let html = '';
                 if (typeof marked !== 'undefined') {
@@ -643,7 +651,14 @@ export const markdown = {
                     return `<details class="my-3 border-2 border-black rounded-none bg-white p-3 flat-box shadow-[3px_3px_0px_0px_#000]"><summary class="cursor-pointer font-bold text-xs sm:text-sm text-black select-none py-1">▶ ${title.trim()}</summary><div class="pt-2 text-xs sm:text-sm text-zinc-800 border-t-2 border-black mt-2 leading-relaxed">${body.trim()}</div></details>`;
                 });
 
-                // 5. 還原數學公式 (Math Blocks)
+                // 5. 還原 Doc Widget Blocks 與資料庫元件
+                widgetBlocks.forEach((wb, idx) => {
+                    const tag = `DOCWIDGETBLOCKX${idx}Z`;
+                    html = html.split(`<p>${tag}</p>`).join(wb);
+                    html = html.split(tag).join(wb);
+                });
+
+                // 6. 還原數學公式 (Math Blocks)
                 mathBlocks.forEach((mb, idx) => {
                     const tag = `MATHBLOCKX${idx}Z`;
                     html = html.split(`<p>${tag}</p>`).join(mb);

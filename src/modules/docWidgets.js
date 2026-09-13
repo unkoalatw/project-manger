@@ -12,8 +12,9 @@ export const docWidgets = {
         
         // 1.10 YouTube / KPI Stat Card (:::kpi 或 :::yt-stat 或 /yt-stat)
         // 語法: :::yt-stat [標題] | [數值] | [趨勢變更] | [進度%] | [目標值/備註]
-        text = text.replace(/(?:^\/yt-stat\s*([^\n]*)|:::yt-stat\s*([^\n]*)([\s\S]*?):::|:::kpi\s*([^\n]*)([\s\S]*?):::)/gm, (match, p1, p2, p3, p4, p5) => {
-            const raw = (p1 || p2 || p4 || (p3 ? p3.trim() : '') || (p5 ? p5.trim() : '') || '').trim();
+        const kpiRegex = /(?:^\/yt-stat\s*([^\n]*)|:::yt-stat\s*([^\n:]+?)(?::::|\n([\s\S]*?):::)|:::yt-stat\s*([^\n]*)([\s\S]*?):::|:::kpi\s*([^\n:]+?)(?::::|\n([\s\S]*?):::)|:::kpi\s*([^\n]*)([\s\S]*?):::)/gm;
+        text = text.replace(kpiRegex, (match, p1, p2, p3, p4, p5, p6, p7, p8, p9) => {
+            const raw = (p1 || p2 || p4 || p6 || p8 || (p3 ? p3.trim() : '') || (p5 ? p5.trim() : '') || (p7 ? p7.trim() : '') || (p9 ? p9.trim() : '') || '').trim();
             const parts = raw.split(/\||\n/).map(s => s.trim()).filter(Boolean);
             const title = parts[0] || 'YouTube 指標';
             const value = parts[1] || '0';
@@ -33,25 +34,34 @@ export const docWidgets = {
             else if (/點閱|ctr|點擊/i.test(title)) icon = '🎯';
             else if (/續看|留存|retention/i.test(title)) icon = '📈';
 
-            return `\n\n<div class="doc-kpi-card not-prose my-3 p-4 border-2 border-black bg-white rounded-xl shadow-[4px_4px_0px_0px_#000] dark:bg-zinc-900 dark:border-zinc-700 dark:text-white inline-block w-full sm:w-[calc(50%-0.5rem)] lg:w-[calc(25%-0.75rem)] mr-2 mb-3 align-top">
-                <div class="flex items-center justify-between mb-2">
-                    <div class="flex items-center gap-1.5 min-w-0">
-                        <span class="text-base shrink-0">${icon}</span>
-                        <span class="font-bold text-xs text-zinc-600 dark:text-zinc-400 truncate">${this.escapeHtml(title)}</span>
+            return `\n<div class="doc-kpi-card p-4 border-2 border-black bg-white rounded-xl shadow-[4px_4px_0px_0px_#000] dark:bg-zinc-900 dark:border-zinc-700 dark:text-white flex flex-col justify-between">
+                <div>
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="flex items-center gap-1.5 min-w-0">
+                            <span class="text-base shrink-0">${icon}</span>
+                            <span class="font-bold text-xs text-zinc-600 dark:text-zinc-400 truncate">${this.escapeHtml(title)}</span>
+                        </div>
+                        ${trend ? `<span class="text-[10px] font-black font-mono px-1.5 py-0.5 rounded border ${trendColor}">${this.escapeHtml(trend)}</span>` : ''}
                     </div>
-                    ${trend ? `<span class="text-[10px] font-black font-mono px-1.5 py-0.5 rounded border ${trendColor}">${this.escapeHtml(trend)}</span>` : ''}
+                    <div class="text-2xl font-black font-mono tracking-tight text-slate-900 dark:text-white my-1">${this.escapeHtml(value)}</div>
                 </div>
-                <div class="text-2xl font-black font-mono tracking-tight text-slate-900 dark:text-white my-1">${this.escapeHtml(value)}</div>
                 ${progress !== null && !isNaN(progress) ? `
-                    <div class="w-full bg-zinc-100 dark:bg-zinc-800 h-2 rounded-full border border-black/30 overflow-hidden my-2">
-                        <div class="bg-red-600 h-full rounded-full transition-all duration-500" style="width: ${Math.min(100, Math.max(0, progress))}%;"></div>
+                    <div class="mt-2">
+                        <div class="w-full bg-zinc-100 dark:bg-zinc-800 h-2 rounded-full border border-black/30 overflow-hidden my-1.5">
+                            <div class="bg-red-600 h-full rounded-full transition-all duration-500" style="width: ${Math.min(100, Math.max(0, progress))}%;"></div>
+                        </div>
+                        <div class="flex justify-between items-center text-[10px] font-mono text-zinc-600 dark:text-zinc-400">
+                            <span>進度 ${progress}%</span>
+                            ${note ? `<span>${this.escapeHtml(note)}</span>` : ''}
+                        </div>
                     </div>
-                    <div class="flex justify-between items-center text-[10px] font-mono text-zinc-600 dark:text-zinc-400">
-                        <span>進度 ${progress}%</span>
-                        ${note ? `<span>${this.escapeHtml(note)}</span>` : ''}
-                    </div>
-                ` : (note ? `<div class="text-[10px] font-mono text-zinc-600 dark:text-zinc-400 mt-1 truncate">${this.escapeHtml(note)}</div>` : '')}
-            </div>\n\n`;
+                ` : (note ? `<div class="text-[10px] font-mono text-zinc-600 dark:text-zinc-400 mt-2 truncate">${this.escapeHtml(note)}</div>` : '')}
+            </div>\n`;
+        });
+
+        // 將連續相鄰的 doc-kpi-card 包覆在響應式 Grid 容器中
+        text = text.replace(/(?:(?:\s*<div class="doc-kpi-card[\s\S]*?<\/div>\s*)+)/g, (groupMatch) => {
+            return `\n\n<div class="doc-kpi-grid not-prose my-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 w-full">${groupMatch.trim()}</div>\n\n`;
         });
 
         // 1.1 /calculator 或 :::calc [公式]
