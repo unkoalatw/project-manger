@@ -234,10 +234,15 @@ export const aiDecompose = {
                     const proxyResult = await proxyResponse.json();
                     if (proxyResult.status === 'success' && proxyResult.data) {
                         return proxyResult.data;
+                    } else if (proxyResult.status === 'error') {
+                        console.error('[AI Decompose] GAS Proxy Error Details:', proxyResult.message);
                     }
+                } else {
+                    const errText = await proxyResponse.text();
+                    console.error('[AI Decompose] GAS HTTP Error:', proxyResponse.status, errText);
                 }
             } catch (proxyErr) {
-                console.warn('GAS Proxy request failed, fallback to direct/local:', proxyErr);
+                console.error('[AI Decompose] GAS Fetch Failed:', proxyErr);
             }
         }
 
