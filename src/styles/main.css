@@ -951,4 +951,92 @@
             opacity: 0.55 !important;
         }
 
+        /* 📑 可折疊章節樣式 (Collapsible Heading Sections) */
+        .doc-heading-wrapper {
+            position: relative;
+            transition: all 0.2s ease;
+        }
+        .doc-heading-wrapper .heading-collapse-btn {
+            opacity: 0.35;
+            transition: all 0.15s ease;
+        }
+        .doc-heading-wrapper:hover .heading-collapse-btn {
+            opacity: 1;
+        }
+        .doc-heading-wrapper.is-collapsed .heading-collapse-btn span {
+            transform: rotate(-90deg);
+        }
+        .doc-heading-wrapper.is-collapsed + .doc-section-content {
+            display: none !important;
+        }
+
+        /* 📊 文件內動態資料庫表格樣式 (Doc Inline Database Table) */
+        .doc-inline-db-card {
+            border: 2px solid #0f172a;
+            border-radius: 8px;
+            background: #ffffff;
+            box-shadow: 3px 3px 0px 0px #0f172a;
+            margin: 1.5rem 0;
+            overflow: hidden;
+        }
+        .doc-inline-db-header {
+            background: #f8fafc;
+            border-bottom: 2px solid #0f172a;
+            padding: 0.6rem 0.85rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        .doc-inline-db-table th {
+            background: #f1f5f9;
+            color: #0f172a;
+            font-weight: 700;
+            font-size: 0.75rem;
+            padding: 0.5rem 0.75rem;
+            border-bottom: 1.5px solid #cbd5e1;
+            text-transform: uppercase;
+            letter-spacing: 0.025em;
+        }
+        .doc-inline-db-table td {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.8rem;
+            color: #1e293b;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .doc-inline-db-table tr:hover td {
+            background: #f8fafc;
+        }
+
+        /* ⏳ 文件演進時間軸 (Story Timeline Stream) */
+        .doc-timeline-track {
+            position: relative;
+            padding-left: 1.75rem;
+        }
+        .doc-timeline-track::before {
+            content: '';
+            position: absolute;
+            left: 0.45rem;
+            top: 0.5rem;
+            bottom: 0.5rem;
+            width: 2px;
+            background: #cbd5e1;
+        }
+        .doc-timeline-node {
+            position: relative;
+            margin-bottom: 1.25rem;
+        }
+        .doc-timeline-node::before {
+            content: '';
+            position: absolute;
+            left: -1.55rem;
+            top: 0.25rem;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #3b82f6;
+            border: 2px solid #ffffff;
+            box-shadow: 0 0 0 2px #3b82f6;
+        }
+
+
 

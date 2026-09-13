@@ -3941,22 +3941,102 @@ graph TD
                 this._docHistoryState.viewMode = mode;
                 const tabDiff = document.getElementById('tabDocHistoryDiff');
                 const tabPrev = document.getElementById('tabDocHistoryPreview');
+                const tabTimeline = document.getElementById('tabDocHistoryTimeline');
                 const diffContainer = document.getElementById('docHistoryDiffContainer');
                 const prevContainer = document.getElementById('docHistoryPreviewContainer');
+                const timelineContainer = document.getElementById('docHistoryTimelineStreamContainer');
 
-                if (mode === 'diff') {
-                    if (tabDiff) tabDiff.className = 'px-3 py-1 font-bold text-xs bg-black text-white rounded transition-colors flex items-center gap-1';
-                    if (tabPrev) tabPrev.className = 'px-3 py-1 font-bold text-xs text-slate-600 hover:text-slate-900 rounded transition-colors flex items-center gap-1';
-                    if (diffContainer) diffContainer.classList.remove('hidden');
-                    if (prevContainer) prevContainer.classList.add('hidden');
+                const inactiveClass = 'px-3 py-1 font-bold text-xs text-slate-600 hover:text-slate-900 rounded transition-colors flex items-center gap-1';
+                const activeClass = 'px-3 py-1 font-bold text-xs bg-black text-white rounded transition-colors flex items-center gap-1';
+
+                if (tabDiff) tabDiff.className = mode === 'diff' ? activeClass : inactiveClass;
+                if (tabPrev) tabPrev.className = mode === 'preview' ? activeClass : inactiveClass;
+                if (tabTimeline) tabTimeline.className = mode === 'timeline' ? activeClass : inactiveClass;
+
+                if (diffContainer) diffContainer.classList.toggle('hidden', mode !== 'diff');
+                if (prevContainer) prevContainer.classList.toggle('hidden', mode !== 'preview');
+                if (timelineContainer) timelineContainer.classList.toggle('hidden', mode !== 'timeline');
+
+                if (mode === 'timeline') {
+                    this.renderDocEvolutionTimeline();
                 } else {
-                    if (tabDiff) tabDiff.className = 'px-3 py-1 font-bold text-xs text-slate-600 hover:text-slate-900 rounded transition-colors flex items-center gap-1';
-                    if (tabPrev) tabPrev.className = 'px-3 py-1 font-bold text-xs bg-black text-white rounded transition-colors flex items-center gap-1';
-                    if (diffContainer) diffContainer.classList.add('hidden');
-                    if (prevContainer) prevContainer.classList.remove('hidden');
+                    this.renderDocHistoryDetail();
+                }
+            },
+
+            renderDocEvolutionTimeline() {
+                const p = this.getCurrentProject();
+                const doc = p?.docs?.find(d => d.id === this.state.activeDocId);
+                const streamContainer = document.getElementById('docHistoryTimelineStreamContainer');
+                const statsBadge = document.getElementById('docHistoryStatsBadge');
+                if (!doc || !streamContainer) return;
+
+                const history = Array.isArray(doc.history) ? [...doc.history] : [];
+                if (statsBadge) {
+                    statsBadge.innerHTML = `<span class="text-blue-700 font-bold">⏳ 文件演進歷程 (${history.length} 個演進節點)</span>`;
                 }
 
-                this.renderDocHistoryDetail();
+                if (history.length === 0) {
+                    streamContainer.innerHTML = '<div class="p-8 text-center text-slate-400 text-sm">尚無演進里程碑紀錄</div>';
+                    return;
+                }
+
+                let html = `
+                    <div class="max-w-3xl mx-auto py-2">
+                        <div class="mb-6 p-4 bg-blue-50/80 border border-blue-200 rounded-xl flex items-center justify-between">
+                            <div>
+                                <h4 class="font-bold text-sm text-blue-950 flex items-center gap-2">
+                                    <span>⏳</span> <span>《${this.escapeHtml(doc.title || '未命名文檔')}》文件演進脈絡</span>
+                                </h4>
+                                <p class="text-xs text-blue-800 mt-0.5">自動追蹤記錄各階段作者、里程碑備註與內文更迭歷史</p>
+                            </div>
+                            <span class="text-xs font-mono font-bold bg-white text-blue-800 px-2.5 py-1 rounded-full border border-blue-200">
+                                共 ${history.length} 個節點
+                            </span>
+                        </div>
+                        <div class="doc-timeline-track relative pl-8 space-y-6">
+                `;
+
+                history.forEach((snap, idx) => {
+                    const d = new Date(snap.timestamp);
+                    const monthDay = `${d.getMonth() + 1}/${d.getDate()}`;
+                    const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    const isLatest = idx === history.length - 1;
+                    const isFirst = idx === 0;
+                    
+                    let phaseTag = isFirst ? '🌱 初始建立' : (isLatest ? '🚀 最新進展' : `📌 里程碑 #${idx + 1}`);
+
+                    html += `
+                        <div class="doc-timeline-node relative bg-white border ${isLatest ? 'border-blue-500 shadow-md ring-2 ring-blue-100' : 'border-slate-200 shadow-xs'} rounded-xl p-4 transition-all hover:shadow-sm">
+                            <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+                                <div class="flex items-center gap-2">
+                                    <span class="font-mono font-black text-sm text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">${monthDay}</span>
+                                    <span class="font-bold text-xs text-slate-800">${this.escapeHtml(snap.note || (isFirst ? '建立專題文檔' : '內文編修更新'))}</span>
+                                    <span class="text-[10px] font-bold px-2 py-0.2 rounded-full ${isLatest ? 'bg-emerald-100 text-emerald-800' : 'bg-slate-100 text-slate-600'}">${phaseTag}</span>
+                                </div>
+                                <div class="flex items-center gap-3 text-xs text-slate-400 font-mono">
+                                    <span>🕒 ${timeStr}</span>
+                                    <span class="font-sans font-medium text-slate-600">👤 ${this.escapeHtml(snap.author || '團隊成員')}</span>
+                                </div>
+                            </div>
+                            <div class="text-xs text-slate-600 leading-relaxed font-sans bg-slate-50 p-2.5 rounded-lg border border-slate-100 flex items-center justify-between">
+                                <span class="font-mono text-[11px] text-slate-500">📄 字數統計：${snap.charCount || snap.content?.length || 0} 字</span>
+                                <div class="flex items-center gap-2">
+                                    <button type="button" onclick="app.selectDocHistorySnapshot('${snap.id}'); app.switchDocHistoryViewMode('preview');" class="text-xs font-bold text-blue-600 hover:text-blue-800 hover:underline">
+                                        檢視此版 ➔
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                html += `
+                        </div>
+                    </div>
+                `;
+
+                streamContainer.innerHTML = html;
             },
 
             renderDocHistoryTimeline() {
@@ -7708,14 +7788,34 @@ ${rawHtml}
                     return `<td class="border-b border-slate-100 px-4 py-2.5 text-slate-700 bg-white text-xs leading-relaxed ${alignClass}">${text}</td>`;
                 };
 
-                // 2. 標題自動賦予 ID (供大綱跳轉)
+                // 2. 標題自動賦予 ID 與支援章節折疊展開 (Collapsible Headings for H1/H2)
                 renderer.heading = function(token) {
                     const text = this.parser.parseInline(token.tokens || []);
                     const lvl = token.depth;
                     const id = `heading_${self._headingCount++}`;
-                    if (lvl === 1) return `<h1 id="${id}" class="text-xl md:text-2xl font-black mt-6 mb-3 border-b-2 border-black pb-1 scroll-mt-6">${text}</h1>`;
-                    if (lvl === 2) return `<h2 id="${id}" class="text-lg md:text-xl font-black mt-5 mb-2 border-b-2 border-zinc-200 pb-1 scroll-mt-6">${text}</h2>`;
-                    if (lvl === 3) return `<h3 id="${id}" class="text-base font-black mt-4 mb-1.5 scroll-mt-6">${text}</h3>`;
+                    if (lvl === 1) {
+                        return `
+                            <div class="doc-heading-wrapper doc-heading-h1 group flex items-center justify-between border-b-2 border-black pb-1 mt-7 mb-3 scroll-mt-6" data-heading-id="${id}" data-heading-level="1">
+                                <h1 id="${id}" class="text-xl md:text-2xl font-black text-slate-900 m-0">${text}</h1>
+                                <button type="button" onclick="app.toggleDocSectionCollapse(this)" class="heading-collapse-btn p-1 px-1.5 rounded hover:bg-slate-100 text-slate-500 hover:text-slate-900 text-xs font-bold select-none cursor-pointer flex items-center gap-1 transition-all" title="折疊/展開此章節內容">
+                                    <span class="inline-block transition-transform duration-200">▼</span>
+                                    <span class="text-[10px] uppercase font-mono tracking-wider hidden sm:inline text-slate-400">折疊</span>
+                                </button>
+                            </div>
+                        `;
+                    }
+                    if (lvl === 2) {
+                        return `
+                            <div class="doc-heading-wrapper doc-heading-h2 group flex items-center justify-between border-b border-slate-200 pb-1 mt-5 mb-2.5 scroll-mt-6" data-heading-id="${id}" data-heading-level="2">
+                                <h2 id="${id}" class="text-lg md:text-xl font-black text-slate-800 m-0">${text}</h2>
+                                <button type="button" onclick="app.toggleDocSectionCollapse(this)" class="heading-collapse-btn p-1 px-1.5 rounded hover:bg-slate-100 text-slate-500 hover:text-slate-900 text-xs font-bold select-none cursor-pointer flex items-center gap-1 transition-all" title="折疊/展開此小節內容">
+                                    <span class="inline-block transition-transform duration-200">▼</span>
+                                    <span class="text-[10px] uppercase font-mono tracking-wider hidden sm:inline text-slate-400">折疊</span>
+                                </button>
+                            </div>
+                        `;
+                    }
+                    if (lvl === 3) return `<h3 id="${id}" class="text-base font-black mt-4 mb-1.5 text-slate-800 scroll-mt-6">${text}</h3>`;
                     return `<h4 id="${id}" class="text-sm font-black uppercase mt-3 mb-1 text-zinc-700 scroll-mt-6">${text}</h4>`;
                 };
 
@@ -8220,6 +8320,9 @@ ${rawHtml}
                 } else {
                     text = text.replace(pageBreakRegex, '\n\n<div class="doc-page-break-disabled not-prose no-print my-3 py-1.5 px-3 bg-zinc-50 border border-dashed border-zinc-300 text-zinc-400 font-bold text-xs flex items-center justify-between select-none"><span>🚫 📄 分頁已停用 (忽略換頁)</span></div>\n\n');
                 }
+
+                // 2.9 文件內動態資料庫表格語法前處理 (支援 /table 資料表名稱 或 :::table 資料表名稱)
+                text = this.preprocessInlineDatabaseTables(text);
 
                 // 3. 執行全規格 Marked.js 解析
                 let html = '';
@@ -9999,7 +10102,7 @@ JSON 格式規範如下：
 
             switchAiDocAssistantTab(tabKey) {
                 this.currentAiDocTab = tabKey;
-                const tabs = ['rewrite', 'summary', 'tasks', 'audit', 'qa'];
+                const tabs = ['rewrite', 'summary', 'tasks', 'speech', 'qna', 'terms', 'audit', 'qa'];
                 tabs.forEach(t => {
                     const btn = document.getElementById(`tabAiDoc_${t}`);
                     const panel = document.getElementById(`panelAiDoc_${t}`);
@@ -10510,6 +10613,403 @@ ${customPrompt ? `【額外指示要求】：${customPrompt}` : ''}
                     this.updateDocContent(editor.value);
                     editor.focus();
                     this.showToast('✍️ 已將 AI 結果插入至文檔中！');
+                }
+            },
+
+            // 7. 口頭報告產生器 (Speech Script Generator: 3min, 5min, 10min)
+            async runAiDocSpeech(minutes = 5) {
+                const doc = this.getCurrentDoc();
+                if (!doc || !doc.content || !doc.content.trim()) {
+                    this.showToast('⚠️ 當前文檔無足夠內容可供生成講稿', 'error');
+                    return;
+                }
+
+                const customPrompt = document.getElementById('aiDocSpeechCustomPrompt')?.value.trim() || '';
+
+                const systemPrompt = `你是一個資深的公開演講、專案提案與口頭報告指導教練。
+使用者希望將文檔內容轉換為「${minutes} 分鐘」的口頭報告講稿。
+
+【講稿產出要求】：
+1. 嚴格規劃 ${minutes} 分鐘的演講時間結構，每個段落必須標註具體建議發言時間範圍（如：[0:00 - 0:45 開場與痛點動機]、[0:45 - 2:30 核心架構與實作展示]、[2:30 - 3:00 結論與展望]）。
+2. 用詞必須是「口語化、自然流暢、具說服力且引人入勝」，避免死板唸稿，需包含適當的口頭過場與重點強調提示（例：「👉 此處可投影片指向架構圖」或「🗣️ 加重語氣」）。
+3. 根據字數節奏換算（中文標準語速每分鐘約 200~240 字，${minutes} 分鐘預計約 ${minutes * 220} 字）。
+${customPrompt ? `4. 【使用者特別要求】：${customPrompt}` : ''}
+
+請直接以條理清晰、排版優雅的 Markdown 格式輸出講稿。`;
+
+                const userMessage = `文檔標題：《${doc.title || '未命名'}》\n\n文檔全文內容：\n${doc.content}`;
+
+                this.setAiDocLoading(true, `AI 正在為您生成 ${minutes} 分鐘口頭報告講稿與時間標籤...`);
+
+                try {
+                    const speechText = await this.callUnifiedGroqApi(systemPrompt, userMessage, false);
+                    this.setAiDocLoading(false);
+                    this.showAiDocResult(`🎙️ ${minutes} 分鐘口頭報告講稿`, this.renderMarkdownToHtml(speechText), speechText);
+                    document.getElementById('aiDocTaskImportBar')?.classList.add('hidden');
+                    this.showToast(`🎙️ ${minutes} 分鐘講稿生成完成！`);
+                } catch (err) {
+                    this.setAiDocLoading(false);
+                    console.error('AI Speech Error:', err);
+                    this.showToast(`❌ 講稿生成失敗: ${err.message}`, 'error');
+                }
+            },
+
+            // 8. Q&A 預測 (Defense / Review Q&A Predictor)
+            async runAiDocPredictQnA() {
+                const doc = this.getCurrentDoc();
+                if (!doc || !doc.content || !doc.content.trim()) {
+                    this.showToast('⚠️ 當前文檔無足夠內容可供預測問題', 'error');
+                    return;
+                }
+
+                const roleSelector = document.getElementById('aiDocQnaRoleSelector');
+                const roleType = roleSelector ? roleSelector.value : 'professor';
+
+                const rolePrompts = {
+                    professor: '指導教授 / 答辯委員（嚴格審視研究方法、邏輯嚴密性、理論佐證、實驗完整度與創新貢獻）',
+                    pm_boss: '企業主管 / 產品總監（極度重視商業價值、ROI 投資回報、開發時程風險、資源可行性與市場定位）',
+                    tech_lead: '技術主管 / 架構師（深度拷問系統架構、效能瓶頸、資安威脅、高可用性、資料庫一致性與可維護性）',
+                    user_client: '終端使用者 / 客戶業主（聚焦於操作體驗、痛點是否真正解決、介面易用性與後續維護成本）'
+                };
+
+                const currentRoleDesc = rolePrompts[roleType] || rolePrompts.professor;
+
+                const systemPrompt = `你是一個嚴苛但專業的審查評審與答辯模擬專家。
+你當前的角色視角為：【${currentRoleDesc}】。
+
+請深入研讀這份文檔，從此角色的視角預測「最可能被提出的 5 個刁鑽/關鍵提問」，並為報告者提供「高分拆解對策」與「建議應對話術」。
+
+【輸出格式要求 (Markdown)】：
+針對每一個預測問題，請包含：
+- ❓ **【提問 ${'{順序}'}】：** 評審會怎麼具體發問？
+- 🎯 **【評審核心意圖/質疑痛點】：** 評審問這個問題背後真正在考驗什麼？
+- 💡 **【破解策略與防禦要點】：** 應該如何切入並引導回文檔優勢？
+- 🗣️ **【高分應答話術示範】：** 現場可直接說出口的專業回答範本。
+
+請以清晰、排版工整的 Markdown 呈現。`;
+
+                const userMessage = `文檔標題：《${doc.title || '未命名'}》\n\n文檔完整全文：\n${doc.content}`;
+
+                this.setAiDocLoading(true, 'AI 正在以評審視角深掘潛在質疑並預測 Q&A...');
+
+                try {
+                    const qnaResult = await this.callUnifiedGroqApi(systemPrompt, userMessage, false);
+                    this.setAiDocLoading(false);
+                    this.showAiDocResult('🎯 答辯與審查 Q&A 深度預測', this.renderMarkdownToHtml(qnaResult), qnaResult);
+                    document.getElementById('aiDocTaskImportBar')?.classList.add('hidden');
+                    this.showToast('🎯 Q&A 預測生成完成！');
+                } catch (err) {
+                    this.setAiDocLoading(false);
+                    console.error('AI QnA Predict Error:', err);
+                    this.showToast(`❌ 預測失敗: ${err.message}`, 'error');
+                }
+            },
+
+            // 9. 術語一致性檢查 (Terminology Consistency Check)
+            async runAiDocCheckTerminology() {
+                const doc = this.getCurrentDoc();
+                if (!doc || !doc.content || !doc.content.trim()) {
+                    this.showToast('⚠️ 當前文檔無足夠內容可供檢查術語', 'error');
+                    return;
+                }
+
+                const systemPrompt = `你是一個頂級的技術文檔工程師與出版總編輯。
+請全面掃描文檔，嚴格檢查全篇「專有名詞、技術術語、介面詞彙、中英文混用、用詞不統一」之處。
+（例如：前半段寫「用戶」後半段寫「使用者」、同時出現「登錄」與「登入」、「API」與「介面」、「Client」與「前端」等）。
+
+【輸出格式要求 (Markdown)】：
+1. 📊 **【術語不一致清單與對照表】**（請以 Markdown 表格呈現：| 發現的混用詞彙 | 出現段落/情境 | 建議統一標準名詞 | 推薦理由 |）
+2. 📖 **【本專案標準術語彙編（Glossary）】**（列出整份文件應遵守的統一用詞標準）
+3. ✍️ **【一鍵替換修訂指引】**（列出具體的替換建議）
+
+若全文術語完全高度一致，請給予肯定並列出已提煉的關鍵術語表。`;
+
+                const userMessage = `文檔標題：《${doc.title || '未命名'}》\n\n文檔全文：\n${doc.content}`;
+
+                this.setAiDocLoading(true, 'AI 正在全篇掃描專有名詞與術語一致性...');
+
+                try {
+                    const termsResult = await this.callUnifiedGroqApi(systemPrompt, userMessage, false);
+                    this.setAiDocLoading(false);
+                    this.showAiDocResult('📖 術語一致性掃描報告', this.renderMarkdownToHtml(termsResult), termsResult);
+                    document.getElementById('aiDocTaskImportBar')?.classList.add('hidden');
+                    this.showToast('📖 術語一致性檢查完成！');
+                } catch (err) {
+                    this.setAiDocLoading(false);
+                    console.error('AI Terminology Check Error:', err);
+                    this.showToast(`❌ 術語檢查失敗: ${err.message}`, 'error');
+                }
+            },
+
+            // ================= 📑 章節折疊與展開引擎 (Collapsible Section Engine) =================
+            toggleDocSectionCollapse(btnEl) {
+                if (!btnEl) return;
+                const wrapper = btnEl.closest('.doc-heading-wrapper');
+                if (!wrapper) return;
+
+                const isCurrentlyCollapsed = wrapper.classList.contains('is-collapsed');
+                const currentLevel = parseInt(wrapper.getAttribute('data-heading-level') || '1', 10);
+                
+                // 切換按鈕狀態與旋轉箭頭
+                wrapper.classList.toggle('is-collapsed', !isCurrentlyCollapsed);
+                const arrow = btnEl.querySelector('span:first-child');
+                if (arrow) {
+                    arrow.style.transform = !isCurrentlyCollapsed ? 'rotate(-90deg)' : 'rotate(0deg)';
+                }
+                const label = btnEl.querySelector('span:last-child');
+                if (label) {
+                    label.textContent = !isCurrentlyCollapsed ? '展開' : '折疊';
+                }
+
+                // 遍歷後續兄弟節點，隱藏/顯示該層級以下的內容，直到下一個同級或更高級標題
+                let sibling = wrapper.nextElementSibling;
+                while (sibling) {
+                    if (sibling.classList && sibling.classList.contains('doc-heading-wrapper')) {
+                        const nextLevel = parseInt(sibling.getAttribute('data-heading-level') || '1', 10);
+                        if (nextLevel <= currentLevel) {
+                            break; // 遇到同級或更高層級標題，停止折疊
+                        }
+                    }
+                    if (!isCurrentlyCollapsed) {
+                        sibling.classList.add('hidden');
+                    } else {
+                        sibling.classList.remove('hidden');
+                    }
+                    sibling = sibling.nextElementSibling;
+                }
+
+                this.playSound('click');
+            },
+
+            // ================= 📊 文件內動態資料庫表格引擎 (Inline Database Tables) =================
+            preprocessInlineDatabaseTables(text) {
+                if (!text || typeof text !== 'string') return text || '';
+
+                // 匹配 /table <名稱> 或 :::table <名稱> 及其後續 Markdown 表格定義
+                const tableBlockRegex = /(?:^\/table\s+([^\n]+)|:::table\s+([^\n]+))\n([\s\S]*?)(?=(?:\n\/table|\n:::table|\n\n\n|$))/gm;
+
+                return text.replace(tableBlockRegex, (match, title1, title2, tableBody) => {
+                    const tableName = (title1 || title2 || '動態資料庫').trim();
+                    const tableId = 'db_' + Math.abs(this.hashCode(tableName + tableBody.slice(0, 30)));
+                    
+                    // 解析內嵌 Markdown 表格的行與列
+                    const lines = tableBody.trim().split('\n').map(l => l.trim()).filter(l => l.startsWith('|') && l.endsWith('|'));
+                    if (lines.length < 2) {
+                        return match; // 格式不符則保持原樣
+                    }
+
+                    const headers = lines[0].split('|').slice(1, -1).map(c => c.trim());
+                    const dataRows = lines.slice(2).map(line => line.split('|').slice(1, -1).map(c => c.trim()));
+
+                    let headerThHtml = '';
+                    headers.forEach(h => {
+                        headerThHtml += `<th class="text-left">${this.escapeHtml(h)}</th>`;
+                    });
+                    headerThHtml += `<th class="text-right w-16">操作</th>`;
+
+                    let rowsTrHtml = '';
+                    dataRows.forEach((row, rowIdx) => {
+                        rowsTrHtml += `<tr>`;
+                        headers.forEach((h, colIdx) => {
+                            const val = row[colIdx] || '';
+                            const isStatusCol = /狀態|status|進度/i.test(h);
+                            if (isStatusCol) {
+                                const statusOptions = ['未開始', '進行中', '已完成', '待審核', '擱置'];
+                                let optHtml = '';
+                                statusOptions.forEach(opt => {
+                                    optHtml += `<option value="${opt}" ${val === opt ? 'selected' : ''}>${opt}</option>`;
+                                });
+                                rowsTrHtml += `
+                                    <td>
+                                        <select onchange="app.updateDocDatabaseCell('${tableId}', ${rowIdx}, ${colIdx}, this.value)" class="flat-input text-xs py-1 px-2 font-semibold bg-white border border-slate-200 rounded">
+                                            ${optHtml}
+                                            ${!statusOptions.includes(val) && val ? `<option value="${this.escapeHtml(val)}" selected>${this.escapeHtml(val)}</option>` : ''}
+                                        </select>
+                                    </td>
+                                `;
+                            } else {
+                                rowsTrHtml += `
+                                    <td>
+                                        <input type="text" value="${this.escapeHtml(val)}" onchange="app.updateDocDatabaseCell('${tableId}', ${rowIdx}, ${colIdx}, this.value)" class="w-full p-1 text-xs border border-transparent hover:border-slate-300 focus:border-blue-500 rounded bg-transparent focus:bg-white transition-colors" />
+                                    </td>
+                                `;
+                            }
+                        });
+                        rowsTrHtml += `
+                            <td class="text-right">
+                                <button type="button" onclick="app.deleteDocDatabaseRow('${tableId}', ${rowIdx})" class="text-slate-400 hover:text-rose-600 font-bold text-xs p-1" title="刪除此列">✕</button>
+                            </td>
+                        </tr>`;
+                    });
+
+                    return `
+                        <div class="doc-inline-db-card not-prose my-6" data-db-id="${tableId}" data-db-name="${this.escapeHtml(tableName)}">
+                            <div class="doc-inline-db-header">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-base">📊</span>
+                                    <span class="font-black text-xs text-slate-900 tracking-tight">${this.escapeHtml(tableName)}</span>
+                                    <span class="text-[10px] font-mono bg-blue-100 text-blue-800 font-bold px-1.5 py-0.2 rounded">即時同步資料表</span>
+                                </div>
+                                <div class="flex items-center gap-1.5">
+                                    <button type="button" onclick="app.addDocDatabaseRow('${tableId}')" class="px-2 py-0.5 bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 rounded text-xs font-bold shadow-2xs flex items-center gap-1">
+                                        <span>＋</span> <span>新增列</span>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="overflow-x-auto">
+                                <table class="doc-inline-db-table w-full border-collapse">
+                                    <thead><tr>${headerThHtml}</tr></thead>
+                                    <tbody>${rowsTrHtml}</tbody>
+                                </table>
+                            </div>
+                        </div>
+                    `;
+                });
+            },
+
+            hashCode(str) {
+                let hash = 0;
+                for (let i = 0; i < str.length; i++) {
+                    hash = (hash << 5) - hash + str.charCodeAt(i);
+                    hash |= 0;
+                }
+                return hash;
+            },
+
+            insertDocDatabaseTablePrompt() {
+                const defaultName = '專案需求規格表';
+                const name = prompt('請輸入新資料表名稱：', defaultName);
+                if (name === null) return;
+                const cleanName = name.trim() || defaultName;
+
+                const tableTemplate = `\n\n/table ${cleanName}\n| 模組名稱 | 需求描述 | 狀態 | 負責人 |\n| --- | --- | --- | --- |\n| 使用者模組 | 支援 Google 快速登入 | 進行中 | Eric |\n| 資料庫模組 | 雲端試算表即時同步 | 已完成 | Timothy |\n\n`;
+
+                this.insertMarkdown(tableTemplate, '');
+                this.showToast(`📊 已插入「${cleanName}」動態資料表！`);
+            },
+
+            updateDocDatabaseCell(tableId, targetRowIdx, targetColIdx, newVal) {
+                const p = this.getCurrentProject();
+                const doc = p?.docs?.find(d => d.id === this.state.activeDocId);
+                if (!doc || !doc.content) return;
+
+                // 搜尋文檔中對應的 /table 區塊並精確替換該儲存格
+                const tableBlockRegex = /(?:^\/table\s+([^\n]+)|:::table\s+([^\n]+))\n([\s\S]*?)(?=(?:\n\/table|\n:::table|\n\n\n|$))/gm;
+
+                let updated = false;
+                const newContent = doc.content.replace(tableBlockRegex, (match, title1, title2, tableBody) => {
+                    const tableName = (title1 || title2 || '動態資料庫').trim();
+                    const curId = 'db_' + Math.abs(this.hashCode(tableName + tableBody.slice(0, 30)));
+                    if (curId !== tableId) return match;
+
+                    const lines = tableBody.trim().split('\n');
+                    let dataRowCounter = 0;
+                    const newLines = lines.map((line) => {
+                        const trimmed = line.trim();
+                        if (!trimmed.startsWith('|') || !trimmed.endsWith('|')) return line;
+                        if (trimmed.includes('---')) return line; // 分隔線
+                        if (dataRowCounter === 0) {
+                            dataRowCounter++; // Header
+                            return line;
+                        }
+                        const currentDataIdx = dataRowCounter - 1;
+                        dataRowCounter++;
+
+                        if (currentDataIdx === targetRowIdx) {
+                            const cells = line.split('|').slice(1, -1).map(c => c.trim());
+                            if (cells[targetColIdx] !== undefined) {
+                                cells[targetColIdx] = newVal.trim();
+                                updated = true;
+                                return '| ' + cells.join(' | ') + ' |';
+                            }
+                        }
+                        return line;
+                    });
+
+                    return `/table ${tableName}\n` + newLines.join('\n');
+                });
+
+                if (updated) {
+                    this.updateDocContent(newContent);
+                    const editor = document.getElementById('docEditor');
+                    if (editor) editor.value = newContent;
+                    this.playSound('click');
+                    this.showToast('💾 資料表儲存格已同步更新！');
+                }
+            },
+
+            addDocDatabaseRow(tableId) {
+                const p = this.getCurrentProject();
+                const doc = p?.docs?.find(d => d.id === this.state.activeDocId);
+                if (!doc || !doc.content) return;
+
+                const tableBlockRegex = /(?:^\/table\s+([^\n]+)|:::table\s+([^\n]+))\n([\s\S]*?)(?=(?:\n\/table|\n:::table|\n\n\n|$))/gm;
+
+                let updated = false;
+                const newContent = doc.content.replace(tableBlockRegex, (match, title1, title2, tableBody) => {
+                    const tableName = (title1 || title2 || '動態資料庫').trim();
+                    const curId = 'db_' + Math.abs(this.hashCode(tableName + tableBody.slice(0, 30)));
+                    if (curId !== tableId) return match;
+
+                    const lines = tableBody.trim().split('\n');
+                    const headerLine = lines.find(l => l.trim().startsWith('|') && !l.includes('---'));
+                    const colCount = headerLine ? headerLine.split('|').slice(1, -1).length : 4;
+                    const newRow = '| ' + Array(colCount).fill('新項目').map((v, i) => i === 2 ? '未開始' : (i === 3 ? '未指派' : v)).join(' | ') + ' |';
+                    
+                    updated = true;
+                    return `/table ${tableName}\n` + lines.join('\n') + '\n' + newRow;
+                });
+
+                if (updated) {
+                    this.updateDocContent(newContent);
+                    const editor = document.getElementById('docEditor');
+                    if (editor) editor.value = newContent;
+                    this.playSound('click');
+                    this.showToast('➕ 已新增一筆資料列！');
+                }
+            },
+
+            deleteDocDatabaseRow(tableId, targetRowIdx) {
+                const p = this.getCurrentProject();
+                const doc = p?.docs?.find(d => d.id === this.state.activeDocId);
+                if (!doc || !doc.content) return;
+
+                const tableBlockRegex = /(?:^\/table\s+([^\n]+)|:::table\s+([^\n]+))\n([\s\S]*?)(?=(?:\n\/table|\n:::table|\n\n\n|$))/gm;
+
+                let updated = false;
+                const newContent = doc.content.replace(tableBlockRegex, (match, title1, title2, tableBody) => {
+                    const tableName = (title1 || title2 || '動態資料庫').trim();
+                    const curId = 'db_' + Math.abs(this.hashCode(tableName + tableBody.slice(0, 30)));
+                    if (curId !== tableId) return match;
+
+                    const lines = tableBody.trim().split('\n');
+                    let dataRowCounter = 0;
+                    const newLines = lines.filter((line) => {
+                        const trimmed = line.trim();
+                        if (!trimmed.startsWith('|') || !trimmed.endsWith('|')) return true;
+                        if (trimmed.includes('---')) return true;
+                        if (dataRowCounter === 0) {
+                            dataRowCounter++; // Header
+                            return true;
+                        }
+                        const currentDataIdx = dataRowCounter - 1;
+                        dataRowCounter++;
+                        if (currentDataIdx === targetRowIdx) {
+                            updated = true;
+                            return false;
+                        }
+                        return true;
+                    });
+
+                    return `/table ${tableName}\n` + newLines.join('\n');
+                });
+
+                if (updated) {
+                    this.updateDocContent(newContent);
+                    const editor = document.getElementById('docEditor');
+                    if (editor) editor.value = newContent;
+                    this.playSound('click');
+                    this.showToast('🗑️ 已刪除該資料列');
                 }
             }
 };
