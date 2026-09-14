@@ -14,7 +14,7 @@ export const state = {
     currentView: 'Home', // Home, Dashboard, Docs, Wizard, Execution
     execViewMode: 'list', // list, kanban
     docMode: 'edit', // edit, preview (mobile only)
-    gasUrl: 'https://script.google.com/macros/s/AKfycbxPLTdFYgqSv3PrGxK7U-UTIj3YIiJPU-QbMhLYq4NVyRd77263-xFsbFaFovHoKoC3/exec',
+    gasUrl: 'https://script.google.com/macros/s/AKfycbxpCpIHMzlWOHBb92pCQG9T36vGH8I8ju8UZHHDP6BvOoeuxQ6ZXFXokp8IcDmSSGSn/exec',
     syncTimeout: null,
     autoPullInterval: null,
     isCloudLoaded: false,      // 是否已成功從雲端取得最新資料

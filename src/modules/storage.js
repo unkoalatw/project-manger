@@ -2,7 +2,7 @@
 export const storage = {
 // ================= 本機儲存 (離線快取層) =================
             loadLocalData() {
-                const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbxPLTdFYgqSv3PrGxK7U-UTIj3YIiJPU-QbMhLYq4NVyRd77263-xFsbFaFovHoKoC3/exec';
+                const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbxpCpIHMzlWOHBb92pCQG9T36vGH8I8ju8UZHHDP6BvOoeuxQ6ZXFXokp8IcDmSSGSn/exec';
                 const CUTOFF_TIME = new Date('2026-08-27T14:00:00+08:00').getTime();
 
                 try {
@@ -31,6 +31,7 @@ export const storage = {
                     let savedUrl = localStorage.getItem('flatSpecGasUrl');
                     // 自動清理/升級過往已失效或錯誤的歷史預設端點
                     const LEGACY_URLS = [
+                        'https://script.google.com/macros/s/AKfycbxPLTdFYgqSv3PrGxK7U-UTIj3YIiJPU-QbMhLYq4NVyRd77263-xFsbFaFovHoKoC3/exec',
                         'https://script.google.com/macros/s/AKfycbxPoko2kbUAQas0LtRI-Vs2piyK-5Huj62iiQBK0HgULCZhcFUEjRU7-OgnQOpAo3pu/exec',
                         'https://script.google.com/macros/s/AKfycbyKQNxw0NiU87rx9pxgb0r1XN74A2WLVAYeVLimNBZYYiY-07G1tK-pi1EXLhYn1nSyFw/exec'
                     ];
