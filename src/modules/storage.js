@@ -100,7 +100,30 @@ export const storage = {
                     this.state.lastLocalSaveTime = new Date();
                     this.recordLocalHistorySnapshot(this.state.projects, '本地自動存檔');
                 } catch (e) {
-                    console.error("Local storage error:", e);
+                    console.warn("LocalStorage 配額吃緊，自動啟動瘦身保存機制...", e.message);
+                    try {
+                        // 清理過往歷史快照與緩存釋放空間
+                        localStorage.removeItem('flatSpecAttachmentCache');
+                        const leanProjects = this.state.projects.map(proj => {
+                            const clone = JSON.parse(JSON.stringify(proj));
+                            if (Array.isArray(clone.docs)) {
+                                clone.docs.forEach(doc => {
+                                    if (doc.attachments && typeof doc.attachments === 'object') {
+                                        Object.keys(doc.attachments).forEach(k => {
+                                            const att = doc.attachments[k];
+                                            if (att && att.data && att.data.length > 500) {
+                                                doc.attachments[k] = { ...att, data: '[IndexedDB/Cloud]' };
+                                            }
+                                        });
+                                    }
+                                });
+                            }
+                            return clone;
+                        });
+                        localStorage.setItem('flatSpecData', JSON.stringify(leanProjects));
+                    } catch(retryErr) {
+                        console.error("Local storage error:", retryErr);
+                    }
                 }
             },
 
