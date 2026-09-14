@@ -792,6 +792,9 @@
                 <button type="button" id="tabSettings_project" onclick="app.switchSettingsTab('project')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-black flat-box shrink-0 flex items-center gap-1 transition-colors">
                     <span>📁</span> <span>專案管理</span>
                 </button>
+                <button type="button" id="tabSettings_diagnostic" onclick="app.switchSettingsTab('diagnostic')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-emerald-700 flat-box shrink-0 flex items-center gap-1 transition-colors font-bold">
+                    <span>🩺</span> <span>連線與 API 自檢</span>
+                </button>
             </div>
 
             <!-- 內容面板區域 -->
@@ -1218,8 +1221,109 @@
                         <p class="text-[11px] text-amber-900 font-medium">
                             以下為已設定隱藏的專案，未出現在首頁及側邊欄中。點擊「解除隱藏」可立即恢復顯示：
                         </p>
-                        <div id="hiddenProjectsModalList" class="space-y-1.5 max-h-48 overflow-y-auto border border-amber-200 p-2 bg-white">
-                            <!-- 動態載入已隱藏專案項目 -->
+                    </div>
+                </div>
+
+                <!-- Tab 7: 系統連線與 API 綜合自檢中心 (System Diagnostics & API Health) -->
+                <div id="panelSettings_diagnostic" class="hidden space-y-4">
+                    <div class="p-4 bg-emerald-50 border border-emerald-200 rounded-xl space-y-2">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="text-2xl">🩺</span>
+                                <div>
+                                    <h4 class="font-bold text-sm text-emerald-950">系統連線與 API 全方位自我檢測</h4>
+                                    <p class="text-xs text-emerald-700">一鍵檢驗網路狀態、GAS 雲端資料庫、Google Drive 存取、Groq AI 核心及離線 IndexedDB 資料庫</p>
+                                </div>
+                            </div>
+                            <button type="button" onclick="app.runFullSystemSelfDiagnostic()" id="btnRunFullDiagnostic" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg shadow-sm shrink-0 flex items-center gap-1.5 transition-all">
+                                <span>🚀</span> <span>開始全面自檢</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 檢測項目即時狀態清單 -->
+                    <div class="space-y-3" id="diagnosticItemsContainer">
+                        <!-- 1. 網路與瀏覽器環境 -->
+                        <div class="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between gap-3 shadow-2xs">
+                            <div class="flex items-center gap-2.5">
+                                <span id="diagIcon_network" class="text-lg">🌐</span>
+                                <div>
+                                    <div class="text-xs font-bold text-slate-800">本機網路與離線快取 (Network & Cache)</div>
+                                    <div id="diagDetail_network" class="text-[11px] text-slate-500 font-mono">點擊「開始自檢」以檢測網路環境與 Storage 配額</div>
+                                </div>
+                            </div>
+                            <span id="diagBadge_network" class="px-2 py-0.5 text-[10px] font-bold bg-slate-100 text-slate-600 rounded font-mono shrink-0">待檢測</span>
+                        </div>
+
+                        <!-- 2. GAS 雲端讀取 (GET) -->
+                        <div class="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between gap-3 shadow-2xs">
+                            <div class="flex items-center gap-2.5">
+                                <span id="diagIcon_gas_get" class="text-lg">📥</span>
+                                <div>
+                                    <div class="text-xs font-bold text-slate-800">Google Apps Script 雲端讀取 (GET & CORS)</div>
+                                    <div id="diagDetail_gas_get" class="text-[11px] text-slate-500 font-mono">驗證試算表端點連線、CORS 權限及專案拉取功能</div>
+                                </div>
+                            </div>
+                            <span id="diagBadge_gas_get" class="px-2 py-0.5 text-[10px] font-bold bg-slate-100 text-slate-600 rounded font-mono shrink-0">待檢測</span>
+                        </div>
+
+                        <!-- 3. GAS 雲端寫入 (POST) -->
+                        <div class="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between gap-3 shadow-2xs">
+                            <div class="flex items-center gap-2.5">
+                                <span id="diagIcon_gas_post" class="text-lg">📤</span>
+                                <div>
+                                    <div class="text-xs font-bold text-slate-800">Google 試算表資料庫雙向寫入 (POST Echo)</div>
+                                    <div id="diagDetail_gas_post" class="text-[11px] text-slate-500 font-mono">測試寫入通道、資料庫 SSOT 完整性與延遲時間</div>
+                                </div>
+                            </div>
+                            <span id="diagBadge_gas_post" class="px-2 py-0.5 text-[10px] font-bold bg-slate-100 text-slate-600 rounded font-mono shrink-0">待檢測</span>
+                        </div>
+
+                        <!-- 4. Google Drive 雲端檔案儲存權限 -->
+                        <div class="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between gap-3 shadow-2xs">
+                            <div class="flex items-center gap-2.5">
+                                <span id="diagIcon_drive" class="text-lg">📁</span>
+                                <div>
+                                    <div class="text-xs font-bold text-slate-800">Google Drive 雲端儲存權限 (DriveApp Vault)</div>
+                                    <div id="diagDetail_drive" class="text-[11px] text-slate-500 font-mono">驗證您的 Google Drive 專屬儲存空間與多媒體讀寫權限</div>
+                                </div>
+                            </div>
+                            <span id="diagBadge_drive" class="px-2 py-0.5 text-[10px] font-bold bg-slate-100 text-slate-600 rounded font-mono shrink-0">待檢測</span>
+                        </div>
+
+                        <!-- 5. Groq AI 智慧核心 -->
+                        <div class="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between gap-3 shadow-2xs">
+                            <div class="flex items-center gap-2.5">
+                                <span id="diagIcon_ai" class="text-lg">🤖</span>
+                                <div>
+                                    <div class="text-xs font-bold text-slate-800">Groq AI 智慧推理引擎 (API Key & Proxy)</div>
+                                    <div id="diagDetail_ai" class="text-[11px] text-slate-500 font-mono">測試 Llama-3.3 任務拆解與助理 API 響應時間及可用性</div>
+                                </div>
+                            </div>
+                            <span id="diagBadge_ai" class="px-2 py-0.5 text-[10px] font-bold bg-slate-100 text-slate-600 rounded font-mono shrink-0">待檢測</span>
+                        </div>
+
+                        <!-- 6. 本地 IndexedDB 音訊與媒體儲存庫 -->
+                        <div class="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between gap-3 shadow-2xs">
+                            <div class="flex items-center gap-2.5">
+                                <span id="diagIcon_idb" class="text-lg">🗄️</span>
+                                <div>
+                                    <div class="text-xs font-bold text-slate-800">本地離線資料庫 (IndexedDB FlatSpecDB)</div>
+                                    <div id="diagDetail_idb" class="text-[11px] text-slate-500 font-mono">檢測音訊與媒體快取讀寫性能及瀏覽器持久化儲存能力</div>
+                                </div>
+                            </div>
+                            <span id="diagBadge_idb" class="px-2 py-0.5 text-[10px] font-bold bg-slate-100 text-slate-600 rounded font-mono shrink-0">待檢測</span>
+                        </div>
+                    </div>
+
+                    <!-- 診斷日誌輸出視窗 -->
+                    <div class="p-3 bg-slate-900 text-slate-100 rounded-xl font-mono text-[11px] space-y-1.5 shadow-inner">
+                        <div class="flex items-center justify-between text-slate-400 pb-1 border-b border-slate-800 text-[10px]">
+                            <span class="flex items-center gap-1"><span>📋</span> 診斷詳細日誌 (Diagnostic Logs)</span>
+                            <span id="diagOverallSummary" class="text-emerald-400 font-bold">尚未執行自檢</span>
+                        </div>
+                        <div id="diagLogConsole" class="max-h-48 overflow-y-auto space-y-1 pr-1 font-mono text-[11px] leading-relaxed select-text">
+                            <div class="text-slate-500">點擊上方「開始全面自檢」按鈕以啟動診斷流程...</div>
                         </div>
                     </div>
                 </div>
