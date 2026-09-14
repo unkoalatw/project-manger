@@ -149,7 +149,7 @@ function handleAiDecompositionProxy(payload) {
 
     var isJsonMode = payload.responseFormat !== 'text';
     var maxTokens = Math.min(Number(payload.maxTokens) || 2000, 4000);
-    var preferredModel = scriptProps.getProperty('GROQ_MODEL') || 'openai/gpt-oss-20b';
+    var preferredModel = scriptProps.getProperty('GROQ_MODEL') || 'llama-3.3-70b-versatile';
 
     var groqPayload = {
       model: preferredModel,
@@ -177,9 +177,10 @@ function handleAiDecompositionProxy(payload) {
 
     var candidateModels = [
       preferredModel,
-      'qwen/qwen3.6-27b',
-      'openai/gpt-oss-120b',
-      'llama-3.3-70b-versatile'
+      'llama-3.3-70b-versatile',
+      'llama-3.1-8b-instant',
+      'llama3-70b-8192',
+      'openai/gpt-oss-20b'
     ];
 
     var response = null;
