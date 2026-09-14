@@ -517,6 +517,16 @@ function getOrCreateDataSheet(ss) {
  * 核心格式化函式：將 JSON 資料轉換為帶有排版樣式的表格
  */
 function formatVisualDashboard(ss, projects) {
+  ss = ss || getTargetSpreadsheet();
+  if (!projects || !Array.isArray(projects)) {
+    try {
+      var dataSheet = getOrCreateDataSheet(ss);
+      var raw = readDataChunks(dataSheet);
+      projects = JSON.parse(raw);
+    } catch (e) {
+      projects = [];
+    }
+  }
   var viewSheet = ss.getSheetByName(SHEET_NAME_VIEW);
   if (!viewSheet) {
     viewSheet = ss.insertSheet(SHEET_NAME_VIEW);
