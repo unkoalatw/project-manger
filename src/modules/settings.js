@@ -804,13 +804,15 @@ export const settings = {
 
                 // 2. 檢測 GAS 雲端讀取 (GET)
                 const gasUrl = (this.state && this.state.gasUrl) ? this.state.gasUrl : (localStorage.getItem('flatSpecGasUrl') || '');
-                this.updateDiagItemStatus('gas_get', 'testing', '正在連線 GAS Web App 進行 GET 請求測試...');
+                const displayUrl = gasUrl ? (gasUrl.slice(0, 35) + '...' + gasUrl.slice(-15)) : '未配置';
+                this.updateDiagItemStatus('gas_get', 'testing', `正在測試 GET: ${displayUrl}`);
                 let isGetSuccessful = false;
                 if (!gasUrl) {
                     this.updateDiagItemStatus('gas_get', 'error', '尚未配置 Google Apps Script 雲端同步網址', '未配置');
                     this.appendDiagLog('GAS URL 尚未配置，無法進行雲端拉取檢測', 'error');
                     errorCount++;
                 } else {
+                    this.appendDiagLog(`目前檢測的 GAS 網址: ${gasUrl}`, 'info');
                     try {
                         const t0 = Date.now();
                         const fetchUrl = gasUrl + (gasUrl.includes('?') ? '&' : '?') + 't=' + Date.now();
