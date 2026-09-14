@@ -982,8 +982,9 @@ export const settings = {
                             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                             body: JSON.stringify({
                                 action: 'ai_doc_chat',
-                                systemPrompt: 'You are a test ping bot.',
+                                systemPrompt: 'You are a test ping bot. Output response format in json.',
                                 userMessage: testPrompt,
+                                responseFormat: 'text',
                                 clientApiKey: clientKey,
                                 maxTokens: 10
                             }),
