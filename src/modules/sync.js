@@ -43,12 +43,17 @@ export const sync = {
                         } else if (data.status === 'error') {
                             throw new Error('雲端後端回報錯誤: ' + (data.message || '未知錯誤'));
                         } else if (data.action || data.systemPrompt || data.userMessage) {
-                            // 遇到歷史測試殘留的 AI 封包，自動以本地專案或預設專案覆蓋修復，不阻斷使用者
-                            console.warn('[Sync] 雲端資料庫檢測到 AI 測試封包殘留，自動切換為本地專案並將進行自我修復...');
+                            // 遇到歷史測試殘留的 AI 封包，自動以本地專案覆蓋雲端，修復試算表
+                            console.log('[Sync] 雲端試算表檢測到殘留的 AI 測試資料，正在自動修復為正式專案資料庫...');
                             data = this.state.projects && this.state.projects.length > 0 ? this.state.projects : [];
-                            this.state.hasUnsavedChanges = true;
-                            localStorage.setItem('flatSpecHasPendingChanges', 'true');
-                            setTimeout(() => this.debouncedSaveAndSync(), 1000);
+                            if (data.length > 0 && !this.state.isFixingStaleData) {
+                                this.state.isFixingStaleData = true;
+                                setTimeout(() => {
+                                    this.pushToCloud(false).finally(() => {
+                                        this.state.isFixingStaleData = false;
+                                    });
+                                }, 500);
+                            }
                         } else if (data.message) {
                             throw new Error(`雲端回傳非專案資料 (端點訊息: "${data.message}")。請確認 Apps Script 部署之程式碼是否為 FlatSpec 專用 Code.js`);
                         }
