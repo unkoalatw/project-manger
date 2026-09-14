@@ -166,10 +166,17 @@ export const sync = {
                 this.updateSyncStatus('syncing', '正在驗證雲端版本...');
 
                 try {
-                    // ✅ 核心防線：推送前先檢查雲端最新時間戳，防止舊裝置倒灌產生連鎖覆蓋效應
+                    // ✅ 核心防線：推送前先檢查雲端最新時間戳，加入 2.5 秒超時保護，避免網路卡死
                     if (!isManual) {
                         try {
-                            const checkRes = await fetch(this.state.gasUrl, { method: 'GET', redirect: 'follow' });
+                            const controller = new AbortController();
+                            const timeoutId = setTimeout(() => controller.abort(), 2500);
+                            const checkRes = await fetch(this.state.gasUrl, { 
+                                method: 'GET', 
+                                redirect: 'follow',
+                                signal: controller.signal 
+                            });
+                            clearTimeout(timeoutId);
                             if (checkRes.ok) {
                                 const checkText = await checkRes.text();
                                 const cloudData = JSON.parse(checkText);
@@ -187,7 +194,8 @@ export const sync = {
                                 }
                             }
                         } catch(checkErr) {
-                            console.warn("Pre-flight version check skipped:", checkErr);
+                            // 快速降級直寫，不阻斷使用者的寫入節奏
+                            console.warn("Pre-flight version check skipped or timed out:", checkErr.message);
                         }
                     }
 
