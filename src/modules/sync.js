@@ -101,10 +101,12 @@ export const sync = {
                                 this.updateSyncStatus('success');
                             }
 
+                            this.state.consecutive404Count = 0;
                             if (isManual) this.showToast('✅ 成功從 Google 試算表載入最新資料！');
                             return true;
                         } else {
                             // 雲端確實為空 []
+                            this.state.consecutive404Count = 0;
                             this.state.isCloudLoaded = true;
                             if (this.state.projects.length === 0) {
                                 this.createInitialDefaultProject();
@@ -120,6 +122,9 @@ export const sync = {
                 } catch (error) {
                     console.error("Pull from cloud error:", error);
                     let errMsg = error.message;
+                    if (errMsg.includes('404')) {
+                        this.state.consecutive404Count = (this.state.consecutive404Count || 0) + 1;
+                    }
                     if (errMsg.includes('Failed to fetch') || errMsg.includes('NetworkError')) {
                         errMsg = 'CORS/連線異常 (請檢查部署權限設為 Anyone)';
                     }

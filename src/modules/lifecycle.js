@@ -346,10 +346,13 @@ export const lifecycle = {
                 });
             },
 
-            startAutoPull(intervalMs = 4000) {
+            startAutoPull(intervalMs = 8000) {
                 if (this.state.autoPullInterval) clearInterval(this.state.autoPullInterval);
-                // 預設每 4 秒極速在線心跳 (Presence & Live Remote Diff)
+                // 智慧排程輪詢：若後端未配置或發生 404，不進行高頻請求轟炸
                 this.state.autoPullInterval = setInterval(() => {
+                    if (this.state.consecutive404Count && this.state.consecutive404Count > 2) {
+                        return; // 遇到 404 暫停背景輪詢，等待使用者部署或手動觸發
+                    }
                     if (!this.state.isSyncing && !this.state.hasUnsavedChanges && !this.state.isUserTyping && this.state.gasUrl) {
                         this.pullFromCloud(false, true);
                     } else {
