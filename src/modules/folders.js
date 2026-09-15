@@ -165,16 +165,52 @@ export const folders = {
                 `;
             },
 
+            // 輔助函式：判斷文檔是否屬於特定資料夾 (支援 folderId、folderName、folder 多維度容錯匹配)
+            isDocInFolder(doc, folder) {
+                if (!doc || !folder) return false;
+                const docFid = doc.folderId || doc.folder || doc.folderName || '';
+                if (!docFid) return false;
+                
+                // 1. 精確 ID 匹配
+                if (String(docFid) === String(folder.id)) return true;
+                // 2. 名稱精確匹配
+                if (folder.name && String(docFid).trim().toLowerCase() === String(folder.name).trim().toLowerCase()) return true;
+                // 3. 部分包含匹配 (如 "腳本" vs "腳本/初稿")
+                if (folder.name && (String(docFid).includes(folder.name) || folder.name.includes(String(docFid)))) return true;
+                
+                return false;
+            },
+
+            // 輔助函式：判斷文檔是否屬於根目錄 (無所屬資料夾，或所屬資料夾在清單中不存在)
+            isDocInRoot(doc, folders) {
+                if (!doc) return false;
+                const docFid = doc.folderId || doc.folder || doc.folderName || null;
+                if (!docFid) return true;
+                
+                // 若找不到任何對應的資料夾，則自動回退至根目錄展示，絕不讓文檔消失！
+                const hasMatchingFolder = folders.some(f => this.isDocInFolder(doc, f));
+                return !hasMatchingFolder;
+            },
+
             // 遞迴渲染資料夾與子資料夾樹
             renderFolderTreeLevel(parentId, folders, docs, isSearching, depth = 0) {
                 let html = '';
                 const currentFolders = folders.filter(f => (f.parentId || null) === parentId);
-                const currentDocs = docs.filter(d => (d.folderId || null) === parentId);
+                
+                let currentDocs = [];
+                if (parentId === null) {
+                    // 根目錄：展示無資料夾或找不到資料夾的文檔
+                    currentDocs = docs.filter(d => this.isDocInRoot(d, folders));
+                } else {
+                    // 特定資料夾：展示匹配該資料夾的文檔
+                    const targetFolder = folders.find(f => String(f.id) === String(parentId));
+                    currentDocs = docs.filter(d => targetFolder && this.isDocInFolder(d, targetFolder));
+                }
 
                 currentFolders.forEach(folder => {
                     const isExpanded = this.state.expandedFolders.has(folder.id) || isSearching;
-                    const subDocsCount = docs.filter(d => d.folderId === folder.id).length;
-                    const subFoldersCount = folders.filter(f => f.parentId === folder.id).length;
+                    const subDocsCount = docs.filter(d => this.isDocInFolder(d, folder)).length;
+                    const subFoldersCount = folders.filter(f => (f.parentId || null) === folder.id).length;
 
                     html += `
                         <div class="folder-group mb-1" data-folder-id="${this.escapeHtml(folder.id)}">
