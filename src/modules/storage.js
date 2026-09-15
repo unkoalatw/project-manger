@@ -16,12 +16,8 @@ export const storage = {
                         const parsed = JSON.parse(localData);
                         if (Array.isArray(parsed) && parsed.length > 0) {
                             const normalized = parsed.map(p => this.normalizeProject(p)).filter(Boolean);
-                            // 自動清理 2026/8/27 14:00 以前的過時本地快取資料
                             const validProjects = normalized.filter(p => {
-                                if (!p.updatedAt) return false;
-                                const pTime = new Date(p.updatedAt).getTime();
-                                if (pTime < CUTOFF_TIME) return false;
-                                if (p.title && (p.title.includes('FlatSpec 實測專案') || p.title.includes('跨裝置同步與CORS優化版')) && pTime < CUTOFF_TIME) return false;
+                                if (p.title && (p.title.includes('FlatSpec 實測專案') || p.title.includes('跨裝置同步與CORS優化版'))) return false;
                                 return true;
                             });
 

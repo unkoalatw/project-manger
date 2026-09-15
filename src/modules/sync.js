@@ -20,7 +20,7 @@ export const sync = {
 
                 this.state.isPulling = true;
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 秒超時，支援 GAS 雲端冷啟動 (Cold Start)
+                const timeoutId = setTimeout(() => controller.abort(), 45000); // 45 秒超時，支援 GAS 雲端冷啟動 (Cold Start)
 
                 if (!isBackgroundPoll) {
                     this.updateSyncStatus('syncing', '正在讀取雲端...');
@@ -58,7 +58,7 @@ export const sync = {
                     if (!rawPayload) {
                         const tokenParam = this.state.authToken ? `&token=${encodeURIComponent(this.state.authToken)}` : '';
                         const fetchUrl = this.state.gasUrl + (this.state.gasUrl.includes('?') ? '&' : '?') + 't=' + now + tokenParam;
-                        response = await fetch(fetchUrl, { 
+                        const response = await fetch(fetchUrl, { 
                             method: 'GET',
                             redirect: 'follow',
                             cache: 'no-store',
@@ -67,7 +67,7 @@ export const sync = {
                         if (!response.ok) {
                             throw new Error(`HTTP Error ${response.status}`);
                         }
-                        textData = await response.text();
+                        const textData = await response.text();
                         try {
                             rawPayload = JSON.parse(textData);
                         } catch (jsonErr) {
