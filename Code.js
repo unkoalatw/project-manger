@@ -76,6 +76,13 @@ function doGet(e) {
       }
     }
 
+    var cache = CacheService.getScriptCache();
+    var cached = cache.get('flat_spec_full_data');
+    if (cached) {
+      return ContentService.createTextOutput(cached)
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
     var ss = getTargetSpreadsheet();
     var sheet = getOrCreateDataSheet(ss);
     var rawData = readDataChunks(sheet);
@@ -90,7 +97,14 @@ function doGet(e) {
       data: rawData ? JSON.parse(rawData) : []
     };
 
-    return ContentService.createTextOutput(JSON.stringify(responseObj))
+    var outputJson = JSON.stringify(responseObj);
+    try {
+      if (outputJson.length < 100000) {
+        cache.put('flat_spec_full_data', outputJson, 300); // 快取 5 分鐘
+      }
+    } catch(ce) {}
+
+    return ContentService.createTextOutput(outputJson)
       .setMimeType(ContentService.MimeType.JSON);
 
   } catch (err) {
@@ -245,6 +259,11 @@ function doPost(e) {
       writeDataChunks(dataSheet, projectsJsonString);
       setSheetRevision(dataSheet, nextRevision);
       dataSheet.getRange('B1').setValue('最後更新時間: ' + new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' }));
+
+      // 清除/更新快取
+      try {
+        CacheService.getScriptCache().remove('flat_spec_full_data');
+      } catch(ce) {}
 
       // 3.2 自動更新並美化「專案視覺化總覽」表格
       formatVisualDashboard(ss, projectsData);

@@ -89,14 +89,11 @@ export const lifecycle = {
                     // 2. 綁定事件監聽
                     this.bindEvents();
 
-                    // 3. 核心：立即從雲端拉取 Single Source of Truth (SSOT)
+                    // 3. 核心：在背景非阻塞 (Non-blocking) 從雲端拉取 Single Source of Truth (SSOT)
                     if (this.state.gasUrl) {
-                        await this.pullFromCloud(false);
-                    }
-                    
-                    if (this.state.projects.length === 0) {
-                        this.createInitialDefaultProject();
-                        this.renderAll();
+                        this.pullFromCloud(false).catch(err => {
+                            console.warn("[Lifecycle] 初始雲端同步背景拉取提示:", err);
+                        });
                     }
 
                     // 4. 啟動背景自動輪詢 (每 15 秒檢查一次跨裝置更新)
