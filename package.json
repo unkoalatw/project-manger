@@ -18,5 +18,8 @@
     "html-minifier-terser": "^7.2.0",
     "terser": "^5.51.2",
     "vite": "^8.2.2"
+  },
+  "dependencies": {
+    "dompurify": "^3.4.15"
   }
 }

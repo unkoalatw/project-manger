@@ -40,6 +40,8 @@ export const storage = {
                         localStorage.setItem('flatSpecGasUrl', DEFAULT_GAS_URL);
                     }
                     this.state.gasUrl = savedUrl.trim();
+                    this.state.authToken = (localStorage.getItem('flatSpecAuthToken') || '').trim();
+                    this.state.cloudRevision = parseInt(localStorage.getItem('flatSpecCloudRevision') || '0', 10) || 0;
 
                     if (localStorage.getItem('flatSpecHasPendingChanges') === 'true') {
                         this.state.hasUnsavedChanges = true;

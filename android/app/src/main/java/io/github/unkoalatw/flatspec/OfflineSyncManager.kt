@@ -83,6 +83,10 @@ class OfflineSyncManager(
             )
             .build()
 
-        WorkManager.getInstance(context).enqueue(syncRequest)
+        WorkManager.getInstance(context).enqueueUniqueWork(
+            "flatspec-cloud-sync",
+            androidx.work.ExistingWorkPolicy.REPLACE,
+            syncRequest
+        )
     }
 }

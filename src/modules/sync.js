@@ -25,7 +25,8 @@ export const sync = {
                 }
                 
                 try {
-                    const fetchUrl = this.state.gasUrl + (this.state.gasUrl.includes('?') ? '&' : '?') + 't=' + now;
+                    const tokenParam = this.state.authToken ? `&token=${encodeURIComponent(this.state.authToken)}` : '';
+                    const fetchUrl = this.state.gasUrl + (this.state.gasUrl.includes('?') ? '&' : '?') + 't=' + now + tokenParam;
                     const response = await fetch(fetchUrl, { 
                         method: 'GET',
                         redirect: 'follow',
@@ -49,6 +50,13 @@ export const sync = {
                     }
                     
                     if (data && typeof data === 'object' && !Array.isArray(data)) {
+                        if (data.code === 401 || (data.status === 'error' && data.message && data.message.includes('未授權'))) {
+                            throw new Error('未授權存取 (Auth Token 錯誤或未設定)，請至「設定 ➔ 雲端同步」填入正確金鑰。');
+                        }
+                        if (typeof data.revision === 'number') {
+                            this.state.cloudRevision = data.revision;
+                            try { localStorage.setItem('flatSpecCloudRevision', data.revision.toString()); } catch(e) {}
+                        }
                         if (Array.isArray(data.data)) {
                             data = data.data;
                         } else if (Array.isArray(data.projects)) {
@@ -181,44 +189,18 @@ export const sync = {
 
                 this.state.isSyncing = true;
                 this.state.hasPendingSync = false;
-                this.updateSyncStatus('syncing', '正在驗證雲端版本...');
+                this.updateSyncStatus('syncing', '正在寫入試算表...');
 
                 try {
-                    // ✅ 核心防線：推送前先檢查雲端最新時間戳，加入 2.5 秒超時保護，避免網路卡死
-                    if (!isManual) {
-                        try {
-                            const controller = new AbortController();
-                            const timeoutId = setTimeout(() => controller.abort(), 2500);
-                            const checkRes = await fetch(this.state.gasUrl, { 
-                                method: 'GET', 
-                                redirect: 'follow',
-                                signal: controller.signal 
-                            });
-                            clearTimeout(timeoutId);
-                            if (checkRes.ok) {
-                                const checkText = await checkRes.text();
-                                const cloudData = JSON.parse(checkText);
-                                if (Array.isArray(cloudData) && cloudData.length > 0) {
-                                    const latestCloudTime = Math.max(...cloudData.map(p => new Date(p.updatedAt || 0).getTime()));
-                                    const myBaselineTime = Math.max(...(this.state.lastSyncedProjects || []).map(p => new Date(p.updatedAt || 0).getTime()), 0);
-                                    
-                                    // 若雲端在我們上次同步後已被其他裝置（如電腦端）更新過，且雲端時間戳比我們的基線更新
-                                    if (myBaselineTime > 0 && latestCloudTime > myBaselineTime + 2000) {
-                                        console.warn("🛡️ [SafeGuard] 偵測到雲端已有其他裝置的新版本，中斷自動推送以防止連鎖覆蓋！轉為安全拉取與衝突決策...");
-                                        this.state.isSyncing = false;
-                                        await this.pullFromCloud(false);
-                                        return false;
-                                    }
-                                }
-                            }
-                        } catch(checkErr) {
-                            // 快速降級直寫，不阻斷使用者的寫入節奏
-                            console.warn("Pre-flight version check skipped or timed out:", checkErr.message);
-                        }
-                    }
+                    // 打包帶有 baseRevision 與 authToken 的安全同步封包
+                    const payloadObj = {
+                        authToken: this.state.authToken || '',
+                        baseRevision: this.state.cloudRevision || 0,
+                        projects: this.state.projects,
+                        timestamp: new Date().toISOString()
+                    };
+                    const payload = JSON.stringify(payloadObj);
 
-                    this.updateSyncStatus('syncing', '正在寫入試算表...');
-                    const payload = JSON.stringify(this.state.projects);
                     // 嚴格使用 text/plain;charset=utf-8 杜絕 CORS OPTIONS 預檢被拒
                     const response = await fetch(this.state.gasUrl, {
                         method: 'POST',
@@ -243,7 +225,22 @@ export const sync = {
                         throw new Error('雲端回傳非合法 JSON');
                     }
 
+                    if (result.status === 'conflict' || result.code === 409) {
+                        console.warn('🛡️ [OCC] 偵測到雲端版本已遞增，自動拉取最新資料進行合併...', result);
+                        this.state.isSyncing = false;
+                        await this.pullFromCloud(false);
+                        return false;
+                    }
+
+                    if (result.code === 401 || (result.status === 'error' && result.message && result.message.includes('未授權'))) {
+                        throw new Error('未授權存取：Auth Token 錯誤或未設定。');
+                    }
+
                     if (result.status === 'success') {
+                        if (typeof result.revision === 'number') {
+                            this.state.cloudRevision = result.revision;
+                            try { localStorage.setItem('flatSpecCloudRevision', result.revision.toString()); } catch(e) {}
+                        }
                         this.state.isCloudLoaded = true;
                         this.state.hasUnsavedChanges = false;
                         localStorage.removeItem('flatSpecHasPendingChanges');
@@ -263,7 +260,6 @@ export const sync = {
                     }
                     this.state.hasUnsavedChanges = true;
                     localStorage.setItem('flatSpecHasPendingChanges', 'true');
-                    // 安全機制：不設置 hasPendingSync 杜絕 300ms 崩潰風暴
                     this.state.hasPendingSync = false;
                     this.updateSyncStatus('error', errMsg);
                     if (isManual) this.showToast(`📤 雲端寫入失敗: ${errMsg}`, 'error');
@@ -314,7 +310,8 @@ export const sync = {
                 // 1. 測試 GET
                 try {
                     const startTime = Date.now();
-                    const fetchUrl = inputUrl + (inputUrl.includes('?') ? '&' : '?') + 't=' + Date.now();
+                    const tokenParam = this.state.authToken ? `&token=${encodeURIComponent(this.state.authToken)}` : '';
+                    const fetchUrl = inputUrl + (inputUrl.includes('?') ? '&' : '?') + 't=' + Date.now() + tokenParam;
                     const getRes = await fetch(fetchUrl, { method: 'GET', redirect: 'follow', cache: 'no-store' });
                     const getLat = Date.now() - startTime;
                     if (getRes.ok) {
@@ -324,12 +321,15 @@ export const sync = {
                         } else {
                             try {
                                 const parsed = JSON.parse(txt);
-                                if (Array.isArray(parsed)) {
+                                if (parsed.code === 401 || (parsed.status === 'error' && parsed.message && parsed.message.includes('未授權'))) {
+                                    logs.push(`⚠️ GET 授權失敗: 後端要求 Auth Token 但未提供或不符，請於設定中配置正確金鑰。`);
+                                } else if (Array.isArray(parsed) || (parsed && Array.isArray(parsed.data))) {
                                     isGetOk = true;
-                                    logs.push(`✅ GET 讀取成功 (${getLat}ms): 成功取得雲端資料庫 ${parsed.length} 個專案`);
+                                    const count = Array.isArray(parsed) ? parsed.length : parsed.data.length;
+                                    logs.push(`✅ GET 讀取成功 (${getLat}ms): 成功取得雲端資料庫 ${count} 個專案 (版本: ${parsed.revision || 0})`);
                                 } else if (parsed && typeof parsed === 'object') {
                                     if (parsed.message) {
-                                        logs.push(`⚠️ GET 警告 (${getLat}ms): 端點回應「${parsed.message}」，此非 FlatSpec 專案資料庫！請確認是否部署了正確的 Code.js。`);
+                                        logs.push(`⚠️ GET 警告 (${getLat}ms): 端點回應「${parsed.message}」`);
                                     } else {
                                         logs.push(`⚠️ GET 警告 (${getLat}ms): 雲端回傳格式非專案陣列`);
                                     }
@@ -345,12 +345,12 @@ export const sync = {
                     logs.push(`❌ GET 異常: ${e.message} (CORS 阻擋或 URL 錯誤)`);
                 }
 
-                // 2. 測試 POST
+                // 2. 測試 POST (非破壞性 Ping 驗證)
                 try {
                     const startTime = Date.now();
                     const postRes = await fetch(inputUrl, {
                         method: 'POST',
-                        body: JSON.stringify(this.state.projects),
+                        body: JSON.stringify({ action: 'ping', token: this.state.authToken || '' }),
                         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                         redirect: 'follow',
                         cache: 'no-store'
@@ -361,8 +361,13 @@ export const sync = {
                         if (txt.includes('<!DOCTYPE') || txt.includes('<html')) {
                             logs.push(`❌ POST 失敗: 偵測到 Google 登入重定向 (CORS 被阻擋)`);
                         } else {
-                            isPostOk = true;
-                            logs.push(`✅ POST 寫入成功 (${postLat}ms): 試算表資料庫雙向通訊正常`);
+                            const parsed = JSON.parse(txt);
+                            if (parsed.code === 401) {
+                                logs.push(`⚠️ POST 授權失敗: 後端金鑰驗證不符`);
+                            } else {
+                                isPostOk = true;
+                                logs.push(`✅ POST 通訊成功 (${postLat}ms): 試算表後端雙向通道正常 (版本: ${parsed.version || '2.6.0'})`);
+                            }
                         }
                     } else {
                         logs.push(`❌ POST 失敗: HTTP ${postRes.status}`);

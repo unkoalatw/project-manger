@@ -1,4 +1,6 @@
 // FlatSpec Module: markdown
+import DOMPurify from 'dompurify';
+
 export const markdown = {
 // ================= 📝 Markdown 解析引擎 (全規格 GFM、表格、KaTeX 數學公式) =================
             initMarked() {
@@ -678,6 +680,19 @@ export const markdown = {
                     html = html.replace(regex, mb);
                     html = html.split(tag).join(mb);
                 });
+
+                // 7. 安全過濾 (DOMPurify Sanitization)
+                try {
+                    if (typeof DOMPurify !== 'undefined' && DOMPurify.sanitize) {
+                        html = DOMPurify.sanitize(html, {
+                            ADD_TAGS: ['iframe', 'summary', 'details', 'pre', 'code', 'math', 'annotation', 'semantics', 'mrow', 'mi', 'mo', 'mn', 'msup', 'msub', 'mfrac', 'mover', 'munder', 'msqrt', 'mtable', 'mtr', 'mtd', 'span', 'svg', 'path'],
+                            ADD_ATTR: ['target', 'data-heading-id', 'data-heading-level', 'data-task-index', 'onclick', 'onchange', 'loading', 'align', 'allowfullscreen', 'frameborder', 'style'],
+                            ALLOW_DATA_ATTR: true
+                        });
+                    }
+                } catch (domErr) {
+                    console.warn('[Markdown] DOMPurify sanitization notice:', domErr);
+                }
 
                 return html;
             },

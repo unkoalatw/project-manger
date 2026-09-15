@@ -371,6 +371,7 @@ export const aiDecompose = {
                     headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                     body: JSON.stringify({
                         action: 'ai_task_decompose',
+                        token: this.state.authToken || '',
                         projectContext: projectContext,
                         userNotes: userNotes,
                         clientApiKey: clientKey
@@ -395,6 +396,7 @@ export const aiDecompose = {
                 try {
                     const params = new URLSearchParams({
                         action: 'ai_task_decompose',
+                        token: this.state.authToken || '',
                         projectContext: projectContext.slice(0, 1000),
                         userNotes: (userNotes || '').slice(0, 500),
                         t: Date.now().toString()

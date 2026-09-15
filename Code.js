@@ -10,36 +10,64 @@ var TARGET_SPREADSHEET_ID = '1WSViTq8yVVtOt8ubh01l1441-HzgUWcJiiBD4MZgmnU';
 var SHEET_NAME_DATA = 'FlatSpecData';
 var SHEET_NAME_VIEW = '專案視覺化總覽';
 
-// 提示：請於 Apps Script「專案設定 ➔ 指令碼屬性」配置 OAUTH_CLIENT_ID, OAUTH_CLIENT_SECRET, YOUTUBE_API_KEY
+/// 提示：請於 Apps Script「專案設定 ➔ 指令碼屬性」配置 FLATSPEC_AUTH_TOKEN, GROQ_API_KEY, OAUTH_CLIENT_ID, YOUTUBE_API_KEY
 var DEFAULT_OAUTH_CLIENT_ID = '';
 var DEFAULT_OAUTH_CLIENT_SECRET = '';
 var DEFAULT_YOUTUBE_API_KEY = '';
 
 /**
- * 處理 GET 請求：讀取 JSON 全量專案資料
+ * 🔒 安全授權驗證器：驗證客戶端請求是否攜帶合法的 FLATSPEC_AUTH_TOKEN
+ * 若 ScriptProperties 設有 FLATSPEC_AUTH_TOKEN，則強制所有讀寫與 AI 代理請求通過比對
+ */
+function verifyAuth(token) {
+  var serverToken = PropertiesService.getScriptProperties().getProperty('FLATSPEC_AUTH_TOKEN') || '';
+  serverToken = serverToken.trim();
+  if (!serverToken) {
+    // 尚未在後端設定保護金鑰時，允許連線，但於日誌提示
+    return { authorized: true, tokenRequired: false };
+  }
+  var clientToken = (token || '').trim();
+  if (clientToken && clientToken === serverToken) {
+    return { authorized: true, tokenRequired: true };
+  }
+  return { authorized: false, tokenRequired: true };
+}
+
+/**
+ * 處理 GET 請求：讀取 JSON 全量專案資料 (含版本號與安全驗證)
  */
 function doGet(e) {
   try {
-    // 支援 GET 模式執行 OAuth 登入、YouTube 數據、AI 代理
-    if (e && e.parameter && e.parameter.action) {
-      var act = e.parameter.action;
+    var params = (e && e.parameter) ? e.parameter : {};
+    var clientToken = params.token || params.authToken || params.auth_token || '';
+    
+    // 1. 執行安全性身分驗證
+    var authCheck = verifyAuth(clientToken);
+    if (!authCheck.authorized) {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: 'error',
+        code: 401,
+        message: '未授權存取：無效或未提供身分驗證金鑰 (Auth Token)。請於設定面板填入正確金鑰。'
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // 2. 支援 GET 模式執行 OAuth 登入、YouTube 數據、AI 代理
+    if (params.action) {
+      var act = params.action;
       if (act === 'oauth_login' || act === 'login') {
         return handleOAuthLoginRedirect(e);
       }
-      if (act === 'oauth_callback') {
-        return handleOAuthCallback(e);
-      }
       if (act === 'youtube' || act === 'yt') {
-        return handleYouTubeEndpoint(e.parameter);
+        return handleYouTubeEndpoint(params);
       }
       if (act === 'ai_task_decompose' || act === 'ai_decompose' || act === 'ai_doc_assist' || act === 'ai_get_key') {
         var payload = {
           action: act,
-          projectContext: e.parameter.projectContext || '',
-          userNotes: e.parameter.userNotes || '',
-          systemPrompt: e.parameter.systemPrompt || '',
-          userMessage: e.parameter.userMessage || '',
-          responseFormat: e.parameter.responseFormat || 'json_object'
+          projectContext: params.projectContext || '',
+          userNotes: params.userNotes || '',
+          systemPrompt: params.systemPrompt || '',
+          userMessage: params.userMessage || '',
+          responseFormat: params.responseFormat || 'json_object'
         };
         return handleAiDecompositionProxy(payload);
       }
@@ -48,10 +76,18 @@ function doGet(e) {
     var ss = getTargetSpreadsheet();
     var sheet = getOrCreateDataSheet(ss);
     var rawData = readDataChunks(sheet);
-    
-    var jsonResponse = rawData ? rawData : '[]';
+    var currentRevision = getSheetRevision(sheet);
+    var lastModified = sheet.getRange('B1').getValue() || '';
 
-    return ContentService.createTextOutput(jsonResponse)
+    // 回傳包含 revision 的標準資料包
+    var responseObj = {
+      status: 'success',
+      revision: currentRevision,
+      lastModified: lastModified,
+      data: rawData ? JSON.parse(rawData) : []
+    };
+
+    return ContentService.createTextOutput(JSON.stringify(responseObj))
       .setMimeType(ContentService.MimeType.JSON);
 
   } catch (err) {
@@ -66,7 +102,7 @@ function doGet(e) {
 }
 
 /**
- * 處理 POST 請求：寫入 JSON 資料或執行各項雲端指令（含嚴格路由與 Lock 保護）
+ * 處理 POST 請求：寫入 JSON 資料或執行各項雲端指令（含嚴格路由、Lock 與樂觀鎖 OCC 保護）
  */
 function doPost(e) {
   try {
@@ -88,21 +124,36 @@ function doPost(e) {
       })).setMimeType(ContentService.MimeType.JSON);
     }
 
-    // ================= 1. Action 指令路由 (非專案同步寫入) =================
+    // 1. 身分驗證 (支援從 Payload 或 query 傳入 token)
+    var clientToken = (parsedPayload && parsedPayload.token) || 
+                      (parsedPayload && parsedPayload.authToken) || 
+                      (e && e.parameter && (e.parameter.token || e.parameter.authToken)) || '';
+
+    var authCheck = verifyAuth(clientToken);
+    if (!authCheck.authorized) {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: 'error',
+        code: 401,
+        message: '未授權存取：無效或未提供身分驗證金鑰 (Auth Token)。'
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // ================= 2. Action 指令路由 (非專案同步寫入) =================
     if (parsedPayload && typeof parsedPayload === 'object' && !Array.isArray(parsedPayload)) {
       var act = parsedPayload.action || '';
 
-      // 1.1 系統健康診斷 Ping
+      // 2.1 系統健康診斷 Ping
       if (act === 'ping' || act === 'health_check') {
         return ContentService.createTextOutput(JSON.stringify({
           status: 'success',
           service: 'FlatSpec Backend',
-          version: '2.5.0',
+          version: '2.6.0',
+          authEnforced: authCheck.tokenRequired,
           timestamp: new Date().toISOString()
         })).setMimeType(ContentService.MimeType.JSON);
       }
 
-      // 1.2 Google Drive 金庫讀寫權限檢查
+      // 2.2 Google Drive 金庫讀寫權限檢查
       if (act === 'check_drive_permission' || act === 'drive_check') {
         try {
           var rootFolder = DriveApp.getRootFolder();
@@ -125,11 +176,11 @@ function doPost(e) {
         }
       }
 
-      // 1.3 🤖 安全 AI 任務拆解代理 (Cloud Groq Proxy)
+      // 2.3 🤖 安全 AI 任務拆解代理 (Cloud Groq Proxy)
       if (
         act === 'ai_decompose' || 
         act === 'ai_task_decompose' || 
-        act === 'ai_doc_assist' ||
+        act === 'ai_doc_assist' || 
         act === 'ai_doc_chat' ||
         parsedPayload.systemPrompt || 
         parsedPayload.projectContext
@@ -137,22 +188,23 @@ function doPost(e) {
         return handleAiDecompositionProxy(parsedPayload);
       }
 
-      // 1.4 未知 action 直接拒絕，絕對禁止當作專案寫入資料庫！
-      return ContentService.createTextOutput(JSON.stringify({
-        status: 'error',
-        message: '未知的指令請求 (Unknown Action: "' + act + '")，已拒絕寫入資料庫。'
-      })).setMimeType(ContentService.MimeType.JSON);
+      // 2.4 支援帶有 baseRevision 的包裝專案同步寫入
+      if (Array.isArray(parsedPayload.projects)) {
+        // 進入下方同步區塊
+      } else {
+        // 未知 action 直接拒絕
+        return ContentService.createTextOutput(JSON.stringify({
+          status: 'error',
+          message: '未知的指令請求 (Unknown Action: "' + act + '")，已拒絕寫入資料庫。'
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
     }
 
-    // ================= 2. 專案資料同步寫入 (SSOT) =================
-    if (!Array.isArray(parsedPayload)) {
-      return ContentService.createTextOutput(JSON.stringify({
-        status: 'error',
-        message: '拒絕寫入：專案同步資料格式必須為 JSON Array (收到: ' + typeof parsedPayload + ')'
-      })).setMimeType(ContentService.MimeType.JSON);
-    }
+    // ================= 3. 專案資料同步寫入 (SSOT & 樂觀鎖 OCC) =================
+    var projectsData = Array.isArray(parsedPayload) ? parsedPayload : (parsedPayload.projects || []);
+    var baseRevision = (parsedPayload && typeof parsedPayload === 'object' && !Array.isArray(parsedPayload)) ? Number(parsedPayload.baseRevision) : null;
+    var forceOverwrite = (parsedPayload && parsedPayload.force === true);
 
-    var projectsData = parsedPayload;
     var ss = getTargetSpreadsheet();
 
     // 🔒 啟用 Server-side 互斥鎖 (LockService)，避免多裝置併發寫入時相互覆蓋/清除資料
@@ -167,19 +219,39 @@ function doPost(e) {
         })).setMimeType(ContentService.MimeType.JSON);
       }
 
-      // 2.1 將 JSON 資料以分塊形式寫入 FlatSpecData (突破單格 50,000 字元上限)
       var dataSheet = getOrCreateDataSheet(ss);
-      writeDataChunks(dataSheet, contents);
+      var currentRevision = getSheetRevision(dataSheet);
+
+      // 樂觀並行控制檢查 (Optimistic Concurrency Control)
+      if (baseRevision !== null && !isNaN(baseRevision) && baseRevision > 0 && !forceOverwrite) {
+        if (baseRevision !== currentRevision) {
+          return ContentService.createTextOutput(JSON.stringify({
+            status: 'conflict',
+            code: 409,
+            message: '雲端資料庫已由其他裝置更新 (雲端版本: ' + currentRevision + ', 本地基礎版本: ' + baseRevision + ')。請先拉取最新資料後再儲存。',
+            currentRevision: currentRevision,
+            baseRevision: baseRevision
+          })).setMimeType(ContentService.MimeType.JSON);
+        }
+      }
+
+      var nextRevision = currentRevision + 1;
+
+      // 3.1 將 JSON 資料以分塊形式寫入 FlatSpecData
+      var projectsJsonString = JSON.stringify(projectsData);
+      writeDataChunks(dataSheet, projectsJsonString);
+      setSheetRevision(dataSheet, nextRevision);
       dataSheet.getRange('B1').setValue('最後更新時間: ' + new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' }));
 
-      // 2.2 自動更新並美化「專案視覺化總覽」表格
+      // 3.2 自動更新並美化「專案視覺化總覽」表格
       formatVisualDashboard(ss, projectsData);
 
       var result = JSON.stringify({
         status: 'success',
+        revision: nextRevision,
         projectCount: projectsData.length,
         timestamp: new Date().toISOString(),
-        message: '專案資料已成功儲存並格式化呈現於 Google 試算表中！'
+        message: '專案資料已成功儲存 (版本號: ' + nextRevision + ')！'
       });
 
       return ContentService.createTextOutput(result)
@@ -505,6 +577,30 @@ function writeDataChunks(sheet, jsonString) {
     sheet.getRange(1, 1, lastRow, 1).clearContent();
   }
   sheet.getRange(1, 1, chunks.length, 1).setValues(chunks);
+}
+
+/**
+ * 輔助函式：讀取資料庫目前版本號 (Revision)
+ */
+function getSheetRevision(sheet) {
+  try {
+    var revCell = sheet.getRange('B2').getValue();
+    var rev = parseInt(revCell, 10);
+    return isNaN(rev) ? 0 : rev;
+  } catch (e) {
+    return 0;
+  }
+}
+
+/**
+ * 輔助函式：設定資料庫版本號 (Revision)
+ */
+function setSheetRevision(sheet, revision) {
+  try {
+    sheet.getRange('B2').setValue(revision);
+  } catch (e) {
+    Logger.log('無法設定 Revision: ' + e.toString());
+  }
 }
 
 /**

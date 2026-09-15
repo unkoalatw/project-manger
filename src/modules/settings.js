@@ -68,12 +68,27 @@ export const settings = {
         } else if (tabId === 'cloud') {
             const el = document.getElementById('gasUrlInput');
             if (el) el.value = this.state.gasUrl;
+            const tokenEl = document.getElementById('settingsAuthTokenInput');
+            if (tokenEl) tokenEl.value = this.state.authToken || '';
         } else if (tabId === 'ai') {
             this.initAiSettingsTab();
         } else if (tabId === 'project') {
             this.populateEditProjectModalFields();
         } else if (tabId === 'diagnostic') {
             this.initDiagnosticTabUI();
+        }
+    },
+
+    saveAuthTokenFromSettings() {
+        const tokenInput = document.getElementById('settingsAuthTokenInput');
+        const val = (tokenInput ? tokenInput.value : '').trim();
+        this.state.authToken = val;
+        if (val) {
+            localStorage.setItem('flatSpecAuthToken', val);
+            this.showToast('✅ 雲端授權金鑰 (Auth Token) 已儲存！');
+        } else {
+            localStorage.removeItem('flatSpecAuthToken');
+            this.showToast('ℹ️ 已清除授權金鑰');
         }
     },
 
@@ -815,7 +830,8 @@ export const settings = {
                     this.appendDiagLog(`目前檢測的 GAS 網址: ${gasUrl}`, 'info');
                     try {
                         const t0 = Date.now();
-                        const fetchUrl = gasUrl + (gasUrl.includes('?') ? '&' : '?') + 't=' + Date.now();
+                        const tokenParam = this.state.authToken ? `&token=${encodeURIComponent(this.state.authToken)}` : '';
+                        const fetchUrl = gasUrl + (gasUrl.includes('?') ? '&' : '?') + 't=' + Date.now() + tokenParam;
                         const res = await fetch(fetchUrl, { method: 'GET', redirect: 'follow', cache: 'no-store' });
                         const lat = Date.now() - t0;
                         if (res.ok) {
@@ -826,11 +842,17 @@ export const settings = {
                                 errorCount++;
                             } else {
                                 const parsed = JSON.parse(text);
-                                const projCount = Array.isArray(parsed) ? parsed.length : (parsed.data ? parsed.data.length : 0);
-                                isGetSuccessful = true;
-                                this.updateDiagItemStatus('gas_get', 'success', `讀取成功 · 延遲 ${lat}ms · 雲端目前收錄 ${projCount} 個專案`, `正常 (${lat}ms)`);
-                                this.appendDiagLog(`GAS GET 讀取正常 (${lat}ms)：成功讀取雲端試算表 ${projCount} 個專案資料`, 'success');
-                                totalScore++;
+                                if (parsed.code === 401 || (parsed.status === 'error' && parsed.message && parsed.message.includes('未授權'))) {
+                                    this.updateDiagItemStatus('gas_get', 'error', '未授權存取 (Auth Token 錯誤或未設定)', '金鑰不符');
+                                    this.appendDiagLog('GAS GET 驗證失敗：後端要求 Auth Token，但本機未設定或不符', 'error');
+                                    errorCount++;
+                                } else {
+                                    const projCount = Array.isArray(parsed) ? parsed.length : (parsed.data ? parsed.data.length : 0);
+                                    isGetSuccessful = true;
+                                    this.updateDiagItemStatus('gas_get', 'success', `讀取成功 · 延遲 ${lat}ms · 雲端目前收錄 ${projCount} 個專案`, `正常 (${lat}ms)`);
+                                    this.appendDiagLog(`GAS GET 讀取正常 (${lat}ms)：成功讀取雲端試算表 ${projCount} 個專案資料 (版本: ${parsed.revision || 0})`, 'success');
+                                    totalScore++;
+                                }
                             }
                         } else {
                             this.updateDiagItemStatus('gas_get', 'error', `HTTP 錯誤碼: ${res.status}`, `HTTP ${res.status}`);
@@ -854,7 +876,7 @@ export const settings = {
                         const res = await fetch(gasUrl, {
                             method: 'POST',
                             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                            body: JSON.stringify({ action: 'ping' }),
+                            body: JSON.stringify({ action: 'ping', token: this.state.authToken || '' }),
                             redirect: 'follow',
                             cache: 'no-store'
                         });
@@ -867,9 +889,13 @@ export const settings = {
                                 errorCount++;
                             } else {
                                 const parsed = JSON.parse(resTxt);
-                                if (parsed.status === 'success' || parsed.service) {
+                                if (parsed.code === 401) {
+                                    this.updateDiagItemStatus('gas_post', 'error', '未授權存取 (Auth Token 不符)', '金鑰不符');
+                                    this.appendDiagLog('GAS POST 寫入失敗：Auth Token 錯誤或未設定', 'error');
+                                    errorCount++;
+                                } else if (parsed.status === 'success' || parsed.service) {
                                     this.updateDiagItemStatus('gas_post', 'success', `雙向通訊正常 · 延遲 ${lat}ms · 伺服器響應就緒`, `正常 (${lat}ms)`);
-                                    this.appendDiagLog(`GAS POST 雙向通訊成功 (${lat}ms)：非破壞性通道驗證通過`, 'success');
+                                    this.appendDiagLog(`GAS POST 雙向通訊成功 (${lat}ms)：非破壞性通道驗證通過 (版本: ${parsed.version || '2.6.0'})`, 'success');
                                     totalScore++;
                                 } else {
                                     this.updateDiagItemStatus('gas_post', 'warning', `GAS 回應: ${parsed.message || '未知回應'}`, '寫入警訊');
@@ -899,7 +925,7 @@ export const settings = {
                         const driveCheckRes = await fetch(gasUrl, {
                             method: 'POST',
                             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                            body: JSON.stringify({ action: 'check_drive_permission' }),
+                            body: JSON.stringify({ action: 'check_drive_permission', token: this.state.authToken || '' }),
                             redirect: 'follow',
                             cache: 'no-store'
                         });
@@ -973,6 +999,7 @@ export const settings = {
                             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                             body: JSON.stringify({
                                 action: 'ai_doc_chat',
+                                token: this.state.authToken || '',
                                 systemPrompt: 'You are a test ping bot. Output response format in json.',
                                 userMessage: testPrompt,
                                 responseFormat: 'text',

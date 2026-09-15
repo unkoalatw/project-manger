@@ -10,11 +10,7 @@ export default defineConfig({
     terserOptions: {
       compress: {
         drop_debugger: true,
-        passes: 3,
-        pure_getters: true,
-        unsafe: true,
-        unsafe_math: true,
-        unsafe_methods: true
+        passes: 2
       },
       format: {
         comments: false

@@ -1050,6 +1050,19 @@
                         <!-- 動態載入診斷結果 -->
                     </div>
 
+                    <!-- 安全授權 Token 設定 (Auth Token) -->
+                    <div class="p-3 bg-zinc-50 border border-zinc-300 space-y-2">
+                        <div class="flex items-center justify-between">
+                            <label class="block font-bold text-xs text-zinc-900">🔐 雲端身分授權金鑰 (Auth Token)</label>
+                            <span class="text-[10px] text-zinc-500 font-mono">防止他人存取您的試算表</span>
+                        </div>
+                        <div class="flex gap-2">
+                            <input type="password" id="settingsAuthTokenInput" placeholder="與 GAS 後端 FLATSPEC_AUTH_TOKEN 一致" class="flat-input flex-1 p-2 text-xs font-mono bg-white text-zinc-900 border border-black">
+                            <button onclick="app.saveAuthTokenFromSettings()" class="px-3 py-1.5 bg-black text-white font-bold text-xs flat-box hover:bg-zinc-800">儲存金鑰</button>
+                        </div>
+                        <p class="text-[10px] text-zinc-500 leading-tight">若您的 Google Apps Script「指令碼屬性」設定了 <code>FLATSPEC_AUTH_TOKEN</code>，請在此填入相同金鑰以通過驗證。</p>
+                    </div>
+
                     <div class="p-3 bg-slate-100 border border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
                         <div>
                             <p class="text-xs font-bold font-mono">📊 您的視覺化試算表資料庫</p>

@@ -135,6 +135,7 @@ export const aiDocAssistant = {
                             },
                             body: JSON.stringify({
                                 action: 'ai_doc_assist',
+                                token: this.state.authToken || '',
                                 systemPrompt: systemPrompt,
                                 userMessage: userMessageContent,
                                 clientApiKey: clientKey,

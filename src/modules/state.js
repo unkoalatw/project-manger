@@ -39,6 +39,8 @@ export const state = {
     draggedFolderId: null,
     enablePageBreaks: true,
     showDocLinks: true,
+    authToken: '',            // 安全身分驗證 Token (對應 GAS FLATSPEC_AUTH_TOKEN)
+    cloudRevision: 0,          // 雲端資料庫版本號 (樂觀並行鎖定 OCC)
     isSidebarCollapsed: false,
     unlockedProjects: new Set(),
     pendingPasswordProjectId: null

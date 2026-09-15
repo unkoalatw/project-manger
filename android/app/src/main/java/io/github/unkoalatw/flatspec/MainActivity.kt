@@ -121,9 +121,9 @@ class MainActivity : AppCompatActivity() {
         settings.loadWithOverviewMode = true
         settings.useWideViewPort = true
         settings.mediaPlaybackRequiresUserGesture = false
-        settings.mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-        settings.allowFileAccess = true
-        settings.allowContentAccess = true
+        settings.mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
+        settings.allowFileAccess = false
+        settings.allowContentAccess = false
 
         // 啟用硬體加速
         webView.setLayerType(View.LAYER_TYPE_HARDWARE, null)
