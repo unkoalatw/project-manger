@@ -174,18 +174,38 @@ export const views = {
                             viewEl.classList.add('hidden');
                         }
                     }
-                    
-                    const tabBtn = document.getElementById(`viewTab${v}`);
-                    if (tabBtn) {
-                        if (v === viewName) {
-                            tabBtn.className = 'px-3.5 py-1 bg-slate-900 text-white rounded-md transition-all text-xs font-semibold shadow-xs';
+                });
+
+                // 側邊欄主選單樣式切換
+                const sideNavMap = {
+                    'Home': document.getElementById('sideNavHome'),
+                    'Dashboard': document.getElementById('sideNavDashboard'),
+                    'Execution': document.getElementById('sideNavExecution'),
+                    'Docs': document.getElementById('sideNavDocs')
+                };
+
+                for (const [key, btn] of Object.entries(sideNavMap)) {
+                    if (btn) {
+                        if (key === viewName) {
+                            btn.className = 'w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-bold bg-slate-900 text-white flex items-center justify-between shadow-xs transition-colors';
                         } else {
-                            const isWizard = (v === 'Wizard');
-                            const bgClass = isWizard ? 'bg-violet-200 hover:bg-violet-100' : 'bg-zinc-100 hover:bg-white';
-                            tabBtn.className = 'px-3.5 py-1 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-md transition-all text-xs font-medium';
+                            btn.className = 'w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-200/70 hover:text-slate-900 flex items-center justify-between transition-colors';
                         }
                     }
-                });
+                }
+
+                // 頂部麵包屑標籤文字更新
+                const breadcrumbEl = document.getElementById('headerViewBreadcrumb');
+                if (breadcrumbEl) {
+                    const viewLabelMap = {
+                        'Home': '專案首頁',
+                        'Dashboard': '專案總覽',
+                        'Docs': '文件庫',
+                        'Execution': '執行任務',
+                        'Wizard': '規格精靈'
+                    };
+                    breadcrumbEl.textContent = viewLabelMap[viewName] || viewName;
+                }
 
                 const navBtns = {
                     'Home': document.getElementById('navBtnHome'),
@@ -320,25 +340,29 @@ export const views = {
                 const nameEl = document.getElementById('headerProjectName');
                 const barEl = document.getElementById('headerProgressBar');
                 
-                if (!p || !nameEl || !barEl) return;
+                if (!p || !nameEl) return;
                 
                 if (this.isProjectLocked(p)) {
                     nameEl.innerText = `🔒 ${p.title} (已上鎖)`;
-                    barEl.style.width = '0%';
-                    barEl.className = 'h-full bg-zinc-200';
+                    if (barEl) {
+                        barEl.style.width = '0%';
+                        barEl.className = 'h-full bg-zinc-200';
+                    }
                     return;
                 }
 
                 nameEl.innerText = p.title;
                 
-                const tasks = p.tasks || [];
-                const total = tasks.length;
-                const done = tasks.filter(t => t.status === 'DONE').length;
-                const pct = total === 0 ? 0 : Math.round((done / total) * 100);
-                
-                barEl.style.width = `${pct}%`;
-                if (pct === 100) barEl.className = 'h-full bg-green-500 border-r border-black';
-                else if (pct > 0) barEl.className = 'h-full bg-blue-400 border-r border-black';
-                else barEl.className = 'h-full bg-zinc-200';
+                if (barEl) {
+                    const tasks = p.tasks || [];
+                    const total = tasks.length;
+                    const done = tasks.filter(t => t.status === 'DONE').length;
+                    const pct = total === 0 ? 0 : Math.round((done / total) * 100);
+                    
+                    barEl.style.width = `${pct}%`;
+                    if (pct === 100) barEl.className = 'h-full bg-green-500 border-r border-black';
+                    else if (pct > 0) barEl.className = 'h-full bg-blue-400 border-r border-black';
+                    else barEl.className = 'h-full bg-zinc-200';
+                }
             }
 };

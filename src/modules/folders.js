@@ -246,6 +246,17 @@ export const folders = {
                     return `<option value="${proj.id}" ${proj.id === this.state.activeProjectId ? 'selected' : ''}>${prefix}${this.escapeHtml(proj.title)}${hiddenSuffix}</option>`;
                 }).join('');
 
+                // 更新側邊欄頂部導航計數徽章
+                const docCountBadge = document.getElementById('sideNavDocCount');
+                if (docCountBadge) {
+                    docCountBadge.textContent = (p.docs || []).length;
+                }
+                const taskCountBadge = document.getElementById('sideNavTaskCount');
+                if (taskCountBadge) {
+                    const activeTasks = (p.tasks || []).filter(t => t.status !== 'DONE').length;
+                    taskCountBadge.textContent = activeTasks;
+                }
+
                 // 2. 若專案上鎖，禁止洩漏文檔樹結構與文檔清單
                 if (this.isProjectLocked(p)) {
                     treeEl.innerHTML = `

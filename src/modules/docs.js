@@ -78,6 +78,22 @@ export const docs = {
                 }
             },
 
+            toggleDocInsertDropdown(e) {
+                if (e && e.stopPropagation) e.stopPropagation();
+                const dropdown = document.getElementById('docInsertDropdown');
+                if (!dropdown) return;
+                const isHidden = dropdown.classList.contains('hidden');
+                this.closeAllToolbarDropdowns();
+                if (isHidden) {
+                    dropdown.classList.remove('hidden');
+                }
+            },
+
+            closeDocInsertDropdown() {
+                const dropdown = document.getElementById('docInsertDropdown');
+                if (dropdown) dropdown.classList.add('hidden');
+            },
+
             toggleDocLinkDropdown(e) {
                 if (e && e.stopPropagation) e.stopPropagation();
                 const dropdown = document.getElementById('docLinkDropdown');

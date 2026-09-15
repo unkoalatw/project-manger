@@ -50,57 +50,62 @@
             </div>
         </div>
 
-        <!-- 專案選擇器 -->
-        <div class="p-3.5 border-b border-slate-200 bg-white">
-            <label class="text-[11px] font-semibold text-slate-400 mb-1.5 block tracking-wider uppercase">當前專案</label>
-            <div class="flex gap-1.5">
-                <select id="projectSelector" onchange="app.requestOpenProject(this.value, 'Docs')" class="flat-input w-full p-1.5 text-xs font-semibold bg-slate-50 cursor-pointer truncate">
-                    <!-- 動態載入 -->
-                </select>
-                <button onclick="app.openEditProjectModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 rounded-md font-semibold text-xs shrink-0 flex items-center gap-0.5 border border-slate-200" title="專案重新排列與設定">
-                    <span>↕️</span>
+        <!-- 專案切換與快速新增 -->
+        <div class="p-3 border-b border-slate-200 bg-white">
+            <div class="flex items-center justify-between gap-1.5">
+                <div class="flex-1 min-w-0">
+                    <select id="projectSelector" onchange="app.requestOpenProject(this.value, 'Docs')" class="w-full p-1.5 text-xs font-bold text-slate-800 bg-slate-50 border border-slate-200 rounded-lg cursor-pointer truncate focus:ring-1 focus:ring-indigo-500">
+                        <!-- 動態載入 -->
+                    </select>
+                </div>
+                <button onclick="app.openNewProjectModal()" class="p-1.5 px-2 bg-slate-900 text-white rounded-lg font-bold text-xs hover:bg-slate-800 transition-colors shrink-0 shadow-xs" title="新建專案">
+                    <span>＋</span>
                 </button>
-                <button onclick="app.openEditProjectModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-2 rounded-md font-semibold text-xs shrink-0 border border-slate-200" title="專案設定與管理">⚙️</button>
-                <button onclick="app.openNewProjectModal()" class="bg-slate-900 text-white px-2.5 rounded-md font-bold text-sm hover:bg-slate-800 focus:outline-none shrink-0" title="新建專案">+</button>
+                <button onclick="app.openSettingsModal('project')" class="p-1.5 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold text-xs shrink-0 border border-slate-200 transition-colors" title="專案設定與成員">
+                    <span>⚙️</span>
+                </button>
             </div>
         </div>
 
+        <!-- 專案核心視圖導覽 (Overview / Tasks / Documents / Wizard) -->
+        <div class="p-2 border-b border-slate-200 bg-slate-50/60 space-y-0.5" id="sidebarPrimaryNav">
+            <button id="sideNavHome" onclick="app.switchView('Home')" class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-200/70 hover:text-slate-900 flex items-center justify-between transition-colors">
+                <span class="flex items-center gap-2"><span>🏠</span> <span>專案首頁</span></span>
+            </button>
+            <button id="sideNavDashboard" onclick="app.switchView('Dashboard')" class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-200/70 hover:text-slate-900 flex items-center justify-between transition-colors">
+                <span class="flex items-center gap-2"><span>📊</span> <span>專案總覽</span></span>
+            </button>
+            <button id="sideNavExecution" onclick="app.switchView('Execution')" class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-200/70 hover:text-slate-900 flex items-center justify-between transition-colors">
+                <span class="flex items-center gap-2"><span>☑️</span> <span>執行任務</span></span>
+                <span id="sideNavTaskCount" class="text-[10px] font-mono font-bold px-1.5 py-0.2 bg-slate-200 text-slate-700 rounded-full">0</span>
+            </button>
+            <button id="sideNavDocs" onclick="app.switchView('Docs')" class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-200/70 hover:text-slate-900 flex items-center justify-between transition-colors">
+                <span class="flex items-center gap-2"><span>📄</span> <span>文件庫</span></span>
+                <span id="sideNavDocCount" class="text-[10px] font-mono font-bold px-1.5 py-0.2 bg-slate-200 text-slate-700 rounded-full">0</span>
+            </button>
+        </div>
+
         <!-- 搜尋列與文檔過濾 -->
-        <div class="p-3 border-b border-slate-200 bg-slate-50/50 space-y-1.5">
+        <div class="p-2.5 border-b border-slate-200 bg-white">
             <div class="relative">
-                <input id="searchInput" type="text" oninput="app.renderSidebar()" placeholder="過濾文檔標題..." class="flat-input w-full p-1.5 pl-7 text-xs bg-white text-slate-800 placeholder-slate-400" />
+                <input id="searchInput" type="text" oninput="app.renderSidebar()" placeholder="過濾文檔標題..." class="w-full p-1.5 pl-7 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
                 <span class="absolute left-2 top-2 text-xs pointer-events-none text-slate-400">🔍</span>
-            </div>
-            <div onclick="app.openSearchModal()" class="flat-input w-full p-1.5 text-xs bg-white cursor-pointer flex items-center justify-between hover:bg-slate-100 text-slate-500 font-medium transition-colors" title="開啟全域搜尋 (Ctrl+K)">
-                <span class="flex items-center gap-1.5 truncate">
-                    <span class="text-xs">⚡</span> <span class="text-slate-600">全域全文搜尋...</span>
-                </span>
-                <kbd class="hidden sm:inline-block bg-slate-100 border border-slate-300 rounded px-1 text-[9px] font-mono text-slate-500">Ctrl+K</kbd>
             </div>
         </div>
 
         <!-- 目錄樹 -->
-        <div class="flex-1 overflow-y-auto no-scrollbar p-3 space-y-4" id="sidebarTree">
+        <div class="flex-1 overflow-y-auto no-scrollbar p-3 space-y-3" id="sidebarTree">
             <!-- 動態載入目錄 -->
         </div>
 
-        <!-- 側邊欄底部快捷列 -->
-        <div class="p-2 border-t border-slate-200 bg-white grid grid-cols-4 gap-1">
-            <button onclick="app.openSettingsModal('backup')" class="p-1 hover:bg-slate-100 rounded-md text-slate-600 font-medium text-[10px] flex flex-col items-center gap-0.5 transition-colors" title="本機檔案備份與還原">
-                <span class="text-sm">💾</span>
-                <span>備份</span>
+        <!-- 側邊欄底部 (極簡設定與工具收納) -->
+        <div class="p-2 border-t border-slate-200 bg-white flex items-center justify-between">
+            <button onclick="app.openSettingsModal('appearance')" class="flex-1 text-left px-2.5 py-1.5 hover:bg-slate-100 rounded-lg text-slate-700 font-semibold text-xs flex items-center gap-2 transition-colors" title="開啟系統設定中心">
+                <span>⚙️</span>
+                <span>系統與工作區設定</span>
             </button>
-            <button onclick="app.exportMasterMarkdown()" class="p-1 hover:bg-slate-100 rounded-md text-slate-600 font-medium text-[10px] flex flex-col items-center gap-0.5 transition-colors" title="匯出 Markdown 規格書">
-                <span class="text-sm">📦</span>
-                <span>匯出</span>
-            </button>
-            <button onclick="app.openSettingsModal('cloud')" class="p-1 hover:bg-slate-100 rounded-md text-slate-600 font-medium text-[10px] flex flex-col items-center gap-0.5 transition-colors" title="GAS 雲端同步設定">
-                <span class="text-sm">☁️</span>
-                <span>雲端</span>
-            </button>
-            <button onclick="app.openSettingsModal('appearance')" class="p-1 hover:bg-slate-100 rounded-md text-slate-600 font-medium text-[10px] flex flex-col items-center gap-0.5 transition-colors" title="系統與專案設定 (外觀字體、音效、時光機、雲端等)">
-                <span class="text-sm">⚙️</span>
-                <span>設定</span>
+            <button onclick="app.exportMasterMarkdown()" class="p-1.5 px-2 hover:bg-slate-100 rounded-lg text-slate-600 text-xs transition-colors shrink-0" title="匯出專案 Markdown 規格書">
+                <span>📦 匯出</span>
             </button>
         </div>
     </aside>
@@ -112,58 +117,56 @@
 
     <main class="flex-1 flex flex-col min-w-0 bg-white relative pb-16 md:pb-0 h-full overflow-hidden">
         
-        <!-- 頂部導覽列 (Header - 精簡俐落、自適應響應式防擁擠) -->
-        <header class="h-14 border-b border-slate-200 bg-white flex items-center justify-between px-3 sm:px-5 shrink-0 shadow-xs z-10 gap-1 sm:gap-2">
-            <div class="flex items-center gap-2 sm:gap-3 min-w-0 flex-1 sm:flex-initial">
+        <!-- 頂部導覽列 (Header - 現代極簡麵包屑導航與狀態整合) -->
+        <header class="h-14 border-b border-slate-200 bg-white flex items-center justify-between px-3 sm:px-5 shrink-0 shadow-xs z-10 gap-2">
+            <!-- 左側：側邊欄開關與當前位置麵包屑 -->
+            <div class="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
                 <button id="sidebarToggleBtn" onclick="app.toggleSidebar()" class="p-1.5 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-md shrink-0 text-sm transition-colors" title="展開/收合側邊欄 (Ctrl+B)">
                     ☰
                 </button>
-                <button onclick="app.switchView('Home')" class="hidden md:flex p-1.5 px-2.5 bg-slate-900 text-white hover:bg-slate-800 rounded-md font-semibold text-xs items-center gap-1.5 shrink-0 shadow-xs transition-colors" title="返回專案首頁 (選擇所有專案)">
-                    <span>🏠</span> <span class="hidden lg:inline">首頁</span>
-                </button>
-                <!-- 專案進度迷你儀表 (點擊可快速開啟專案設定) -->
-                <div class="flex flex-col min-w-0 max-w-[120px] sm:max-w-[150px] md:max-w-[180px] lg:max-w-xs cursor-pointer group" onclick="app.openSettingsModal('project')" title="點擊開啟專案設定">
-                    <div class="text-xs font-bold text-slate-800 truncate uppercase group-hover:text-blue-600 transition-colors" id="headerProjectName">未選擇專案</div>
-                    <div class="w-20 sm:w-28 md:w-32 h-1.5 bg-slate-100 border border-slate-200 rounded-full mt-1 overflow-hidden relative">
-                        <div id="headerProgressBar" class="h-full bg-emerald-500 rounded-full transition-all duration-300" style="width: 0%"></div>
-                    </div>
+
+                <!-- 麵包屑導航 (Breadcrumb) -->
+                <div class="flex items-center gap-1.5 min-w-0 text-xs text-slate-600 font-medium">
+                    <button onclick="app.switchView('Home')" class="hover:text-slate-900 transition-colors shrink-0 flex items-center gap-1 font-semibold text-slate-800" title="返回首頁">
+                        <span>📁</span>
+                        <span class="hidden sm:inline">FlatSpec</span>
+                    </button>
+                    <span class="text-slate-300 shrink-0">/</span>
+                    <button onclick="app.openSettingsModal('project')" class="font-bold text-slate-900 hover:text-indigo-600 transition-colors truncate max-w-[140px] sm:max-w-[200px]" id="headerProjectName">
+                        載入中...
+                    </button>
+                    <span class="text-slate-300 shrink-0">/</span>
+                    <span id="headerViewBreadcrumb" class="text-indigo-600 font-semibold truncate max-w-[120px]">
+                        文件
+                    </span>
                 </div>
             </div>
 
-            <!-- 視圖切換 Tabs (桌機版 - Google Docs / 飛書風格導覽列) -->
-            <div class="hidden xl:flex gap-1 font-sans text-xs font-semibold shrink-0 bg-slate-100/80 p-1 rounded-lg border border-slate-200/80">
-                <button id="viewTabHome" onclick="app.switchView('Home')" class="px-3 py-1 rounded-md text-slate-600 hover:text-slate-900 hover:bg-white/80 transition-all uppercase">🏠 首頁</button>
-                <button id="viewTabDashboard" onclick="app.switchView('Dashboard')" class="px-3 py-1 rounded-md text-slate-600 hover:text-slate-900 hover:bg-white/80 transition-all uppercase">📊 總覽</button>
-                <button id="viewTabDocs" onclick="app.switchView('Docs')" class="px-3 py-1 rounded-md text-slate-600 hover:text-slate-900 hover:bg-white/80 transition-all uppercase">📄 文檔</button>
-                <button id="viewTabExecution" onclick="app.switchView('Execution')" class="px-3 py-1 rounded-md text-slate-600 hover:text-slate-900 hover:bg-white/80 transition-all uppercase">✅ 任務</button>
-                <button id="viewTabWizard" onclick="app.switchView('Wizard')" class="px-3 py-1 rounded-md text-violet-700 hover:text-violet-900 hover:bg-violet-50 transition-all uppercase">✨ 精靈</button>
-            </div>
-
-            <!-- 右側協作、搜尋與設定 -->
-            <div class="flex items-center gap-1.5 shrink-0">
-                <!-- AI 任務自動拆解快捷按鈕 -->
-                <button onclick="app.openAiTaskDecomposeModal()" class="p-1.5 px-2.5 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 font-semibold text-xs rounded-md flex items-center gap-1 shadow-xs transition-colors shrink-0" title="開啟 AI 任務自動拆解系統 (前期、進行時順序、善後任務)">
-                    <span class="text-sm">✨</span>
-                    <span class="hidden md:inline">AI 拆解</span>
+            <!-- 右側：全域搜尋、AI 助理、雲端同步狀態 Pill、設定 -->
+            <div class="flex items-center gap-2 shrink-0">
+                <!-- 全域全文搜尋按鈕 (Ctrl+K) -->
+                <button onclick="app.openSearchModal()" class="p-1.5 px-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-lg flex items-center gap-1.5 transition-colors shrink-0 border border-slate-200/80" title="快速全域搜尋 (Ctrl+K)">
+                    <span class="text-xs">🔍</span>
+                    <span class="hidden md:inline text-slate-700 font-medium">搜尋</span>
+                    <kbd class="hidden lg:inline bg-white border border-slate-300 rounded px-1 text-[9px] font-mono text-slate-400">⌘K</kbd>
                 </button>
 
-                <!-- 全域搜尋按鈕 (Ctrl+K) -->
-                <button onclick="app.openSearchModal()" class="p-1.5 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-md flex items-center gap-1 transition-colors shrink-0 border border-slate-200" title="快速全域搜尋 (Ctrl+K)">
-                    <span class="text-sm">🔍</span>
-                    <span class="hidden md:inline text-slate-700">搜尋</span>
+                <!-- AI 助理抽屜觸發按鈕 -->
+                <button onclick="app.toggleAiDocDrawer ? app.toggleAiDocDrawer() : app.openAiTaskDecomposeModal()" class="p-1.5 px-2.5 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 font-semibold text-xs rounded-lg flex items-center gap-1.5 shadow-xs transition-colors shrink-0" title="開啟 AI 專案與文檔助理">
+                    <span class="text-xs">✨</span>
+                    <span class="hidden sm:inline">AI 助理</span>
                 </button>
 
-                <!-- ⚙️ 系統設定整合按鈕 -->
-                <button onclick="app.openSettingsModal()" class="p-1.5 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-md flex items-center gap-1 transition-colors shrink-0 border border-slate-200" title="開啟系統與專案設定">
-                    <span class="text-sm">⚙️</span>
-                    <span class="hidden md:inline">設定</span>
-                </button>
-
-                <!-- 雲端連線狀態燈 (點擊開啟雲端同步設定) -->
-                <div id="syncStatusBadge" onclick="app.openSettingsModal('cloud')" class="cursor-pointer px-2 py-1.5 border border-slate-200 rounded-md font-semibold text-[11px] flex items-center gap-1.5 bg-slate-50 hover:bg-slate-100 transition-colors shrink-0" title="點擊開啟雲端同步設定">
-                    <span id="syncDot" class="w-2 h-2 rounded-full bg-slate-400 shrink-0"></span>
-                    <span id="syncText" class="hidden sm:inline max-w-[55px] md:max-w-none truncate text-slate-600">已連線</span>
+                <!-- 雲端同步整合狀態膠囊 (Cloud Pill) -->
+                <div id="syncStatusBadge" onclick="app.openSettingsModal('cloud')" class="cursor-pointer px-2.5 py-1.5 border border-slate-200 rounded-lg font-semibold text-xs flex items-center gap-2 bg-slate-50 hover:bg-slate-100 transition-all shrink-0 select-none group shadow-xs" title="點擊檢視雲端連線詳細資訊">
+                    <span id="syncDot" class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
+                    <span id="syncText" class="text-slate-700 font-medium text-xs">已同步</span>
                 </div>
+
+                <!-- 系統設定按鈕 -->
+                <button onclick="app.openSettingsModal()" class="p-1.5 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-lg flex items-center gap-1 transition-colors shrink-0 border border-slate-200" title="開啟系統與專案設定">
+                    <span>⚙️</span>
+                </button>
             </div>
         </header>
 
@@ -367,12 +370,62 @@
                     </div>
                 </div>
 
-                <!-- 編輯工具列 (支援左右滑動拖曳式工具列 + 精選下拉選單收納) -->
+                <!-- 編輯工具列 (精簡上下文工具列 + ＋ 插入 功能選單) -->
                 <div id="docEditToolbar" class="bg-white border border-slate-200 rounded-xl shadow-xs relative z-30 overflow-visible">
                     <div class="flex flex-wrap items-center gap-1.5 p-1.5 sm:p-2 select-none w-full overflow-visible">
-                        <!-- 1. 🔗 引用文檔下拉選單 -->
+                        <!-- 1. ＋ 插入 (下拉整合選單：圖表、小工具、圖片、語音、分頁、引用) -->
+                        <div class="relative inline-block shrink-0" id="docInsertMenuContainer">
+                            <button type="button" onclick="app.toggleDocInsertDropdown(event)" class="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-lg shadow-xs flex items-center gap-1 shrink-0 transition-colors" title="插入圖表、小工具、多媒體與引用">
+                                <span>＋ 插入</span>
+                                <span class="text-[9px] opacity-70">▼</span>
+                            </button>
+                            <div id="docInsertDropdown" class="hidden absolute left-0 top-full mt-1 w-64 max-w-[calc(100vw-2rem)] bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-2 space-y-1 text-xs">
+                                <div class="font-bold text-[10px] text-slate-400 uppercase px-2 py-0.5 tracking-wider">📊 圖表與數據</div>
+                                <button type="button" onclick="app.insertChartTemplate('bar'); app.closeDocInsertDropdown();" class="w-full text-left px-2.5 py-1.5 hover:bg-slate-100 font-medium flex items-center gap-2 rounded-lg text-slate-800">
+                                    <span>📊</span> <span>長條圖 (Bar Chart)</span>
+                                </button>
+                                <button type="button" onclick="app.insertChartTemplate('line'); app.closeDocInsertDropdown();" class="w-full text-left px-2.5 py-1.5 hover:bg-slate-100 font-medium flex items-center gap-2 rounded-lg text-slate-800">
+                                    <span>📈</span> <span>折線圖 (Line Chart)</span>
+                                </button>
+                                <button type="button" onclick="app.insertChartTemplate('pie'); app.closeDocInsertDropdown();" class="w-full text-left px-2.5 py-1.5 hover:bg-slate-100 font-medium flex items-center gap-2 rounded-lg text-slate-800">
+                                    <span>🥧</span> <span>圓餅圖 (Pie Chart)</span>
+                                </button>
+                                <button type="button" onclick="app.insertMarkdown('/data https://script.google.com/macros/s/AKfycbxpCpIHMzlWOHBb92pCQG9T36vGH8I8ju8UZHHDP6BvOoeuxQ6ZXFXokp8IcDmSSGSn/exec?action=youtube refresh:60s\n', ''); app.closeDocInsertDropdown();" class="w-full text-left px-2.5 py-1.5 hover:bg-slate-100 font-medium flex items-center gap-2 rounded-lg text-slate-800">
+                                    <span>🔴</span> <span>即時數據中台 (/data)</span>
+                                </button>
+
+                                <div class="border-t border-slate-100 my-1"></div>
+                                <div class="font-bold text-[10px] text-slate-400 uppercase px-2 py-0.5 tracking-wider">🧩 常用小工具</div>
+                                <button type="button" onclick="app.insertMarkdown('/calculator (120 * 4.5) + 300\n', ''); app.closeDocInsertDropdown();" class="w-full text-left px-2.5 py-1.5 hover:bg-slate-100 rounded-lg flex items-center gap-2 text-slate-800">
+                                    <span>🧮</span> <span>計算機 (/calculator)</span>
+                                </button>
+                                <button type="button" onclick="app.insertMarkdown('/countdown 2026-12-31 23:59:59 目標倒數\n', ''); app.closeDocInsertDropdown();" class="w-full text-left px-2.5 py-1.5 hover:bg-slate-100 rounded-lg flex items-center gap-2 text-slate-800">
+                                    <span>⏳</span> <span>倒數計時器 (/countdown)</span>
+                                </button>
+                                <button type="button" onclick="app.insertMarkdown('/counter 0 今日計數\n', ''); app.closeDocInsertDropdown();" class="w-full text-left px-2.5 py-1.5 hover:bg-slate-100 rounded-lg flex items-center gap-2 text-slate-800">
+                                    <span>🔢</span> <span>點擊計數器 (/counter)</span>
+                                </button>
+                                <button type="button" onclick="app.insertMarkdown('/qr https://unkoalatw.github.io/project-manger/\n', ''); app.closeDocInsertDropdown();" class="w-full text-left px-2.5 py-1.5 hover:bg-slate-100 rounded-lg flex items-center gap-2 text-slate-800">
+                                    <span>📱</span> <span>QR Code 條碼 (/qr)</span>
+                                </button>
+
+                                <div class="border-t border-slate-100 my-1"></div>
+                                <div class="font-bold text-[10px] text-slate-400 uppercase px-2 py-0.5 tracking-wider">🎙️ 附件與多媒體</div>
+                                <button type="button" onclick="app.openInsertImageModal(); app.closeDocInsertDropdown();" class="w-full text-left px-2.5 py-1.5 hover:bg-slate-100 rounded-lg flex items-center gap-2 text-slate-800">
+                                    <span>🖼️</span> <span>插入圖片或圖床</span>
+                                </button>
+                                <button type="button" onclick="app.openDocVoiceMemoRecorder(); app.closeDocInsertDropdown();" class="w-full text-left px-2.5 py-1.5 hover:bg-slate-100 rounded-lg flex items-center gap-2 text-slate-800">
+                                    <span>🎙️</span> <span>語音備忘錄錄音</span>
+                                </button>
+                                <button type="button" onclick="app.insertPageBreak(); app.closeDocInsertDropdown();" class="w-full text-left px-2.5 py-1.5 hover:bg-slate-100 rounded-lg flex items-center gap-2 text-slate-800">
+                                    <span>✂️</span> <span>插入分頁符號</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 2. 🔗 引用文檔下拉選單 -->
                         <div class="relative inline-block shrink-0" id="docLinkPickerContainer">
-                            <button type="button" onclick="app.toggleDocLinkDropdown(event)" class="px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg font-bold text-xs text-slate-700 flex items-center gap-1 shrink-0" title="在游標處引用專案內其他文檔">
+                            <button type="button" onclick="app.toggleDocLinkDropdown(event)" class="px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg font-bold text-xs text-slate-700 flex items-center gap-1 shrink-0 transition-colors" title="在游標處引用專案內其他文檔">
                                 <span>🔗 引用</span>
                                 <span class="text-[9px] text-slate-400">▼</span>
                             </button>
@@ -381,9 +434,9 @@
                             </div>
                         </div>
 
-                        <!-- 2. 🎨 螢光筆/字體色彩/徽章選單按鈕 -->
+                        <!-- 3. 🎨 螢光筆/色彩選單按鈕 -->
                         <div class="relative inline-block shrink-0" id="docColorPickerContainer">
-                            <button type="button" onclick="app.toggleDocColorDropdown(event)" class="px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg font-bold text-xs text-slate-700 flex items-center gap-1 shrink-0" title="彩色標記、字體顏色與徽章標籤">
+                            <button type="button" onclick="app.toggleDocColorDropdown(event)" class="px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg font-bold text-xs text-slate-700 flex items-center gap-1 shrink-0 transition-colors" title="彩色標記、字體顏色與徽章標籤">
                                 <span>🎨 色彩</span>
                                 <span class="text-[9px] text-slate-400">▼</span>
                             </button>
@@ -439,137 +492,24 @@
 
                         <div class="h-4 w-px bg-slate-200 mx-0.5 shrink-0"></div>
 
-                        <!-- 3. 基礎 Markdown 樣式按鈕 -->
-                        <button type="button" onclick="app.insertMarkdown('**', '**')" class="px-2.5 py-1.5 bg-white hover:bg-slate-100 text-slate-800 font-bold text-xs rounded-lg border border-slate-200 shadow-xs shrink-0" title="粗體">B</button>
+                        <!-- 4. 基礎 Markdown 樣式按鈕 -->
+                        <button type="button" onclick="app.insertMarkdown('**', '**')" class="px-2.5 py-1.5 bg-white hover:bg-slate-100 text-slate-800 font-bold text-xs rounded-lg border border-slate-200 shadow-xs shrink-0" title="粗體 (Ctrl+B)">B</button>
                         <button type="button" onclick="app.insertMarkdown('## ', '')" class="px-2.5 py-1.5 bg-white hover:bg-slate-100 text-slate-800 font-semibold text-xs rounded-lg border border-slate-200 shadow-xs shrink-0" title="標題 H2">H2</button>
                         <button type="button" onclick="app.insertMarkdown('- ', '')" class="px-2.5 py-1.5 bg-white hover:bg-slate-100 text-slate-800 font-medium text-xs rounded-lg border border-slate-200 shadow-xs shrink-0" title="清單項目">• 清單</button>
                         <button type="button" onclick="app.insertMarkdown('- [ ] ', '')" class="px-2.5 py-1.5 bg-white hover:bg-slate-100 text-slate-800 font-medium text-xs rounded-lg border border-slate-200 shadow-xs shrink-0" title="待辦任務">☑ 任務</button>
                         <button type="button" onclick="app.insertMarkdown('`', '`')" class="px-2.5 py-1.5 bg-white hover:bg-slate-100 text-slate-800 font-mono text-xs rounded-lg border border-slate-200 shadow-xs shrink-0" title="行內代碼">&lt;/&gt;</button>
                         <button type="button" onclick="app.insertMarkdown('> ', '')" class="px-2.5 py-1.5 bg-white hover:bg-slate-100 text-slate-800 font-medium text-xs rounded-lg border border-slate-200 shadow-xs shrink-0" title="引言">&gt;</button>
-                        <button type="button" onclick="app.centerCurrentLineOrSelection()" class="px-2.5 py-1.5 bg-white hover:bg-slate-100 text-slate-800 font-medium text-xs rounded-lg border border-slate-200 shadow-xs flex items-center gap-1 shrink-0" title="將當前行或選取文字置中 (語法 ->文字<-)">
+                        <button type="button" onclick="app.centerCurrentLineOrSelection()" class="px-2.5 py-1.5 bg-white hover:bg-slate-100 text-slate-800 font-medium text-xs rounded-lg border border-slate-200 shadow-xs flex items-center gap-1 shrink-0" title="置中">
                             <span>≡</span> <span>置中</span>
                         </button>
 
                         <div class="h-4 w-px bg-slate-200 mx-0.5 shrink-0"></div>
 
-                        <!-- 4. 📈 統計圖表下拉選單 -->
-                        <div class="relative inline-block shrink-0" id="docChartPickerContainer">
-                            <button type="button" onclick="app.toggleDocChartDropdown(event)" class="px-2.5 py-1.5 bg-white hover:bg-slate-100 text-slate-800 font-semibold text-xs rounded-lg border border-slate-200 shadow-xs flex items-center gap-1 shrink-0" title="在文檔中插入視覺化統計圖表 (長條圖、折線圖、圓餅圖)">
-                                <span>📈 圖表</span>
-                                <span class="text-[9px] text-slate-400">▼</span>
-                            </button>
-                            <div id="docChartDropdown" class="hidden absolute left-0 top-full mt-1 w-64 max-w-[calc(100vw-2rem)] bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-2 space-y-1 text-xs">
-                                <div class="font-bold text-[10px] text-slate-400 uppercase px-2 py-1 tracking-wider">📊 插入統計圖表 (Mermaid)</div>
-                                <button type="button" onclick="app.insertChartTemplate('bar')" class="w-full text-left px-2.5 py-2 hover:bg-slate-100 font-medium flex items-center gap-2.5 rounded-lg transition-colors text-slate-800">
-                                    <span class="text-base">📊</span>
-                                    <div>
-                                        <div class="font-bold text-xs">長條圖 / 柱狀圖 (Bar Chart)</div>
-                                        <div class="text-[10px] text-slate-500 font-normal">適合各類別數值、業績與佔比對比</div>
-                                    </div>
-                                </button>
-                                <button type="button" onclick="app.insertChartTemplate('line')" class="w-full text-left px-2.5 py-2 hover:bg-slate-100 font-medium flex items-center gap-2.5 rounded-lg transition-colors text-slate-800">
-                                    <span class="text-base">📈</span>
-                                    <div>
-                                        <div class="font-bold text-xs">折線圖 / 趨勢圖 (Line Chart)</div>
-                                        <div class="text-[10px] text-slate-500 font-normal">適合時間序列、成長趨勢與數據波動</div>
-                                    </div>
-                                </button>
-                                <button type="button" onclick="app.insertChartTemplate('pie')" class="w-full text-left px-2.5 py-2 hover:bg-slate-100 font-medium flex items-center gap-2.5 rounded-lg transition-colors text-slate-800">
-                                    <span class="text-base">🥧</span>
-                                    <div>
-                                        <div class="font-bold text-xs">圓形圖 / 圓餅圖 (Pie Chart)</div>
-                                        <div class="text-[10px] text-slate-500 font-normal">適合比例劃分、預算分配與組成分析</div>
-                                    </div>
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- 5. 🧩 個人小工具與動態 Block 下拉選單 -->
-                        <div class="relative inline-block shrink-0" id="docWidgetsPickerContainer">
-                            <button type="button" onclick="app.toggleDocWidgetsDropdown(event)" class="px-2.5 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-900 font-bold text-xs rounded-lg border border-purple-200 shadow-xs flex items-center gap-1 shrink-0" title="在文檔中插入個人小工具 Block、有狀態內容與 Live Data">
-                                <span>🧩 小工具</span>
-                                <span class="text-[9px] text-purple-400">▼</span>
-                            </button>
-                            <div id="docWidgetsDropdown" class="hidden absolute left-0 top-full mt-1 w-72 max-w-[calc(100vw-2rem)] bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-2 space-y-1 text-xs">
-                                <div class="font-bold text-[10px] text-slate-400 uppercase px-2 py-1 tracking-wider">🛠️ 個人小工具 (Widgets)</div>
-                                <button type="button" onclick="app.insertMarkdown('/calculator (120 * 4.5) + 300\n', '')" class="w-full text-left px-2.5 py-1.5 hover:bg-purple-50 rounded-lg flex items-center gap-2 text-slate-800">
-                                    <span>🧮</span> <span>計算機 (/calculator)</span>
-                                </button>
-                                <button type="button" onclick="app.insertMarkdown('/countdown 2026-12-31 23:59:59 年終目標倒數\n', '')" class="w-full text-left px-2.5 py-1.5 hover:bg-purple-50 rounded-lg flex items-center gap-2 text-slate-800">
-                                    <span>⏳</span> <span>倒數計時器 (/countdown)</span>
-                                </button>
-                                <button type="button" onclick="app.insertMarkdown('/stopwatch\n', '')" class="w-full text-left px-2.5 py-1.5 hover:bg-purple-50 rounded-lg flex items-center gap-2 text-slate-800">
-                                    <span>⏱️</span> <span>碼錶計時器 (/stopwatch)</span>
-                                </button>
-                                <button type="button" onclick="app.insertMarkdown('/random 披薩, 火鍋, 牛排, 日料, 泰式\n', '')" class="w-full text-left px-2.5 py-1.5 hover:bg-purple-50 rounded-lg flex items-center gap-2 text-slate-800">
-                                    <span>🎲</span> <span>隨機決策抽籤 (/random)</span>
-                                </button>
-                                <button type="button" onclick="app.insertMarkdown('/counter 0 今日喝水量(杯)\n', '')" class="w-full text-left px-2.5 py-1.5 hover:bg-purple-50 rounded-lg flex items-center gap-2 text-slate-800">
-                                    <span>🔢</span> <span>點擊計數器 (/counter)</span>
-                                </button>
-                                <button type="button" onclick="app.insertMarkdown('/qr https://unkoalatw.github.io/project-manger/\n', '')" class="w-full text-left px-2.5 py-1.5 hover:bg-purple-50 rounded-lg flex items-center gap-2 text-slate-800">
-                                    <span>📱</span> <span>QR Code 條碼 (/qr)</span>
-                                </button>
-                                <button type="button" onclick="app.insertMarkdown('/converter\n', '')" class="w-full text-left px-2.5 py-1.5 hover:bg-purple-50 rounded-lg flex items-center gap-2 text-slate-800">
-                                    <span>🔄</span> <span>單位與匯率換算 (/converter)</span>
-                                </button>
-                                <button type="button" onclick="app.insertMarkdown('/poll-self 當前專注度 | 滿分極佳 🔥 | 還行持平 😐 | 需要休息 ☕\n', '')" class="w-full text-left px-2.5 py-1.5 hover:bg-purple-50 rounded-lg flex items-center gap-2 text-slate-800">
-                                    <span>📊</span> <span>自我狀態投票 (/poll-self)</span>
-                                </button>
-                                <button type="button" onclick="app.insertMarkdown('/clipboard 一鍵複製常用文字或代碼片段\n', '')" class="w-full text-left px-2.5 py-1.5 hover:bg-purple-50 rounded-lg flex items-center gap-2 text-slate-800">
-                                    <span>📋</span> <span>快速複製按鈕 (/clipboard)</span>
-                                </button>
-
-                                <div class="border-t border-slate-100 my-1"></div>
-                                <div class="font-bold text-[10px] text-slate-400 uppercase px-2 py-1 tracking-wider">🔴 YouTube 指標卡片 (KPI)</div>
-                                <button type="button" onclick="app.insertMarkdown(':::yt-stat 總訂閱人數 | 128,450 | ▲ +12.4% | 85% | 目標 150,000:::\n', '')" class="w-full text-left px-2.5 py-1.5 hover:bg-red-50 rounded-lg flex items-center gap-2 text-slate-800">
-                                    <span>🔴</span> <span>YouTube 訂閱與數據指標卡</span>
-                                </button>
-
-                                <div class="border-t border-slate-100 my-1"></div>
-                                <div class="font-bold text-[10px] text-slate-400 uppercase px-2 py-1 tracking-wider">🏷️ 有狀態內容 (Stateful)</div>
-                                <button type="button" onclick="app.insertMarkdown('- [read:Unread] ', '文檔閱讀項目 (點擊切換狀態)')" class="w-full text-left px-2.5 py-1.5 hover:bg-amber-50 rounded-lg flex items-center gap-2 text-slate-800">
-                                    <span>📖</span> <span>閱讀清單 (Unread ➔ Reading ➔ Finished)</span>
-                                </button>
-                                <button type="button" onclick="app.insertMarkdown('- [idea:Raw] ', '靈感點子記錄 (點擊流轉)')" class="w-full text-left px-2.5 py-1.5 hover:bg-blue-50 rounded-lg flex items-center gap-2 text-slate-800">
-                                    <span>💡</span> <span>想法流轉 (Raw ➔ Interesting ➔ Tried)</span>
-                                </button>
-
-                                <div class="border-t border-slate-100 my-1"></div>
-                                <div class="font-bold text-[10px] text-slate-400 uppercase px-2 py-1 tracking-wider">📡 即時儀表板 (Live Data)</div>
-                                <button type="button" onclick="app.insertMarkdown('/data https://script.google.com/macros/s/AKfycbxpCpIHMzlWOHBb92pCQG9T36vGH8I8ju8UZHHDP6BvOoeuxQ6ZXFXokp8IcDmSSGSn/exec?action=youtube refresh:60s\n', '')" class="w-full text-left px-2.5 py-1.5 hover:bg-emerald-50 rounded-lg flex items-center gap-2 text-slate-800">
-                                    <span>🔴</span> <span>YouTube 即時數據中台 (/data)</span>
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- 6. 📄 分頁控制選單 -->
-                        <div class="relative inline-block shrink-0" id="docPageBreakContainer">
-                            <button type="button" onclick="app.toggleDocPageBreakMenu(event)" class="px-2.5 py-1.5 bg-white hover:bg-slate-100 text-slate-800 font-semibold text-xs rounded-lg border border-slate-200 shadow-xs flex items-center gap-1 shrink-0" title="在游標或選取處插入分頁符號">
-                                <span>📄 分頁</span>
-                                <span class="text-[9px] text-slate-400">▼</span>
-                            </button>
-                            <div id="docPageBreakDropdown" class="hidden absolute left-0 top-full mt-1 w-60 max-w-[calc(100vw-2rem)] bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-2.5 space-y-2 text-xs">
-                                <div>
-                                    <div class="font-bold text-[10px] text-slate-400 uppercase mb-1 tracking-wider">📄 換頁控制 (Page Break)</div>
-                                    <button type="button" onclick="app.insertPageBreak(); app.closeDocPageBreakMenu();" class="w-full text-left px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 font-medium flex items-center gap-1.5 rounded-lg border border-slate-200 mb-1.5">
-                                        <span>✂️</span> <span>在游標/選取處插入分頁</span>
-                                    </button>
-                                </div>
-                                <div class="border-t border-slate-100 pt-1.5 flex items-center justify-between">
-                                    <span class="font-semibold text-slate-700">啟用分頁功能</span>
-                                    <button type="button" id="btnTogglePageBreaks" onclick="app.togglePageBreaksState()" class="px-2.5 py-0.5 font-bold text-xs rounded bg-slate-900 text-white">已開啟</button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="h-4 w-px bg-slate-200 mx-0.5 shrink-0"></div>
-
-                        <!-- 7. 🛠️ 文檔工具箱下拉選單 (收納閱讀、匯出、圖片、語音、歷史版本、列印) -->
+                        <!-- 5. 🛠️ 更多工具箱 (匯出、獨立網頁、歷史版本) -->
                         <div class="relative inline-block shrink-0" id="docToolsPickerContainer">
-                            <button type="button" onclick="app.toggleDocToolsDropdown(event)" class="px-3 py-1.5 bg-indigo-50 hover:bg-indigo-100 text-indigo-900 font-bold text-xs rounded-lg border border-indigo-200 shadow-xs flex items-center gap-1 shrink-0" title="文檔檢視、語音、匯出、版本與歷史工具">
-                                <span>⚙️ 工具箱</span>
-                                <span class="text-[9px] text-indigo-400">▼</span>
+                            <button type="button" onclick="app.toggleDocToolsDropdown(event)" class="px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 text-slate-700 font-semibold text-xs rounded-lg border border-slate-200 shadow-xs flex items-center gap-1 shrink-0 transition-colors" title="更多工具">
+                                <span>⚙️ 更多</span>
+                                <span class="text-[9px] text-slate-400">▼</span>
                             </button>
                             <div id="docToolsDropdown" class="hidden absolute right-0 sm:left-0 top-full mt-1 w-64 max-w-[calc(100vw-2rem)] bg-white border border-slate-200 rounded-xl shadow-xl z-50 p-2 space-y-1 text-xs">
                                 <div class="font-bold text-[10px] text-slate-400 uppercase px-2 py-1 tracking-wider">🛠️ 檢視與匯出</div>
@@ -581,15 +521,6 @@
                                 </button>
                                 <button type="button" onclick="app.printDocPreview(); app.closeDocToolsDropdown();" class="w-full text-left px-2.5 py-2 hover:bg-slate-50 font-medium flex items-center gap-2 rounded-lg text-slate-800">
                                     <span>🖨️</span> <span>列印或另存為 PDF</span>
-                                </button>
-
-                                <div class="border-t border-slate-100 my-1"></div>
-                                <div class="font-bold text-[10px] text-slate-400 uppercase px-2 py-1 tracking-wider">🎙️ 附件與多媒體</div>
-                                <button type="button" onclick="app.openDocVoiceMemoRecorder(); app.closeDocToolsDropdown();" class="w-full text-left px-2.5 py-2 hover:bg-rose-50 font-medium flex items-center gap-2 rounded-lg text-rose-700">
-                                    <span>🎙️</span> <span>語音備忘錄 (IndexedDB 錄音)</span>
-                                </button>
-                                <button type="button" onclick="app.openInsertImageModal(); app.closeDocToolsDropdown();" class="w-full text-left px-2.5 py-2 hover:bg-blue-50 font-medium flex items-center gap-2 rounded-lg text-blue-700">
-                                    <span>🖼️</span> <span>插入圖片或圖床</span>
                                 </button>
 
                                 <div class="border-t border-slate-100 my-1"></div>
