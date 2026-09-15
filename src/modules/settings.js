@@ -844,18 +844,17 @@ export const settings = {
                     }
                 }
 
-                // 3. 檢測 GAS 雲端雙向寫入 (POST Echo)
-                this.updateDiagItemStatus('gas_post', 'testing', '正在進行 POST 資料寫入與 SSOT 驗證...');
+                // 3. 檢測 GAS 雲端雙向寫入 (POST Echo / Ping - 🛡️ 非破壞性測試，絕不覆寫資料庫)
+                this.updateDiagItemStatus('gas_post', 'testing', '正在發送非破壞性 POST Ping 驗證寫入通道與 CORS...');
                 if (!gasUrl) {
                     this.updateDiagItemStatus('gas_post', 'error', '尚未配置 GAS 網址', '未配置');
                 } else {
                     try {
                         const t0 = Date.now();
-                        const currentProjects = (this.state && Array.isArray(this.state.projects)) ? this.state.projects : [];
                         const res = await fetch(gasUrl, {
                             method: 'POST',
                             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                            body: JSON.stringify(currentProjects),
+                            body: JSON.stringify({ action: 'ping' }),
                             redirect: 'follow',
                             cache: 'no-store'
                         });
@@ -863,17 +862,17 @@ export const settings = {
                         if (res.ok) {
                             const resTxt = await res.text();
                             if (resTxt.includes('<!DOCTYPE') || resTxt.includes('<html')) {
-                                this.updateDiagItemStatus('gas_post', 'error', 'POST 被 CORS 阻擋', 'CORS 錯誤');
-                                this.appendDiagLog('GAS POST 寫入被拒絕，請確認 Web App 部署權限為「所有人」', 'error');
+                                this.updateDiagItemStatus('gas_post', 'error', 'POST 被 CORS 阻擋 (請確認權限設為 Anyone_Anonymous)', 'CORS 錯誤');
+                                this.appendDiagLog('GAS POST 寫入被拒絕，請確認 Web App 部署權限為「所有人 (Anyone_Anonymous)」', 'error');
                                 errorCount++;
                             } else {
                                 const parsed = JSON.parse(resTxt);
-                                if (parsed.status === 'success' || parsed.success) {
-                                    this.updateDiagItemStatus('gas_post', 'success', `雙向通訊正常 · 寫入延遲 ${lat}ms · 試算表寫入成功`, `正常 (${lat}ms)`);
-                                    this.appendDiagLog(`GAS POST 雙向寫入成功 (${lat}ms)：試算表 SSOT 同步通道暢通`, 'success');
+                                if (parsed.status === 'success' || parsed.service) {
+                                    this.updateDiagItemStatus('gas_post', 'success', `雙向通訊正常 · 延遲 ${lat}ms · 伺服器響應就緒`, `正常 (${lat}ms)`);
+                                    this.appendDiagLog(`GAS POST 雙向通訊成功 (${lat}ms)：非破壞性通道驗證通過`, 'success');
                                     totalScore++;
                                 } else {
-                                    this.updateDiagItemStatus('gas_post', 'warning', `GAS 伺服器回傳: ${parsed.message || '未知回應'}`, '寫入警訊');
+                                    this.updateDiagItemStatus('gas_post', 'warning', `GAS 回應: ${parsed.message || '未知回應'}`, '寫入警訊');
                                     this.appendDiagLog(`GAS POST 回應警告: ${parsed.message}`, 'warn');
                                     warningCount++;
                                 }
@@ -907,34 +906,24 @@ export const settings = {
                         const lat = Date.now() - t0;
                         if (driveCheckRes.ok) {
                             const driveData = await driveCheckRes.json();
-                            if (driveData.status === 'success' || driveData.folderId) {
-                                this.updateDiagItemStatus('drive', 'success', `金庫就緒 · 專屬 Google Drive 資料夾讀寫權限正常 (${lat}ms)`, '已授權 (PASS)');
-                                this.appendDiagLog(`Google Drive 金庫驗證正常 (${lat}ms)：個人雲端硬碟容量與 DriveApp 讀寫權限完全就緒`, 'success');
+                            if (driveData.status === 'success') {
+                                this.updateDiagItemStatus('drive', 'success', `金庫就緒 · Google Drive 專屬測試資料夾建立/清除正常 (${lat}ms)`, `已授權 (${lat}ms)`);
+                                this.appendDiagLog(`Google Drive 金庫驗證正常 (${lat}ms)：DriveApp 資料夾建立與讀寫權限真實就緒`, 'success');
                                 totalScore++;
                             } else {
-                                this.updateDiagItemStatus('drive', 'success', `Drive 核心連線中繼就緒 · 支援分塊上傳 (${lat}ms)`, '就緒 (PASS)');
-                                this.appendDiagLog(`Google Drive 中繼服務運作正常 (${lat}ms)`, 'success');
-                                totalScore++;
+                                this.updateDiagItemStatus('drive', 'error', `Drive 權限不足: ${driveData.message || '未知錯誤'}`, '權限不足');
+                                this.appendDiagLog(`Google Drive 權限異常: ${driveData.message}`, 'error');
+                                errorCount++;
                             }
                         } else {
-                            if (isGetSuccessful) {
-                                this.updateDiagItemStatus('drive', 'success', 'Google Drive 權限隨同 GAS 主機身分已授權綁定', '已綁定 (PASS)');
-                                this.appendDiagLog('Google Drive 權限已繼承自您個人的 Google Apps Script 執行身分', 'success');
-                                totalScore++;
-                            } else {
-                                this.updateDiagItemStatus('drive', 'warning', '請先確認 GAS 基礎連線正常', '待確認');
-                                warningCount++;
-                            }
+                            this.updateDiagItemStatus('drive', 'error', `HTTP ${driveCheckRes.status}`, `HTTP ${driveCheckRes.status}`);
+                            this.appendDiagLog(`Google Drive 檢驗請求失敗：HTTP ${driveCheckRes.status}`, 'error');
+                            errorCount++;
                         }
                     } catch (driveErr) {
-                        if (isGetSuccessful) {
-                            this.updateDiagItemStatus('drive', 'success', 'Google Drive 權限隨同 GAS 主機身分已授權綁定', '已綁定 (PASS)');
-                            this.appendDiagLog('Google Drive 雲端金庫存取權限正常 (繼承自 GAS 身分)', 'success');
-                            totalScore++;
-                        } else {
-                            this.updateDiagItemStatus('drive', 'warning', `Drive 檢驗略過: ${driveErr.message}`);
-                            warningCount++;
-                        }
+                        this.updateDiagItemStatus('drive', 'error', `Drive 檢驗異常: ${driveErr.message}`, '連線異常');
+                        this.appendDiagLog(`Google Drive 檢驗異常: ${driveErr.message}`, 'error');
+                        errorCount++;
                     }
                 }
 

@@ -161,16 +161,17 @@ export const lifecycle = {
                     this.sendBeaconOrKeepalivePush();
                 });
 
-                // 4. 跨裝置 / 切換分頁感知：當用戶切回此分頁且無未存修改時，自動檢查雲端更新
+                // 4. 跨裝置 / 切換分頁感知：當用戶切回此分頁且無未存修改時，檢查雲端更新 (加入 4 秒防抖)
                 document.addEventListener('visibilitychange', () => {
                     if (document.visibilityState === 'visible') {
-                        this.startAutoPull(4000);
-                        if (!this.state.hasUnsavedChanges && this.state.gasUrl && !this.state.isUserTyping) {
-                            console.log("切回分頁，自動檢查雲端最新資料與在線狀態...");
+                        this.startAutoPull(8000);
+                        const now = Date.now();
+                        const timeSinceLastPull = now - (this.state.lastPullTime || 0);
+                        if (!this.state.hasUnsavedChanges && this.state.gasUrl && !this.state.isUserTyping && !this.state.isPulling && timeSinceLastPull > 4000) {
                             this.pullFromCloud(false, true);
                         }
                     } else if (document.visibilityState === 'hidden') {
-                        this.startAutoPull(20000);
+                        this.startAutoPull(30000);
                         if (this.state.hasUnsavedChanges) {
                             this.pushToCloud(false);
                         }

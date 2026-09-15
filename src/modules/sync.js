@@ -7,17 +7,30 @@ export const sync = {
                     return false;
                 }
 
-                if (this.state.isSyncing) return false;
+                // 1. 獨立 GET 併發鎖定：若正在拉取中，直接略過
+                if (this.state.isPulling) return false;
+
+                // 2. 失敗冷卻機制 (Cooldown Backoff)：若背景輪詢且剛剛 5 秒內才出錯，暫停發送
+                const now = Date.now();
+                if (isBackgroundPoll && this.state.lastPullErrorTime && (now - this.state.lastPullErrorTime < 5000)) {
+                    return false;
+                }
+
+                this.state.isPulling = true;
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 秒超時
 
                 if (!isBackgroundPoll) {
                     this.updateSyncStatus('syncing', '正在讀取雲端...');
                 }
                 
                 try {
-                    const fetchUrl = this.state.gasUrl;
+                    const fetchUrl = this.state.gasUrl + (this.state.gasUrl.includes('?') ? '&' : '?') + 't=' + now;
                     const response = await fetch(fetchUrl, { 
                         method: 'GET',
-                        redirect: 'follow'
+                        redirect: 'follow',
+                        cache: 'no-store',
+                        signal: controller.signal
                     });
                     
                     if (!response.ok) {
@@ -30,7 +43,7 @@ export const sync = {
                         data = JSON.parse(textData);
                     } catch (jsonErr) {
                         if (textData.includes('<!DOCTYPE') || textData.includes('<html')) {
-                            throw new Error('CORS 存取被拒 (偵測到 Google 登入重定向，請確認 Web App 存取權限設為 Anyone)');
+                            throw new Error('CORS 存取被拒 (偵測到 Google 登入重定向，請確認 Web App 存取權限設為 Anyone_Anonymous)');
                         }
                         throw new Error('雲端回傳格式非合法 JSON: ' + jsonErr.message);
                     }
@@ -42,24 +55,16 @@ export const sync = {
                             data = data.projects;
                         } else if (data.status === 'error') {
                             throw new Error('雲端後端回報錯誤: ' + (data.message || '未知錯誤'));
-                        } else if (data.action || data.systemPrompt || data.userMessage) {
-                            // 遇到歷史測試殘留的 AI 封包，自動以本地專案覆蓋雲端，修復試算表
-                            console.log('[Sync] 雲端試算表檢測到殘留的 AI 測試資料，正在自動修復為正式專案資料庫...');
-                            data = this.state.projects && this.state.projects.length > 0 ? this.state.projects : [];
-                            if (data.length > 0 && !this.state.isFixingStaleData) {
-                                this.state.isFixingStaleData = true;
-                                setTimeout(() => {
-                                    this.pushToCloud(false).finally(() => {
-                                        this.state.isFixingStaleData = false;
-                                    });
-                                }, 500);
-                            }
                         } else if (data.message) {
-                            throw new Error(`雲端回傳非專案資料 (端點訊息: "${data.message}")。請確認 Apps Script 部署之程式碼是否為 FlatSpec 專用 Code.js`);
+                            throw new Error(`端點回傳訊息: "${data.message}"`);
                         }
                     }
 
                     if (Array.isArray(data)) {
+                        this.state.lastPullErrorTime = 0;
+                        this.state.lastPullTime = Date.now();
+                        this.state.consecutive404Count = 0;
+
                         if (data.length > 0) {
                             const prevActiveProject = JSON.parse(JSON.stringify(this.getCurrentProject() || {}));
                             // ✅ 智慧合併雲端與本地專案（以最新時間戳為準，絕不被舊裝置快取覆蓋）
@@ -67,10 +72,8 @@ export const sync = {
                             const mergedProjects = this.mergeProjects(normalizedCloud, this.state.projects);
 
                             // 檢查本地是否含有雲端完全沒有的新建專案 (例如斷網時在本地新建的專案)
-                            // ⚠️ 重要防禦：過濾掉未被使用者編輯過的純預設「新專案」，防止初始預設專案回推污染雲端
                             const localOnlyProjects = this.state.projects.filter(lp => {
                                 if (normalizedCloud.some(cp => cp.id === lp.id)) return false;
-                                // 檢查是否為未編輯的預設空白新專案
                                 const isUntouchedDefault = (lp.title === '新專案' || lp.title === '未命名專案') &&
                                     (!lp.docs || lp.docs.length <= 1) &&
                                     (!lp.tasks || lp.tasks.length === 0) &&
@@ -106,12 +109,10 @@ export const sync = {
                                 this.updateSyncStatus('success');
                             }
 
-                            this.state.consecutive404Count = 0;
                             if (isManual) this.showToast('✅ 成功從 Google 試算表載入最新資料！');
                             return true;
                         } else {
                             // 雲端確實為空 []
-                            this.state.consecutive404Count = 0;
                             this.state.isCloudLoaded = true;
                             if (this.state.projects.length === 0) {
                                 this.createInitialDefaultProject();
@@ -125,13 +126,14 @@ export const sync = {
                         throw new Error('雲端回傳格式非專案陣列 (收到的回應: ' + JSON.stringify(data).slice(0, 100) + ')');
                     }
                 } catch (error) {
+                    this.state.lastPullErrorTime = Date.now();
                     console.error("Pull from cloud error:", error);
                     let errMsg = error.message;
                     if (errMsg.includes('404')) {
                         this.state.consecutive404Count = (this.state.consecutive404Count || 0) + 1;
                     }
-                    if (errMsg.includes('Failed to fetch') || errMsg.includes('NetworkError')) {
-                        errMsg = 'CORS/連線異常 (請檢查部署權限設為 Anyone)';
+                    if (errMsg.includes('Failed to fetch') || errMsg.includes('NetworkError') || errMsg.includes('aborted')) {
+                        errMsg = '連線超時或 CORS 異常';
                     }
                     if (!isBackgroundPoll) {
                         this.updateSyncStatus('error', errMsg);
@@ -141,6 +143,9 @@ export const sync = {
                         this.openGasModal();
                     }
                     return false;
+                } finally {
+                    clearTimeout(timeoutId);
+                    this.state.isPulling = false;
                 }
             },
 

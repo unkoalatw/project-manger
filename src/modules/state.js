@@ -19,9 +19,12 @@ export const state = {
     autoPullInterval: null,
     isCloudLoaded: false,      // 是否已成功從雲端取得最新資料
     hasUnsavedChanges: false,  // 是否有尚未同步至雲端的修改
-    isSyncing: false,          // 是否正在發送 HTTP 請求
+    isSyncing: false,          // 是否正在發送寫入 HTTP 請求 (POST)
+    isPulling: false,          // 是否正在發送讀取 HTTP 請求 (GET，獨立鎖杜絕併發)
     hasPendingSync: false,     // 是否有排隊待同步的修改
     isUserTyping: false,       // 使用者是否正在編輯輸入中 (防止輪詢干擾游標)
+    lastPullTime: 0,           // 上次拉取成功或失敗的時間戳
+    lastPullErrorTime: 0,      // 上次拉取發生錯誤的時間戳 (用於 Cooldown)
     typingTimer: null,
     draggedDocId: null,        // 當前正在拖曳的文檔 ID
     lastSyncTime: null,

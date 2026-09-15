@@ -5,8 +5,8 @@
  * 指定試算表 ID: 1WSViTq8yVVtOt8ubh01l1441-HzgUWcJiiBD4MZgmnU
  */
 
-// 做法 A：原生綁定當前 Google 試算表 (無需手動填寫 ID，由試算表直接開啟)
-var TARGET_SPREADSHEET_ID = '';
+// 指定試算表 ID (SSOT 正式資料庫)
+var TARGET_SPREADSHEET_ID = '1WSViTq8yVVtOt8ubh01l1441-HzgUWcJiiBD4MZgmnU';
 var SHEET_NAME_DATA = 'FlatSpecData';
 var SHEET_NAME_VIEW = '專案視覺化總覽';
 
@@ -66,7 +66,7 @@ function doGet(e) {
 }
 
 /**
- * 處理 POST 請求：寫入 JSON 資料或執行雲端安全 AI 拆解代理
+ * 處理 POST 請求：寫入 JSON 資料或執行各項雲端指令（含嚴格路由與 Lock 保護）
  */
 function doPost(e) {
   try {
@@ -78,39 +78,118 @@ function doPost(e) {
       throw new Error('未收到任何 POST 內容');
     }
 
-    var parsedPayload = JSON.parse(contents);
-
-    // ================= 🤖 安全 AI 任務拆解代理 (Cloud Groq Proxy) =================
-    if (parsedPayload && typeof parsedPayload === 'object' && (
-      parsedPayload.action === 'ai_decompose' || 
-      parsedPayload.action === 'ai_task_decompose' || 
-      parsedPayload.action === 'ai_doc_assist' ||
-      parsedPayload.systemPrompt || 
-      parsedPayload.projectContext
-    )) {
-      return handleAiDecompositionProxy(parsedPayload);
+    var parsedPayload;
+    try {
+      parsedPayload = JSON.parse(contents);
+    } catch (parseErr) {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: 'error',
+        message: 'POST 內容非合法 JSON: ' + parseErr.message
+      })).setMimeType(ContentService.MimeType.JSON);
     }
 
-    // ================= 雲端同步與試算表寫入 =================
+    // ================= 1. Action 指令路由 (非專案同步寫入) =================
+    if (parsedPayload && typeof parsedPayload === 'object' && !Array.isArray(parsedPayload)) {
+      var act = parsedPayload.action || '';
+
+      // 1.1 系統健康診斷 Ping
+      if (act === 'ping' || act === 'health_check') {
+        return ContentService.createTextOutput(JSON.stringify({
+          status: 'success',
+          service: 'FlatSpec Backend',
+          version: '2.5.0',
+          timestamp: new Date().toISOString()
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+
+      // 1.2 Google Drive 金庫讀寫權限檢查
+      if (act === 'check_drive_permission' || act === 'drive_check') {
+        try {
+          var rootFolder = DriveApp.getRootFolder();
+          var testFolderName = 'FlatSpec_Vault_Diagnostic_Test';
+          var testFolder = rootFolder.createFolder(testFolderName);
+          var folderId = testFolder.getId();
+          testFolder.setTrashed(true); // 測試完畢立即移至垃圾桶，不留垃圾
+
+          return ContentService.createTextOutput(JSON.stringify({
+            status: 'success',
+            message: 'Google Drive 讀寫權限正常',
+            folderId: folderId,
+            timestamp: new Date().toISOString()
+          })).setMimeType(ContentService.MimeType.JSON);
+        } catch (driveErr) {
+          return ContentService.createTextOutput(JSON.stringify({
+            status: 'error',
+            message: 'Google Drive 權限不足或異常: ' + driveErr.toString()
+          })).setMimeType(ContentService.MimeType.JSON);
+        }
+      }
+
+      // 1.3 🤖 安全 AI 任務拆解代理 (Cloud Groq Proxy)
+      if (
+        act === 'ai_decompose' || 
+        act === 'ai_task_decompose' || 
+        act === 'ai_doc_assist' ||
+        act === 'ai_doc_chat' ||
+        parsedPayload.systemPrompt || 
+        parsedPayload.projectContext
+      ) {
+        return handleAiDecompositionProxy(parsedPayload);
+      }
+
+      // 1.4 未知 action 直接拒絕，絕對禁止當作專案寫入資料庫！
+      return ContentService.createTextOutput(JSON.stringify({
+        status: 'error',
+        message: '未知的指令請求 (Unknown Action: "' + act + '")，已拒絕寫入資料庫。'
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // ================= 2. 專案資料同步寫入 (SSOT) =================
+    if (!Array.isArray(parsedPayload)) {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: 'error',
+        message: '拒絕寫入：專案同步資料格式必須為 JSON Array (收到: ' + typeof parsedPayload + ')'
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
     var projectsData = parsedPayload;
     var ss = getTargetSpreadsheet();
-    
-    // 1. 將 JSON 資料以分塊形式寫入 FlatSpecData (突破單格 50,000 字元上限)
-    var dataSheet = getOrCreateDataSheet(ss);
-    writeDataChunks(dataSheet, contents);
-    dataSheet.getRange('B1').setValue('最後更新時間: ' + new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' }));
 
-    // 2. 自動更新並美化「專案視覺化總覽」表格
-    formatVisualDashboard(ss, projectsData);
+    // 🔒 啟用 Server-side 互斥鎖 (LockService)，避免多裝置併發寫入時相互覆蓋/清除資料
+    var lock = LockService.getScriptLock();
+    var lockAcquired = false;
+    try {
+      lockAcquired = lock.tryLock(10000); // 最多等待 10 秒
+      if (!lockAcquired) {
+        return ContentService.createTextOutput(JSON.stringify({
+          status: 'error',
+          message: '資料庫繁忙中 (Lock timeout)，請稍後重試同步。'
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
 
-    var result = JSON.stringify({
-      status: 'success',
-      timestamp: new Date().toISOString(),
-      message: '專案資料已成功儲存並格式化呈現於 Google 試算表中！'
-    });
+      // 2.1 將 JSON 資料以分塊形式寫入 FlatSpecData (突破單格 50,000 字元上限)
+      var dataSheet = getOrCreateDataSheet(ss);
+      writeDataChunks(dataSheet, contents);
+      dataSheet.getRange('B1').setValue('最後更新時間: ' + new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' }));
 
-    return ContentService.createTextOutput(result)
-      .setMimeType(ContentService.MimeType.JSON);
+      // 2.2 自動更新並美化「專案視覺化總覽」表格
+      formatVisualDashboard(ss, projectsData);
+
+      var result = JSON.stringify({
+        status: 'success',
+        projectCount: projectsData.length,
+        timestamp: new Date().toISOString(),
+        message: '專案資料已成功儲存並格式化呈現於 Google 試算表中！'
+      });
+
+      return ContentService.createTextOutput(result)
+        .setMimeType(ContentService.MimeType.JSON);
+
+    } finally {
+      if (lockAcquired) {
+        lock.releaseLock();
+      }
+    }
 
   } catch (err) {
     var errorResult = JSON.stringify({
@@ -445,10 +524,21 @@ function readDataChunks(sheet) {
 }
 
 /**
- * 輔助函式：安全開啟或建立試算表 (做法 A：優先使用當前綁定的試算表)
+ * 輔助函式：安全開啟或獲取目標試算表 (固定 ID，找不到時直接報錯，絕不自動建立第二份試算表)
  */
 function getTargetSpreadsheet() {
-  // 1. 優先獲取當前試算表 (做法 A 原生模式，永遠最穩定)
+  // 1. 優先透過指定的試算表 ID 開啟 (最精確且防止資料漂移)
+  var targetId = (TARGET_SPREADSHEET_ID || '').trim();
+  if (targetId) {
+    try {
+      var ssById = SpreadsheetApp.openById(targetId);
+      if (ssById) return ssById;
+    } catch (e) {
+      throw new Error('無法透過 TARGET_SPREADSHEET_ID (' + targetId + ') 開啟試算表，請確認試算表存在且有存取權限: ' + e.message);
+    }
+  }
+
+  // 2. 其次獲取當前試算表 (原生模式)
   try {
     var activeSs = SpreadsheetApp.getActiveSpreadsheet();
     if (activeSs) return activeSs;
@@ -456,18 +546,7 @@ function getTargetSpreadsheet() {
     Logger.log('無法透過 getActiveSpreadsheet 獲取: ' + e.message);
   }
 
-  // 2. 若有指定外部 ID 則嘗試開啟
-  var targetId = (TARGET_SPREADSHEET_ID || '').trim();
-  if (targetId) {
-    try {
-      var ss = SpreadsheetApp.openById(targetId);
-      if (ss) return ss;
-    } catch (e) {
-      Logger.log('無法透過 openById 開啟試算表: ' + e.message);
-    }
-  }
-  
-  // 3. 嘗試獲取先前自動建立並持久化於 ScriptProperties 的試算表 ID
+  // 3. 嘗試獲取先前持久化於 ScriptProperties 的試算表 ID
   try {
     var savedId = PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID');
     if (savedId) {
@@ -476,18 +555,7 @@ function getTargetSpreadsheet() {
     }
   } catch (e) {}
 
-  // 4. 自動建立一份新試算表作為資料庫備份並記錄其 ID
-  try {
-    var newSs = SpreadsheetApp.create('FlatSpec Drive 專案資料庫');
-    if (newSs) {
-      PropertiesService.getScriptProperties().setProperty('SPREADSHEET_ID', newSs.getId());
-      return newSs;
-    }
-  } catch (err) {
-    throw new Error('無法存取或建立試算表，請在編輯器點擊「執行」一次以授予試算表存取權限: ' + err.toString());
-  }
-
-  throw new Error('無法存取試算表，請確認已授權 Google 試算表存取權限。');
+  throw new Error('未配置合法的試算表 ID。請在 Code.js 頂部 TARGET_SPREADSHEET_ID 填入指定的 Google 試算表 ID！');
 }
 
 /**
