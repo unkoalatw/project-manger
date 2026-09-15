@@ -18,7 +18,7 @@ export const sync = {
 
                 this.state.isPulling = true;
                 const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 秒超時
+                const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 秒超時，支援 GAS 雲端冷啟動 (Cold Start)
 
                 if (!isBackgroundPoll) {
                     this.updateSyncStatus('syncing', '正在讀取雲端...');
@@ -127,13 +127,16 @@ export const sync = {
                     }
                 } catch (error) {
                     this.state.lastPullErrorTime = Date.now();
-                    console.error("Pull from cloud error:", error);
+                    const isAbort = error.name === 'AbortError' || error.message.includes('aborted');
+                    if (!isBackgroundPoll || !isAbort) {
+                        console.warn("Pull from cloud Notice:", error.message);
+                    }
                     let errMsg = error.message;
                     if (errMsg.includes('404')) {
                         this.state.consecutive404Count = (this.state.consecutive404Count || 0) + 1;
                     }
-                    if (errMsg.includes('Failed to fetch') || errMsg.includes('NetworkError') || errMsg.includes('aborted')) {
-                        errMsg = '連線超時或 CORS 異常';
+                    if (errMsg.includes('Failed to fetch') || errMsg.includes('NetworkError') || isAbort) {
+                        errMsg = isAbort ? '雲端連線逾時' : '連線或 CORS 異常';
                     }
                     if (!isBackgroundPoll) {
                         this.updateSyncStatus('error', errMsg);
