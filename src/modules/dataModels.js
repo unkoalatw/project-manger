@@ -33,17 +33,15 @@ export const dataModels = {
                     };
                 }
 
-                // 資料夾陣列
-                if (!Array.isArray(p.docFolders)) {
-                    p.docFolders = [];
-                } else {
-                    p.docFolders = p.docFolders.map((f, idx) => ({
-                        ...f,
-                        id: f.id || 'fld_' + (Date.now() + idx),
-                        name: f.name || '未命名資料夾',
-                        parentId: f.parentId || null
-                    }));
-                }
+                // 資料夾陣列 (兼容 docFolders 與 folders)
+                const rawFolders = Array.isArray(p.docFolders) ? p.docFolders : (Array.isArray(p.folders) ? p.folders : []);
+                p.docFolders = rawFolders.map((f, idx) => ({
+                    ...f,
+                    id: f.id || 'fld_' + (Date.now() + idx),
+                    name: f.name || '未命名資料夾',
+                    parentId: f.parentId || null
+                }));
+                p.folders = p.docFolders;
 
                 // 文檔陣列 (保留 history, audioList, deletedAt 等完整 metadata)
                 if (!Array.isArray(p.docs) || p.docs.length === 0) {

@@ -275,9 +275,17 @@ export const folders = {
                 // 3. 渲染目錄樹
                 let html = '';
                 
-                // 文件庫分類
+                // 文件庫分類 (兼容 docFolders 與 legacy folders 欄位)
                 const docs = p.docs || [];
-                const folders = p.docFolders || [];
+                const folders = (Array.isArray(p.docFolders) && p.docFolders.length > 0) ? p.docFolders : (Array.isArray(p.folders) ? p.folders : []);
+                
+                // 若為初次載入或尚未記錄收合狀態，預設自動展開所有資料夾，確保文檔 100% 可見
+                if (!this.state.expandedFolders || this.state.expandedFolders.size === 0) {
+                    folders.forEach(f => {
+                        if (f && f.id) this.state.expandedFolders.add(f.id);
+                    });
+                }
+
                 const isSearching = searchStr.length > 0;
                 const filteredDocs = isSearching ? docs.filter(d => (d.title || '').toLowerCase().includes(searchStr)) : docs;
                 
