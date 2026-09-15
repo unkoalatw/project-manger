@@ -66,9 +66,10 @@ export class HealthChecker {
                 return t;
             });
 
-            // 4. 檢查 Folder 引用
-            if (Array.isArray(project.folders)) {
-                const folderIds = new Set(project.folders.map(f => f.id));
+            // 4. 檢查 Folder 引用 (支援 docFolders 與 folders 欄位)
+            const foldersList = Array.isArray(project.docFolders) ? project.docFolders : (Array.isArray(project.folders) ? project.folders : []);
+            if (foldersList.length > 0) {
+                const folderIds = new Set(foldersList.map(f => f.id));
                 project.docs.forEach(doc => {
                     if (doc.folderId && !folderIds.has(doc.folderId)) {
                         issues.push(`修復：移除文檔 (${doc.title || doc.id}) 中已刪除的資料夾參照`);

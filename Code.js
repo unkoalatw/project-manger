@@ -188,8 +188,8 @@ function doPost(e) {
         return handleAiDecompositionProxy(parsedPayload);
       }
 
-      // 2.4 支援帶有 baseRevision 的包裝專案同步寫入
-      if (Array.isArray(parsedPayload.projects)) {
+      // 2.4 支援帶有 baseRevision 與 action='sync' 的包裝專案同步寫入
+      if (act === 'sync' || act === 'save' || act === 'push' || Array.isArray(parsedPayload.projects)) {
         // 進入下方同步區塊
       } else {
         // 未知 action 直接拒絕

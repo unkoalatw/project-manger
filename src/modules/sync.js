@@ -192,8 +192,9 @@ export const sync = {
                 this.updateSyncStatus('syncing', '正在寫入試算表...');
 
                 try {
-                    // 打包帶有 baseRevision 與 authToken 的安全同步封包
+                    // 打包帶有 action, baseRevision 與 authToken 的安全同步封包
                     const payloadObj = {
+                        action: 'sync',
                         authToken: this.state.authToken || '',
                         baseRevision: this.state.cloudRevision || 0,
                         projects: this.state.projects,
@@ -276,7 +277,13 @@ export const sync = {
             sendBeaconOrKeepalivePush() {
                 if (!this.state.hasUnsavedChanges || !this.state.gasUrl) return;
                 try {
-                    const payload = JSON.stringify(this.state.projects);
+                    const payload = JSON.stringify({
+                        action: 'sync',
+                        authToken: this.state.authToken || '',
+                        baseRevision: this.state.cloudRevision || 0,
+                        projects: this.state.projects,
+                        timestamp: new Date().toISOString()
+                    });
                     fetch(this.state.gasUrl, {
                         method: 'POST',
                         body: payload,
