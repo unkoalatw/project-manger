@@ -225,6 +225,7 @@ export const folders = {
                     currentDocs = docs.filter(d => targetFolder && this.isDocInFolder(d, targetFolder));
                 }
 
+                // 1. 若為根目錄 (parentId === null)，先渲染頂層資料夾
                 currentFolders.forEach(folder => {
                     const isExpanded = this.state.expandedFolders.has(folder.id) || isSearching;
                     const subDocsCount = docs.filter(d => this.isDocInFolder(d, folder)).length;
@@ -269,11 +270,27 @@ export const folders = {
                     `;
                 });
 
-                currentDocs.forEach((doc, idx) => {
-                    const canMoveUp = idx > 0 && !isSearching;
-                    const canMoveDown = idx < currentDocs.length - 1 && !isSearching;
-                    html += this.renderSidebarDocItem(doc, isSearching, canMoveUp, canMoveDown);
-                });
+                // 2. 渲染此層級底下的文檔節點
+                if (currentDocs.length > 0) {
+                    if (parentId === null && currentFolders.length > 0) {
+                        html += `
+                            <div class="mt-3 pt-2 border-t border-zinc-200">
+                                <div class="text-[10px] font-bold text-zinc-400 uppercase tracking-wider mb-1 px-1 flex items-center gap-1">
+                                    <span>📄</span> <span>未分類文檔 (${currentDocs.length})</span>
+                                </div>
+                        `;
+                    }
+
+                    currentDocs.forEach((doc, idx) => {
+                        const canMoveUp = idx > 0 && !isSearching;
+                        const canMoveDown = idx < currentDocs.length - 1 && !isSearching;
+                        html += this.renderSidebarDocItem(doc, isSearching, canMoveUp, canMoveDown);
+                    });
+
+                    if (parentId === null && currentFolders.length > 0) {
+                        html += `</div>`;
+                    }
+                }
 
                 if (currentFolders.length === 0 && currentDocs.length === 0 && depth > 0) {
                     html += `<div class="text-[11px] text-zinc-400 italic py-1 px-2 border border-dashed border-zinc-200">空資料夾</div>`;
