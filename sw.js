@@ -1,5 +1,5 @@
 // FlatSpec Drive - Service Worker (Offline First Support)
-const CACHE_NAME = 'flatspec-cache-v28';
+const CACHE_NAME = 'flatspec-cache-v29';
 const PRECACHE_ASSETS = [
   './',
   './index.html',
@@ -44,8 +44,8 @@ self.addEventListener('fetch', event => {
   const req = event.request;
   const url = req.url;
 
-  // 1. Google Apps Script 雲端同步 API：走網路，不快取動態同步
-  if (url.includes('script.google.com') || req.method !== 'GET') {
+  // 1. Google Apps Script 雲端同步 API & Google 重定向：走原生網路，絕不快取動態同步
+  if (url.includes('script.google.com') || url.includes('googleusercontent.com') || req.method !== 'GET') {
     return;
   }
 
