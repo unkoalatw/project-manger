@@ -2,12 +2,13 @@
 import { idbStorage, STORES } from '../core/storage/idb.js';
 import { SchemaManager } from '../core/schema/schemaManager.js';
 import { HealthChecker } from '../core/health/healthChecker.js';
+import { CONFIG } from '../config.js';
 
 export const storage = {
 // ================= 本機儲存 (離線快取層) =================
             loadLocalData() {
-                const DEFAULT_GAS_URL = 'https://script.google.com/macros/s/AKfycbxpCpIHMzlWOHBb92pCQG9T36vGH8I8ju8UZHHDP6BvOoeuxQ6ZXFXokp8IcDmSSGSn/exec';
-                const CUTOFF_TIME = new Date('2026-08-27T14:00:00+08:00').getTime();
+                const DEFAULT_GAS_URL = CONFIG.DEFAULT_GAS_ENDPOINT;
+                const CUTOFF_TIME = CONFIG.CUTOFF_TIME;
 
                 try {
                     const localData = localStorage.getItem('flatSpecData');

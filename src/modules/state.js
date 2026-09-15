@@ -1,3 +1,5 @@
+import { CONFIG } from '../config.js';
+
 // 支援一鍵重置網址參數 (如 ?reset=1 或 ?clear=1)，方便手機端一鍵掃除所有損壞快取
 if (typeof window !== 'undefined' && window.location && (window.location.search.includes('reset=1') || window.location.search.includes('clear=1'))) {
     try {
@@ -14,7 +16,7 @@ export const state = {
     currentView: 'Home', // Home, Dashboard, Docs, Wizard, Execution
     execViewMode: 'list', // list, kanban
     docMode: 'edit', // edit, preview (mobile only)
-    gasUrl: 'https://script.google.com/macros/s/AKfycbxpCpIHMzlWOHBb92pCQG9T36vGH8I8ju8UZHHDP6BvOoeuxQ6ZXFXokp8IcDmSSGSn/exec',
+    gasUrl: CONFIG.DEFAULT_GAS_ENDPOINT,
     syncTimeout: null,
     autoPullInterval: null,
     isCloudLoaded: false,      // 是否已成功從雲端取得最新資料

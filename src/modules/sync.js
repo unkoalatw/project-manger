@@ -1,4 +1,6 @@
 // FlatSpec Module: sync
+import { CONFIG } from '../config.js';
+
 export const sync = {
 // ================= 雲端同步核心 (Cloud-First SSOT & CORS Safe) =================
             async pullFromCloud(isManual = false, isBackgroundPoll = false) {

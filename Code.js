@@ -150,7 +150,7 @@ function doPost(e) {
         return ContentService.createTextOutput(JSON.stringify({
           status: 'success',
           service: 'FlatSpec Backend',
-          version: '2.6.0',
+          version: '2.6.1',
           authEnforced: authCheck.tokenRequired,
           timestamp: new Date().toISOString()
         })).setMimeType(ContentService.MimeType.JSON);
