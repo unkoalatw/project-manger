@@ -66,15 +66,18 @@ export class HealthChecker {
                 return t;
             });
 
-            // 4. 檢查 Folder 引用 (支援 docFolders 與 folders 欄位)
-            const foldersList = Array.isArray(project.docFolders) ? project.docFolders : (Array.isArray(project.folders) ? project.folders : []);
+            // 4. 檢查 Folder 引用 (支援 docFolders 與 folders 欄位，採非破壞性檢測，絕不刪除未知參照)
+            const foldersList = (Array.isArray(project.docFolders) && project.docFolders.length > 0) 
+                ? project.docFolders 
+                : (Array.isArray(project.folders) ? project.folders : []);
             if (foldersList.length > 0) {
-                const folderIds = new Set(foldersList.map(f => f.id));
+                const folderIds = new Set(foldersList.map(f => String(f.id)));
+                const folderNames = new Set(foldersList.map(f => String(f.name).trim().toLowerCase()));
                 project.docs.forEach(doc => {
-                    if (doc.folderId && !folderIds.has(doc.folderId)) {
-                        issues.push(`修復：移除文檔 (${doc.title || doc.id}) 中已刪除的資料夾參照`);
-                        delete doc.folderId;
-                        fixedIssues++;
+                    const fid = doc.folderId || doc.folder || doc.folderName;
+                    if (fid && !folderIds.has(String(fid)) && !folderNames.has(String(fid).trim().toLowerCase())) {
+                        issues.push(`提示：文檔「${doc.title || doc.id}」使用自訂或舊資料夾參照 (${fid})`);
+                        // 保持非破壞性：保留原有 folderId/folder 參照，絕不執行 delete doc.folderId
                     }
                 });
             }

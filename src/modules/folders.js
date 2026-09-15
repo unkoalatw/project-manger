@@ -165,20 +165,38 @@ export const folders = {
                 `;
             },
 
-            // 輔助函式：判斷文檔是否屬於特定資料夾 (支援 folderId、folderName、folder 多維度容錯匹配)
+            // 輔助函式：判斷文檔是否屬於特定資料夾 (支援所有 legacy reference: folderId, folder, folderName 與路徑分節匹配)
             isDocInFolder(doc, folder) {
                 if (!doc || !folder) return false;
-                const docFid = doc.folderId || doc.folder || doc.folderName || '';
-                if (!docFid) return false;
-                
-                // 1. 精確 ID 匹配
-                if (String(docFid) === String(folder.id)) return true;
-                // 2. 名稱精確匹配
-                if (folder.name && String(docFid).trim().toLowerCase() === String(folder.name).trim().toLowerCase()) return true;
-                // 3. 部分包含匹配 (如 "腳本" vs "腳本/初稿")
-                if (folder.name && (String(docFid).includes(folder.name) || folder.name.includes(String(docFid)))) return true;
-                
-                return false;
+
+                const refs = [
+                    doc.folderId,
+                    doc.folder,
+                    doc.folderName
+                ]
+                    .filter(v => v !== null && v !== undefined && String(v).trim())
+                    .map(v => String(v).trim().toLowerCase());
+
+                if (refs.length === 0) return false;
+
+                const folderId = String(folder.id || '').trim().toLowerCase();
+                const folderName = String(folder.name || '').trim().toLowerCase();
+
+                return refs.some(ref => {
+                    // 1. 精確 ID 匹配
+                    if (folderId && ref === folderId) return true;
+                    // 2. 資料夾名稱精確匹配
+                    if (folderName && ref === folderName) return true;
+
+                    // 3. 舊版路徑格式精確分節比對 (例如 "技術/攝影/頻閃" -> 取各層級精確節點，避免 includes 貪婪重疊)
+                    const parts = ref
+                        .replace(/\\/g, '/')
+                        .split('/')
+                        .map(x => x.trim())
+                        .filter(Boolean);
+
+                    return folderName && parts.includes(folderName);
+                });
             },
 
             // 輔助函式：判斷文檔是否屬於根目錄 (無所屬資料夾，或所屬資料夾在清單中不存在)

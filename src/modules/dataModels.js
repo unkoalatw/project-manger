@@ -33,8 +33,10 @@ export const dataModels = {
                     };
                 }
 
-                // 資料夾陣列 (兼容 docFolders 與 folders)
-                const rawFolders = Array.isArray(p.docFolders) ? p.docFolders : (Array.isArray(p.folders) ? p.folders : []);
+                // 資料夾陣列 (兼容 docFolders 與 legacy folders)
+                const rawFolders = (Array.isArray(p.docFolders) && p.docFolders.length > 0)
+                    ? p.docFolders
+                    : (Array.isArray(p.folders) ? p.folders : []);
                 p.docFolders = rawFolders.map((f, idx) => ({
                     ...f,
                     id: f.id || 'fld_' + (Date.now() + idx),
@@ -43,20 +45,56 @@ export const dataModels = {
                 }));
                 p.folders = p.docFolders;
 
-                // 文檔陣列 (保留 history, audioList, deletedAt 等完整 metadata)
+                // 建立快速比對索引，將舊的 folder / folderName / 路徑 reference 自動升級為真正的 folder.id
+                const folderIdMap = new Map(); // id -> id
+                const folderNameMap = new Map(); // lowercase name -> id
+                p.docFolders.forEach(f => {
+                    if (f.id) folderIdMap.set(String(f.id), f.id);
+                    if (f.name) folderNameMap.set(String(f.name).trim().toLowerCase(), f.id);
+                });
+
+                // 文檔陣列 (保留 history, audioList, deletedAt 等完整 metadata，並升級 folderId)
                 if (!Array.isArray(p.docs) || p.docs.length === 0) {
                     p.docs = [{ id: 'doc_' + Date.now(), title: '核心規格書', content: '# ' + p.title + '\n\n寫下您的規格...', folderId: null, attachments: {}, history: [], audioList: [] }];
                 } else {
-                    p.docs = p.docs.map((d, idx) => ({
-                        ...d,
-                        id: d.id || 'doc_' + (Date.now() + idx),
-                        title: d.title || '未命名文檔',
-                        content: d.content || '',
-                        folderId: d.folderId || null,
-                        attachments: (d && typeof d.attachments === 'object' && d.attachments !== null) ? d.attachments : {},
-                        history: Array.isArray(d?.history) ? d.history : (d?.history ? [d.history] : []),
-                        audioList: Array.isArray(d?.audioList) ? d.audioList : []
-                    }));
+                    p.docs = p.docs.map((d, idx) => {
+                        let finalFolderId = d.folderId || null;
+
+                        // 嘗試從所有 legacy reference 中解析真實 folderId
+                        const refs = [d.folderId, d.folder, d.folderName]
+                            .filter(v => v !== null && v !== undefined && String(v).trim())
+                            .map(v => String(v).trim());
+
+                        for (const ref of refs) {
+                            if (folderIdMap.has(ref)) {
+                                finalFolderId = folderIdMap.get(ref);
+                                break;
+                            }
+                            const refLower = ref.toLowerCase();
+                            if (folderNameMap.has(refLower)) {
+                                finalFolderId = folderNameMap.get(refLower);
+                                break;
+                            }
+                            // 舊版路徑匹配 (例如 "技術/攝影/頻閃" -> 取最後一層 "頻閃")
+                            const parts = ref.replace(/\\/g, '/').split('/').map(x => x.trim().toLowerCase()).filter(Boolean);
+                            const lastPart = parts[parts.length - 1];
+                            if (lastPart && folderNameMap.has(lastPart)) {
+                                finalFolderId = folderNameMap.get(lastPart);
+                                break;
+                            }
+                        }
+
+                        return {
+                            ...d,
+                            id: d.id || 'doc_' + (Date.now() + idx),
+                            title: d.title || '未命名文檔',
+                            content: d.content || '',
+                            folderId: finalFolderId,
+                            attachments: (d && typeof d.attachments === 'object' && d.attachments !== null) ? d.attachments : {},
+                            history: Array.isArray(d?.history) ? d.history : (d?.history ? [d.history] : []),
+                            audioList: Array.isArray(d?.audioList) ? d.audioList : []
+                        };
+                    });
                 }
 
                 // 團隊成員結構
