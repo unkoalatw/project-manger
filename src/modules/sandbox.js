@@ -54,6 +54,9 @@ export const sandbox = {
             previewEl.innerHTML = this.parseMarkdown(content);
             this.renderMermaidDiagrams(previewEl);
             this.resolvePendingLinkPreviews(previewEl);
+            if (typeof this.resolvePendingMediaAttachments === 'function') {
+                this.resolvePendingMediaAttachments(previewEl);
+            }
             if (typeof this.initActiveWidgets === 'function') {
                 this.initActiveWidgets(previewEl);
             }

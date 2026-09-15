@@ -219,33 +219,67 @@ export const markdown = {
                     return `<hr class="my-6 border-t border-slate-200" />`;
                 };
 
-                // 8. 圖片可點擊放大檢視 (支援 attachment:img_xxx 附件快速對應與全域搜尋)
+                // 8. 圖片與影片多媒體渲染 (支援 attachment:vid_xxx, attachment:img_xxx 與離線 Blob 快取)
                 renderer.image = function(token) {
                     let href = (typeof token === 'object' ? token?.href : arguments[0]) || '';
                     const title = (typeof token === 'object' ? token?.title : arguments[1]) || '';
-                    const alt = (typeof token === 'object' ? token?.text : arguments[2]) || '圖片';
+                    const alt = (typeof token === 'object' ? token?.text : arguments[2]) || '媒體';
                     const cleanAlt = self.escapeHtml(alt);
 
                     if (href.startsWith('attachment:')) {
                         const imgId = href.replace(/^attachment:/, '').trim();
-                        const resolved = self.resolveAttachment(imgId);
-                        if (resolved && resolved.data) {
-                            href = resolved.data;
-                        } else {
-                            // 附件未找到時，渲染 Neo-Brutalist 友好警示卡片，絕不產生原生破圖
+                        const isVid = imgId.startsWith('vid_');
+
+                        // 嘗試同步取得快取的 ObjectURL 或 DataURL
+                        let cachedSrc = self._mediaBlobUrlCache?.[imgId] || null;
+                        if (!cachedSrc) {
+                            const resolved = self.resolveAttachment(imgId);
+                            if (resolved) {
+                                if (resolved.driveUrl) cachedSrc = resolved.driveUrl;
+                                else if (resolved.data) cachedSrc = resolved.data;
+                            }
+                        }
+
+                        if (isVid) {
                             return `
-                                <div class="my-3 p-3 bg-amber-50 border-2 border-black text-amber-950 flat-box shadow-[3px_3px_0px_0px_#000] not-prose flex flex-wrap items-center justify-between gap-2">
-                                    <div class="flex items-center gap-2">
-                                        <span class="text-lg">📷</span>
-                                        <div class="text-xs">
-                                            <span class="font-black text-black">${cleanAlt}</span>
-                                            <span class="text-[10px] text-zinc-500 block font-mono mt-0.5">附件 ID: #${imgId.split('_')[1]?.slice(-4) || imgId} (圖片附件未就緒或已清理)</span>
-                                        </div>
+                                <div class="video-attachment-card my-4 border-2 border-black bg-white shadow-[3px_3px_0px_0px_#000] overflow-hidden not-prose">
+                                    <div class="bg-zinc-900 text-white px-3 py-1.5 text-xs font-black flex items-center justify-between border-b-2 border-black">
+                                        <span class="flex items-center gap-1.5"><span>🎥</span> <span>${cleanAlt}</span></span>
+                                        <span class="text-[10px] text-zinc-400 font-mono">離線快取影片</span>
                                     </div>
-                                    <button type="button" onclick="app.openImageModal()" class="px-2 py-1 bg-white hover:bg-zinc-100 text-black border border-black font-bold text-xs flat-box shadow-[1px_1px_0px_0px_#000]">重新上傳圖片</button>
+                                    <div class="w-full bg-black flex items-center justify-center">
+                                        <video controls class="w-full max-h-[500px] bg-black attachment-video-player" data-att-id="${imgId}" preload="metadata" ${cachedSrc ? `src="${cachedSrc}"` : ''}>
+                                            您的瀏覽器不支援影片播放。
+                                        </video>
+                                    </div>
                                 </div>
                             `;
                         }
+
+                        if (cachedSrc) {
+                            href = cachedSrc;
+                        } else {
+                            // 圖片非同步占位標籤，後續由 resolvePendingMediaAttachments 自動載入
+                            return `<img data-attachment-id="${imgId}" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='60' viewBox='0 0 100 60'><rect width='100' height='60' fill='%23f1f5f9'/><text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-size='10' fill='%2364748b'>⏳ 載入圖片中...</text></svg>" alt="${cleanAlt}" class="doc-inline-img max-w-full h-auto rounded-none inline align-middle max-h-[550px] object-contain cursor-zoom-in hover:opacity-85 transition-opacity my-0.5 mx-1" onclick="app.openImageViewer(this.src, '${cleanAlt}')" loading="lazy" />`;
+                        }
+                    }
+
+                    // 判斷是否為直接的影片檔案網址 (例如 .mp4)
+                    if (/\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(href)) {
+                        return `
+                            <div class="video-attachment-card my-4 border-2 border-black bg-white shadow-[3px_3px_0px_0px_#000] overflow-hidden not-prose">
+                                <div class="bg-zinc-900 text-white px-3 py-1.5 text-xs font-black flex items-center justify-between border-b-2 border-black">
+                                    <span class="flex items-center gap-1.5"><span>🎥</span> <span>${cleanAlt}</span></span>
+                                    <a href="${href}" target="_blank" rel="noopener noreferrer" class="hover:underline text-[10px] text-zinc-300 flex items-center gap-0.5">下載/新分頁 ↗</a>
+                                </div>
+                                <div class="w-full bg-black flex items-center justify-center">
+                                    <video controls class="w-full max-h-[500px] bg-black" preload="metadata">
+                                        <source src="${href}">
+                                        您的瀏覽器不支援直接播放此影片。
+                                    </video>
+                                </div>
+                            </div>
+                        `;
                     }
 
                     return `<img src="${href}" alt="${cleanAlt}" class="doc-inline-img max-w-full h-auto rounded-none inline align-middle max-h-[550px] object-contain cursor-zoom-in hover:opacity-85 transition-opacity my-0.5 mx-1" onclick="app.openImageViewer(this.src, '${cleanAlt}')" loading="lazy" onerror="this.onerror=null; this.outerHTML='<span class=\\'inline-block px-1 bg-zinc-100 border border-black text-xs font-mono text-zinc-600\\'>⚠️ 圖片無法載入 (${cleanAlt})</span>';" />`;

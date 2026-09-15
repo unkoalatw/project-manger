@@ -1539,26 +1539,26 @@
         </div>
     </div>
 
-    <!-- Modal: 插入圖片 -->
+    <!-- Modal: 插入圖片與影片 -->
     <div id="insertImageModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4">
         <div class="bg-white border border-slate-200 rounded-2xl p-6 w-full max-w-md shadow-xl flex flex-col max-h-[90vh]">
             <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4 shrink-0">
-                <h3 class="font-black text-lg uppercase flex items-center gap-2">🖼️ 插入圖片</h3>
+                <h3 class="font-black text-lg uppercase flex items-center gap-2">🖼️/🎥 插入圖片與影片</h3>
                 <button onclick="app.closeModals()" class="text-xl font-bold hover:text-red-600 px-2">&times;</button>
             </div>
             
             <div class="flex border border-slate-200 mb-4 bg-slate-100 p-0.5 shrink-0">
                 <button type="button" id="tabImgUpload" onclick="app.switchImageTab('upload')" class="flex-1 py-1.5 font-bold text-xs bg-black text-white transition-colors">📁 上傳本機 / 拍照</button>
-                <button type="button" id="tabImgUrl" onclick="app.switchImageTab('url')" class="flex-1 py-1.5 font-bold text-xs bg-slate-100 text-black hover:bg-slate-200 transition-colors">🌐 圖片網址 (URL)</button>
+                <button type="button" id="tabImgUrl" onclick="app.switchImageTab('url')" class="flex-1 py-1.5 font-bold text-xs bg-slate-100 text-black hover:bg-slate-200 transition-colors">🌐 影音網址 (URL)</button>
             </div>
 
             <!-- Tab 1: 本機上傳 / 拍照 -->
             <div id="panelImgUpload" class="space-y-3 overflow-y-auto no-scrollbar">
                 <div class="border border-dashed border-slate-300 rounded-xl p-5 text-center bg-slate-50 hover:bg-slate-100 cursor-pointer flat-box" onclick="document.getElementById('imageFileInput').click()">
-                    <span class="text-3xl block mb-1">📷</span>
-                    <p class="font-bold text-xs text-zinc-700">點擊選取圖片 或 開啟相機拍照</p>
-                    <p class="text-[10px] text-zinc-500 mt-1">支援 PNG, JPG, GIF, WebP (自動智慧壓縮最適大小)</p>
-                    <input type="file" id="imageFileInput" accept="image/*" class="hidden" onchange="app.handleImageFileSelect(event)">
+                    <span class="text-3xl block mb-1">📷 / 🎥</span>
+                    <p class="font-bold text-xs text-zinc-700">點擊選取圖片、影片或拖曳檔案</p>
+                    <p class="text-[10px] text-zinc-500 mt-1">支援 PNG, JPG, GIF, WebP, MP4, WebM, MOV (影片享離線 IndexedDB 緩存)</p>
+                    <input type="file" id="imageFileInput" accept="image/*,video/mp4,video/webm,video/ogg,video/quicktime" class="hidden" onchange="app.handleImageFileSelect(event)">
                 </div>
 
                 <div id="imageUploadPreviewContainer" class="hidden border border-slate-200 p-2 bg-white flex flex-col items-center gap-1.5">
@@ -1567,20 +1567,20 @@
                 </div>
 
                 <div>
-                    <label class="block font-bold text-xs mb-1">圖片說明 (選填)</label>
-                    <input type="text" id="imageUploadAlt" class="flat-input w-full p-2 text-sm" placeholder="例如：系統架構設計圖...">
+                    <label class="block font-bold text-xs mb-1">媒體名稱 / 說明 (選填)</label>
+                    <input type="text" id="imageUploadAlt" class="flat-input w-full p-2 text-sm" placeholder="例如：產品操作展示影片...">
                 </div>
             </div>
 
-            <!-- Tab 2: 圖片網址 -->
+            <!-- Tab 2: 圖片與影片網址 -->
             <div id="panelImgUrl" class="hidden space-y-3">
                 <div>
-                    <label class="block font-bold text-xs mb-1">圖片網址 (URL) *</label>
-                    <input type="url" id="imageUrlInput" class="flat-input w-full p-2 text-sm font-mono" placeholder="https://images.unsplash.com/...">
+                    <label class="block font-bold text-xs mb-1">媒體網址 (URL / YouTube / Vimeo) *</label>
+                    <input type="url" id="imageUrlInput" class="flat-input w-full p-2 text-sm font-mono" placeholder="https://www.youtube.com/... 或 https://...mp4">
                 </div>
                 <div>
-                    <label class="block font-bold text-xs mb-1">圖片說明 (選填)</label>
-                    <input type="text" id="imageUrlAlt" class="flat-input w-full p-2 text-sm" placeholder="例如：產品原型示意圖">
+                    <label class="block font-bold text-xs mb-1">說明 (選填)</label>
+                    <input type="text" id="imageUrlAlt" class="flat-input w-full p-2 text-sm" placeholder="例如：操作示範影片">
                 </div>
             </div>
 

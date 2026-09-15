@@ -294,6 +294,11 @@ function doPost(e) {
         }
       }
 
+      // 2.2.1 ☁️ 上傳多媒體檔案至 Google Drive (FlatSpec_Media_Vault)
+      if (act === 'upload_drive_media' || act === 'upload_media') {
+        return handleUploadMediaToDrive(parsedPayload);
+      }
+
       // 2.3 🤖 安全 AI 任務拆解代理 (Cloud Groq Proxy)
       if (
         act === 'ai_decompose' || 
@@ -682,6 +687,70 @@ function testAuthorizeYouTube() {
   });
   Logger.log('測試回應碼: ' + resp.getResponseCode());
   Logger.log('測試內容: ' + resp.getContentText());
+}
+
+/**
+ * ☁️ 處理上傳多媒體檔案至 Google Drive (FlatSpec_Media_Vault)
+ */
+function handleUploadMediaToDrive(payload) {
+  try {
+    if (!payload || !payload.base64Data) {
+      throw new Error('未提供 base64Data 資料');
+    }
+
+    var fileName = payload.fileName || ('media_' + Date.now() + '.mp4');
+    var mimeType = payload.mimeType || 'video/mp4';
+    var rawBase64 = payload.base64Data;
+    
+    // 去除 Data URL 前綴 (例如: data:video/mp4;base64, )
+    if (rawBase64.indexOf(',') > -1) {
+      rawBase64 = rawBase64.split(',')[1];
+    }
+
+    var decoded = Utilities.base64Decode(rawBase64);
+    var blob = Utilities.newBlob(decoded, mimeType, fileName);
+
+    // 尋找或建立 FlatSpec_Media_Vault 資料夾
+    var folderName = 'FlatSpec_Media_Vault';
+    var folders = DriveApp.getFoldersByName(folderName);
+    var targetFolder;
+    if (folders.hasNext()) {
+      targetFolder = folders.next();
+    } else {
+      targetFolder = DriveApp.createFolder(folderName);
+    }
+
+    var file = targetFolder.createFile(blob);
+    // 設定為具有連結者皆可檢視
+    try {
+      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    } catch(shareErr) {
+      Logger.log('設定分享權限警告: ' + shareErr.toString());
+    }
+
+    var fileId = file.getId();
+    var viewUrl = file.getUrl();
+    var downloadUrl = 'https://drive.google.com/uc?export=download&id=' + fileId;
+    var previewUrl = 'https://drive.google.com/file/d/' + fileId + '/preview';
+
+    return ContentService.createTextOutput(JSON.stringify({
+      status: 'success',
+      fileId: fileId,
+      fileName: fileName,
+      mimeType: mimeType,
+      size: file.getSize(),
+      url: viewUrl,
+      downloadUrl: downloadUrl,
+      previewUrl: previewUrl,
+      timestamp: new Date().toISOString()
+    })).setMimeType(ContentService.MimeType.JSON);
+
+  } catch(err) {
+    return ContentService.createTextOutput(JSON.stringify({
+      status: 'error',
+      message: '上傳至 Google Drive 失敗: ' + err.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
 }
 
 /**
