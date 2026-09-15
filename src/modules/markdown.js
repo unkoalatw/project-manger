@@ -1,5 +1,10 @@
 // FlatSpec Module: markdown
-import DOMPurify from 'dompurify';
+const getDOMPurify = () => {
+    if (typeof window !== 'undefined' && window.DOMPurify) {
+        return window.DOMPurify;
+    }
+    return null;
+};
 
 export const markdown = {
 // ================= 📝 Markdown 解析引擎 (全規格 GFM、表格、KaTeX 數學公式) =================
