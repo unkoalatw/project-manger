@@ -23,6 +23,31 @@ function verifyAuth(token) {
 }
 
 /**
+ * 🚀 一鍵授權測試函式 (請在 Google Apps Script 編輯器中選擇此函式並點擊「執行」一次以通過 Google 權限審查)
+ */
+function initialSetupAuthorization() {
+  Logger.log('正在進行 Google Drive 與 Spreadsheet 權限授權初始化...');
+  
+  // 1. 觸發 Spreadsheet 授權
+  var ss = getTargetSpreadsheet();
+  Logger.log('試算表連線成功: ' + ss.getName());
+  
+  // 2. 觸發 Drive 授權
+  var root = DriveApp.getRootFolder();
+  Logger.log('Google Drive 連線成功，根目錄: ' + root.getName());
+  
+  // 3. 觸發外部 API 呼叫 (Groq / YouTube) 授權
+  var testUrl = 'https://api.groq.com/openai/v1/models';
+  try {
+    UrlFetchApp.fetch(testUrl, { muteHttpExceptions: true });
+    Logger.log('UrlFetchApp 網路權限正常');
+  } catch(e) {}
+  
+  Logger.log('🎉 恭喜！所有必要權限均已完成授權。');
+  return 'SUCCESS';
+}
+
+/**
  * 處理 GET 請求：讀取 JSON 全量專案資料 (含版本號)
  */
 function doGet(e) {
