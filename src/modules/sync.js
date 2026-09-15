@@ -27,20 +27,41 @@ export const sync = {
                 }
                 
                 try {
-                    const tokenParam = this.state.authToken ? `&token=${encodeURIComponent(this.state.authToken)}` : '';
-                    const fetchUrl = this.state.gasUrl + (this.state.gasUrl.includes('?') ? '&' : '?') + 't=' + now + tokenParam;
-                    const response = await fetch(fetchUrl, { 
-                        method: 'GET',
-                        redirect: 'follow',
-                        cache: 'no-store',
-                        signal: controller.signal
-                    });
+                    let response;
+                    let textData;
                     
-                    if (!response.ok) {
-                        throw new Error(`HTTP Error ${response.status}`);
+                    // 優先使用 POST pull (Direct Channel，完全免除 Google GET 302 404 與快取干擾)
+                    try {
+                        const postRes = await fetch(this.state.gasUrl, {
+                            method: 'POST',
+                            body: JSON.stringify({ action: 'pull', token: this.state.authToken || '' }),
+                            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                            redirect: 'follow',
+                            cache: 'no-store',
+                            signal: controller.signal
+                        });
+                        if (postRes.ok) {
+                            textData = await postRes.text();
+                        }
+                    } catch (postErr) {
+                        // POST 失敗時 Fallback 至 GET
                     }
 
-                    const textData = await response.text();
+                    // 若 POST 未取得有效內容，Fallback 至 GET
+                    if (!textData) {
+                        const tokenParam = this.state.authToken ? `&token=${encodeURIComponent(this.state.authToken)}` : '';
+                        const fetchUrl = this.state.gasUrl + (this.state.gasUrl.includes('?') ? '&' : '?') + 't=' + now + tokenParam;
+                        response = await fetch(fetchUrl, { 
+                            method: 'GET',
+                            redirect: 'follow',
+                            cache: 'no-store',
+                            signal: controller.signal
+                        });
+                        if (!response.ok) {
+                            throw new Error(`HTTP Error ${response.status}`);
+                        }
+                        textData = await response.text();
+                    }
                     let data;
                     try {
                         data = JSON.parse(textData);

@@ -832,36 +832,57 @@ export const settings = {
                         const t0 = Date.now();
                         const tokenParam = this.state.authToken ? `&token=${encodeURIComponent(this.state.authToken)}` : '';
                         const fetchUrl = gasUrl + (gasUrl.includes('?') ? '&' : '?') + 't=' + Date.now() + tokenParam;
-                        const res = await fetch(fetchUrl, { method: 'GET', redirect: 'follow', cache: 'no-store' });
+                        let res = await fetch(fetchUrl, { method: 'GET', redirect: 'follow', cache: 'no-store' });
+                        let text = '';
+                        let isOk = res.ok;
+
+                        if (isOk) {
+                            text = await res.text();
+                        } else {
+                            // 若 GET 404，嘗試直接以 POST action: 'pull' 進行雙向直連驗證
+                            try {
+                                const postFallback = await fetch(gasUrl, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                                    body: JSON.stringify({ action: 'pull', token: this.state.authToken || '' }),
+                                    redirect: 'follow',
+                                    cache: 'no-store'
+                                });
+                                if (postFallback.ok) {
+                                    text = await postFallback.text();
+                                    isOk = true;
+                                }
+                            } catch(pe) {}
+                        }
+
                         const lat = Date.now() - t0;
-                        if (res.ok) {
-                            const text = await res.text();
+                        if (isOk && text) {
                             if (text.includes('<!DOCTYPE') || text.includes('<html')) {
                                 this.updateDiagItemStatus('gas_get', 'error', 'CORS 阻擋 (請在 GAS 部署將「誰可以存取」設為 Anyone)', 'CORS 被拒');
-                                this.appendDiagLog('GAS GET 回傳 Google 登入重定向頁面，代表權限未設為「所有人 (Anyone)」', 'error');
+                                this.appendDiagLog('GAS 讀取回傳 Google 登入重定向頁面，代表權限未設為「所有人 (Anyone)」', 'error');
                                 errorCount++;
                             } else {
                                 const parsed = JSON.parse(text);
                                 if (parsed.code === 401 || (parsed.status === 'error' && parsed.message && parsed.message.includes('未授權'))) {
                                     this.updateDiagItemStatus('gas_get', 'error', '未授權存取 (Auth Token 錯誤或未設定)', '金鑰不符');
-                                    this.appendDiagLog('GAS GET 驗證失敗：後端要求 Auth Token，但本機未設定或不符', 'error');
+                                    this.appendDiagLog('GAS 讀取驗證失敗：後端要求 Auth Token，但本機未設定或不符', 'error');
                                     errorCount++;
                                 } else {
                                     const projCount = Array.isArray(parsed) ? parsed.length : (parsed.data ? parsed.data.length : 0);
                                     isGetSuccessful = true;
                                     this.updateDiagItemStatus('gas_get', 'success', `讀取成功 · 延遲 ${lat}ms · 雲端目前收錄 ${projCount} 個專案`, `正常 (${lat}ms)`);
-                                    this.appendDiagLog(`GAS GET 讀取正常 (${lat}ms)：成功讀取雲端試算表 ${projCount} 個專案資料 (版本: ${parsed.revision || 0})`, 'success');
+                                    this.appendDiagLog(`GAS 雲端資料庫讀取正常 (${lat}ms)：成功取得 ${projCount} 個專案 (版本: ${parsed.revision || 0})`, 'success');
                                     totalScore++;
                                 }
                             }
                         } else {
                             this.updateDiagItemStatus('gas_get', 'error', `HTTP 錯誤碼: ${res.status}`, `HTTP ${res.status}`);
-                            this.appendDiagLog(`GAS GET 失敗：伺服器回傳 HTTP ${res.status}`, 'error');
+                            this.appendDiagLog(`GAS 讀取失敗：伺服器回傳 HTTP ${res.status}`, 'error');
                             errorCount++;
                         }
                     } catch (getErr) {
                         this.updateDiagItemStatus('gas_get', 'error', `連線失敗: ${getErr.message}`, '連線失敗');
-                        this.appendDiagLog(`GAS GET 網路請求異常: ${getErr.message}`, 'error');
+                        this.appendDiagLog(`GAS 讀取異常: ${getErr.message}`, 'error');
                         errorCount++;
                     }
                 }

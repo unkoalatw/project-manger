@@ -170,6 +170,25 @@ function doPost(e) {
         })).setMimeType(ContentService.MimeType.JSON);
       }
 
+      // 2.1.1 🚀 支援 POST 模式拉取專案資料 (完全避開 Google GET 302 重定向 404 問題)
+      if (act === 'pull' || act === 'read' || act === 'fetch') {
+        var ss = getTargetSpreadsheet();
+        var sheet = getOrCreateDataSheet(ss);
+        var rawData = readDataChunks(sheet);
+        var currentRevision = getSheetRevision(sheet);
+        var lastModified = sheet.getRange('B1').getValue() || '';
+
+        var responseObj = {
+          status: 'success',
+          revision: currentRevision,
+          lastModified: lastModified,
+          data: rawData ? JSON.parse(rawData) : []
+        };
+
+        return ContentService.createTextOutput(JSON.stringify(responseObj))
+          .setMimeType(ContentService.MimeType.JSON);
+      }
+
       // 2.2 Google Drive 金庫讀寫權限檢查
       if (act === 'check_drive_permission' || act === 'drive_check') {
         try {
