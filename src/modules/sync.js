@@ -371,9 +371,11 @@ export const sync = {
                             const parsed = JSON.parse(txt);
                             if (parsed.code === 401) {
                                 logs.push(`⚠️ POST 授權失敗: 後端金鑰驗證不符`);
-                            } else {
+                            } else if (parsed.status === 'success' && (parsed.service === 'FlatSpec Backend' || parsed.version)) {
                                 isPostOk = true;
                                 logs.push(`✅ POST 通訊成功 (${postLat}ms): 試算表後端雙向通道正常 (版本: ${parsed.version || '2.6.0'})`);
+                            } else {
+                                logs.push(`❌ POST 協議不符: 端點回應非預期之 FlatSpec 協定 (回應: ${JSON.stringify(parsed)})`);
                             }
                         }
                     } else {
