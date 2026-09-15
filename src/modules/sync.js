@@ -27,10 +27,9 @@ export const sync = {
                 }
                 
                 try {
-                    let response;
-                    let textData;
+                    let rawPayload = null;
                     
-                    // 優先使用 POST pull (Direct Channel，完全免除 Google GET 302 404 與快取干擾)
+                    // 1. 優先嘗試以 POST action: 'pull' 直連讀取 (避開 Google GET 302 重導向 404 與快取問題)
                     try {
                         const postRes = await fetch(this.state.gasUrl, {
                             method: 'POST',
@@ -41,14 +40,22 @@ export const sync = {
                             signal: controller.signal
                         });
                         if (postRes.ok) {
-                            textData = await postRes.text();
+                            const postText = await postRes.text();
+                            const parsedPost = JSON.parse(postText);
+                            // 嚴格驗證：必須為 status === 'success' 且包含專案陣列，否則視為舊版或不支援 pull 之 GAS 端點
+                            if (parsedPost && (parsedPost.status === 'success' || Array.isArray(parsedPost)) && (Array.isArray(parsedPost.data) || Array.isArray(parsedPost.projects) || Array.isArray(parsedPost))) {
+                                rawPayload = parsedPost;
+                            } else if (parsedPost && (parsedPost.code === 401 || (parsedPost.status === 'error' && parsedPost.message && parsedPost.message.includes('未授權')))) {
+                                throw new Error('未授權存取 (Auth Token 錯誤或未設定)，請至「設定 ➔ 雲端同步」填入正確金鑰。');
+                            }
                         }
                     } catch (postErr) {
-                        // POST 失敗時 Fallback 至 GET
+                        if (postErr.message.includes('未授權')) throw postErr;
+                        // POST 失敗或後端版本不支援 pull 時，順暢 fallback 至 GET
                     }
 
-                    // 若 POST 未取得有效內容，Fallback 至 GET
-                    if (!textData) {
+                    // 2. 若 POST pull 未成功取得合法專案資料，Fallback 至 GET 讀取
+                    if (!rawPayload) {
                         const tokenParam = this.state.authToken ? `&token=${encodeURIComponent(this.state.authToken)}` : '';
                         const fetchUrl = this.state.gasUrl + (this.state.gasUrl.includes('?') ? '&' : '?') + 't=' + now + tokenParam;
                         response = await fetch(fetchUrl, { 
@@ -61,17 +68,17 @@ export const sync = {
                             throw new Error(`HTTP Error ${response.status}`);
                         }
                         textData = await response.text();
-                    }
-                    let data;
-                    try {
-                        data = JSON.parse(textData);
-                    } catch (jsonErr) {
-                        if (textData.includes('<!DOCTYPE') || textData.includes('<html')) {
-                            throw new Error('CORS 存取被拒 (偵測到 Google 登入重定向，請確認 Web App 存取權限設為 Anyone_Anonymous)');
+                        try {
+                            rawPayload = JSON.parse(textData);
+                        } catch (jsonErr) {
+                            if (textData.includes('<!DOCTYPE') || textData.includes('<html')) {
+                                throw new Error('CORS 存取被拒 (偵測到 Google 登入重定向，請確認 Web App 存取權限設為 Anyone_Anonymous)');
+                            }
+                            throw new Error('雲端回傳格式非合法 JSON: ' + jsonErr.message);
                         }
-                        throw new Error('雲端回傳格式非合法 JSON: ' + jsonErr.message);
                     }
                     
+                    let data = rawPayload;
                     if (data && typeof data === 'object' && !Array.isArray(data)) {
                         if (data.code === 401 || (data.status === 'error' && data.message && data.message.includes('未授權'))) {
                             throw new Error('未授權存取 (Auth Token 錯誤或未設定)，請至「設定 ➔ 雲端同步」填入正確金鑰。');

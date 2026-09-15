@@ -16,10 +16,24 @@ var DEFAULT_OAUTH_CLIENT_SECRET = '';
 var DEFAULT_YOUTUBE_API_KEY = '';
 
 /**
- * 🔒 身分驗證器 (已取消強制金鑰要求，保留直通相容)
+ * 🔒 身分驗證器：若 Script Properties 有設置 FLATSPEC_AUTH_TOKEN，則強制要求請求必須攜帶正確 Token
  */
 function verifyAuth(token) {
-  return { authorized: true, tokenRequired: false };
+  var scriptProps = PropertiesService.getScriptProperties();
+  var serverToken = (scriptProps.getProperty('FLATSPEC_AUTH_TOKEN') || '').trim();
+  
+  if (!serverToken) {
+    // 尚未在 Script Properties 設定金鑰時，處於直通模式 (免驗證)
+    return { authorized: true, tokenRequired: false };
+  }
+  
+  // 已設定金鑰，嚴格比對
+  var clientToken = (token || '').trim();
+  if (clientToken && clientToken === serverToken) {
+    return { authorized: true, tokenRequired: true };
+  }
+  
+  return { authorized: false, tokenRequired: true };
 }
 
 /**
@@ -48,32 +62,41 @@ function initialSetupAuthorization() {
 }
 
 /**
- * 處理 GET 請求：讀取 JSON 全量專案資料 (含版本號)
+ * 處理 GET 請求：輕量化端點與向下相容讀取
  */
 function doGet(e) {
   try {
     var params = (e && e.parameter) ? e.parameter : {};
+    var act = params.action || '';
     
-    // 支援 GET 模式執行 OAuth 登入、YouTube 數據、AI 代理
-    if (params.action) {
-      var act = params.action;
-      if (act === 'oauth_login' || act === 'login') {
-        return handleOAuthLoginRedirect(e);
-      }
-      if (act === 'youtube' || act === 'yt') {
-        return handleYouTubeEndpoint(params);
-      }
-      if (act === 'ai_task_decompose' || act === 'ai_decompose' || act === 'ai_doc_assist' || act === 'ai_get_key') {
-        var payload = {
-          action: act,
-          projectContext: params.projectContext || '',
-          userNotes: params.userNotes || '',
-          systemPrompt: params.systemPrompt || '',
-          userMessage: params.userMessage || '',
-          responseFormat: params.responseFormat || 'json_object'
-        };
-        return handleAiDecompositionProxy(payload);
-      }
+    // 1. 輕量化 GET 健康檢查 (用於判定 GET transport / Google 302 重新導向是否正常)
+    if (act === 'health' || act === 'ping') {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: 'success',
+        service: 'FlatSpec Backend',
+        version: '2.6.2',
+        method: 'GET',
+        timestamp: new Date().toISOString()
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // 2. OAuth 與 YouTube 端點
+    if (act === 'oauth_login' || act === 'login') {
+      return handleOAuthLoginRedirect(e);
+    }
+    if (act === 'youtube' || act === 'yt') {
+      return handleYouTubeEndpoint(params);
+    }
+
+    // 3. 身分驗證 (針對 GET 資料讀取)
+    var clientToken = params.token || params.authToken || '';
+    var authCheck = verifyAuth(clientToken);
+    if (!authCheck.authorized) {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: 'error',
+        code: 401,
+        message: '未授權存取：無效或未提供身分驗證金鑰 (Auth Token)。'
+      })).setMimeType(ContentService.MimeType.JSON);
     }
 
     var cache = CacheService.getScriptCache();
@@ -92,6 +115,7 @@ function doGet(e) {
     // 回傳包含 revision 的標準資料包
     var responseObj = {
       status: 'success',
+      version: '2.6.2',
       revision: currentRevision,
       lastModified: lastModified,
       data: rawData ? JSON.parse(rawData) : []
@@ -160,17 +184,41 @@ function doPost(e) {
       var act = parsedPayload.action || '';
 
       // 2.1 系統健康診斷 Ping
-      if (act === 'ping' || act === 'health_check') {
+      if (act === 'ping' || act === 'health_check' || act === 'health') {
         return ContentService.createTextOutput(JSON.stringify({
           status: 'success',
           service: 'FlatSpec Backend',
-          version: '2.6.1',
+          version: '2.6.2',
           authEnforced: authCheck.tokenRequired,
           timestamp: new Date().toISOString()
         })).setMimeType(ContentService.MimeType.JSON);
       }
 
-      // 2.1.1 🚀 支援 POST 模式拉取專案資料 (完全避開 Google GET 302 重定向 404 問題)
+      // 2.1.1 🚀 專案中繼資料輕量檢查 (pull_meta: 僅回傳筆數、大小與 revision，不回傳巨大專案 JSON)
+      if (act === 'pull_meta' || act === 'meta') {
+        var ss = getTargetSpreadsheet();
+        var sheet = getOrCreateDataSheet(ss);
+        var rawData = readDataChunks(sheet);
+        var currentRevision = getSheetRevision(sheet);
+        var lastModified = sheet.getRange('B1').getValue() || '';
+        var count = 0;
+        try {
+          var parsedData = JSON.parse(rawData);
+          count = Array.isArray(parsedData) ? parsedData.length : 0;
+        } catch(pe) {}
+
+        return ContentService.createTextOutput(JSON.stringify({
+          status: 'success',
+          version: '2.6.2',
+          revision: currentRevision,
+          lastModified: lastModified,
+          projectCount: count,
+          jsonChars: rawData.length,
+          timestamp: new Date().toISOString()
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+
+      // 2.1.2 🚀 支援 POST 模式全量讀取專案資料 (完全避開 Google GET 302 重定向 404 問題)
       if (act === 'pull' || act === 'read' || act === 'fetch') {
         var ss = getTargetSpreadsheet();
         var sheet = getOrCreateDataSheet(ss);
@@ -180,6 +228,7 @@ function doPost(e) {
 
         var responseObj = {
           status: 'success',
+          version: '2.6.2',
           revision: currentRevision,
           lastModified: lastModified,
           data: rawData ? JSON.parse(rawData) : []
@@ -187,6 +236,45 @@ function doPost(e) {
 
         return ContentService.createTextOutput(JSON.stringify(responseObj))
           .setMimeType(ContentService.MimeType.JSON);
+      }
+
+      // 2.1.3 🤖 AI 伺服端健康檢查 (ai_health: 僅回傳狀態、不外洩金鑰明文)
+      if (act === 'ai_health' || act === 'ai_status') {
+        var scriptProps = PropertiesService.getScriptProperties();
+        var serverApiKey = (scriptProps.getProperty('GROQ_API_KEY') || '').trim();
+        var preferredModel = scriptProps.getProperty('GROQ_MODEL') || 'llama-3.3-70b-versatile';
+        var isReachable = false;
+        var latencyMs = 0;
+        var errorDetail = '';
+
+        if (serverApiKey) {
+          try {
+            var t0 = new Date().getTime();
+            var testResp = UrlFetchApp.fetch('https://api.groq.com/openai/v1/models', {
+              headers: { 'Authorization': 'Bearer ' + serverApiKey },
+              muteHttpExceptions: true
+            });
+            latencyMs = new Date().getTime() - t0;
+            isReachable = (testResp.getResponseCode() === 200);
+            if (!isReachable) {
+              errorDetail = 'HTTP ' + testResp.getResponseCode() + ': ' + testResp.getContentText().slice(0, 100);
+            }
+          } catch(apiErr) {
+            errorDetail = apiErr.toString();
+          }
+        }
+
+        return ContentService.createTextOutput(JSON.stringify({
+          status: 'success',
+          version: '2.6.2',
+          configured: !!serverApiKey,
+          provider: 'groq',
+          model: preferredModel,
+          reachable: isReachable,
+          latencyMs: latencyMs,
+          error: errorDetail,
+          timestamp: new Date().toISOString()
+        })).setMimeType(ContentService.MimeType.JSON);
       }
 
       // 2.2 Google Drive 金庫讀寫權限檢查
@@ -200,6 +288,7 @@ function doPost(e) {
 
           return ContentService.createTextOutput(JSON.stringify({
             status: 'success',
+            version: '2.6.2',
             message: 'Google Drive 讀寫權限正常',
             folderId: folderId,
             timestamp: new Date().toISOString()

@@ -817,11 +817,10 @@ export const settings = {
                     this.appendDiagLog(`網路檢測例外: ${netErr.message}`, 'warn');
                 }
 
-                // 2. 檢測 GAS 雲端讀取 (GET)
+                // 2. 檢測 GAS 雲端讀取 (GET health 與 GET 專案資料)
                 const gasUrl = (this.state && this.state.gasUrl) ? this.state.gasUrl : (localStorage.getItem('flatSpecGasUrl') || '');
                 const displayUrl = gasUrl ? (gasUrl.slice(0, 35) + '...' + gasUrl.slice(-15)) : '未配置';
                 this.updateDiagItemStatus('gas_get', 'testing', `正在測試 GET: ${displayUrl}`);
-                let isGetSuccessful = false;
                 if (!gasUrl) {
                     this.updateDiagItemStatus('gas_get', 'error', '尚未配置 Google Apps Script 雲端同步網址', '未配置');
                     this.appendDiagLog('GAS URL 尚未配置，無法進行雲端拉取檢測', 'error');
@@ -831,63 +830,99 @@ export const settings = {
                     try {
                         const t0 = Date.now();
                         const tokenParam = this.state.authToken ? `&token=${encodeURIComponent(this.state.authToken)}` : '';
-                        const fetchUrl = gasUrl + (gasUrl.includes('?') ? '&' : '?') + 't=' + Date.now() + tokenParam;
-                        let res = await fetch(fetchUrl, { method: 'GET', redirect: 'follow', cache: 'no-store' });
-                        let text = '';
-                        let isOk = res.ok;
-
-                        if (isOk) {
-                            text = await res.text();
-                        } else {
-                            // 若 GET 404，嘗試直接以 POST action: 'pull' 進行雙向直連驗證
+                        
+                        // 2.1 先行檢測輕量化 GET health check (判定 GET transport / Google 302 重新導向)
+                        const healthUrl = gasUrl + (gasUrl.includes('?') ? '&' : '?') + 'action=health&t=' + Date.now();
+                        let healthRes = await fetch(healthUrl, { method: 'GET', redirect: 'follow', cache: 'no-store' });
+                        let getHealthPassed = false;
+                        if (healthRes.ok) {
+                            const healthTxt = await healthRes.text();
                             try {
-                                const postFallback = await fetch(gasUrl, {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                                    body: JSON.stringify({ action: 'pull', token: this.state.authToken || '' }),
-                                    redirect: 'follow',
-                                    cache: 'no-store'
-                                });
-                                if (postFallback.ok) {
-                                    text = await postFallback.text();
-                                    isOk = true;
+                                const parsedHealth = JSON.parse(healthTxt);
+                                if (parsedHealth.status === 'success') {
+                                    getHealthPassed = true;
+                                    this.appendDiagLog(`GET 傳輸通道健全性檢測正常 (${Date.now() - t0}ms)：Google 302 重導向正常 (後端: ${parsedHealth.version || '2.6.2'})`, 'success');
                                 }
-                            } catch(pe) {}
+                            } catch(e) {}
+                        }
+
+                        // 2.2 檢測專案讀取通道 (優先驗證 POST pull，若遇舊版則驗證 GET)
+                        let isReadPassed = false;
+                        let projectCount = 0;
+                        let backendRev = 0;
+                        let channelUsed = '';
+                        
+                        // 嘗試 POST pull
+                        try {
+                            const postPullRes = await fetch(gasUrl, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                                body: JSON.stringify({ action: 'pull', token: this.state.authToken || '' }),
+                                redirect: 'follow',
+                                cache: 'no-store'
+                            });
+                            if (postPullRes.ok) {
+                                const pTxt = await postPullRes.text();
+                                const pJson = JSON.parse(pTxt);
+                                if (pJson && (pJson.status === 'success' || Array.isArray(pJson)) && (Array.isArray(pJson.data) || Array.isArray(pJson.projects) || Array.isArray(pJson))) {
+                                    isReadPassed = true;
+                                    channelUsed = 'POST 直連';
+                                    const list = Array.isArray(pJson) ? pJson : (pJson.data || pJson.projects || []);
+                                    projectCount = list.length;
+                                    backendRev = pJson.revision || 0;
+                                }
+                            }
+                        } catch(pe) {}
+
+                        // 若 POST pull 未成功，嘗試 GET 讀取
+                        if (!isReadPassed) {
+                            const fetchUrl = gasUrl + (gasUrl.includes('?') ? '&' : '?') + 't=' + Date.now() + tokenParam;
+                            let res = await fetch(fetchUrl, { method: 'GET', redirect: 'follow', cache: 'no-store' });
+                            if (res.ok) {
+                                const txt = await res.text();
+                                if (txt.includes('<!DOCTYPE') || txt.includes('<html')) {
+                                    throw new Error('Google 登入重定向 (請確認 Web App 存取權限設為 Anyone)');
+                                }
+                                const parsed = JSON.parse(txt);
+                                if (parsed.code === 401 || (parsed.status === 'error' && parsed.message && parsed.message.includes('未授權'))) {
+                                    throw new Error('未授權存取：後端要求 Auth Token，但本機未設定或不符');
+                                }
+                                const list = Array.isArray(parsed) ? parsed : (parsed.data || parsed.projects || []);
+                                if (Array.isArray(list)) {
+                                    isReadPassed = true;
+                                    channelUsed = 'GET 通道';
+                                    projectCount = list.length;
+                                    backendRev = parsed.revision || 0;
+                                }
+                            } else {
+                                if (!getHealthPassed) {
+                                    this.appendDiagLog(`GET 資料讀取回傳 HTTP ${res.status} (若後端已有資料，可能為 GET 302 限制或 payload 過大)`, 'warn');
+                                }
+                            }
                         }
 
                         const lat = Date.now() - t0;
-                        if (isOk && text) {
-                            if (text.includes('<!DOCTYPE') || text.includes('<html')) {
-                                this.updateDiagItemStatus('gas_get', 'error', 'CORS 阻擋 (請在 GAS 部署將「誰可以存取」設為 Anyone)', 'CORS 被拒');
-                                this.appendDiagLog('GAS 讀取回傳 Google 登入重定向頁面，代表權限未設為「所有人 (Anyone)」', 'error');
-                                errorCount++;
-                            } else {
-                                const parsed = JSON.parse(text);
-                                if (parsed.code === 401 || (parsed.status === 'error' && parsed.message && parsed.message.includes('未授權'))) {
-                                    this.updateDiagItemStatus('gas_get', 'error', '未授權存取 (Auth Token 錯誤或未設定)', '金鑰不符');
-                                    this.appendDiagLog('GAS 讀取驗證失敗：後端要求 Auth Token，但本機未設定或不符', 'error');
-                                    errorCount++;
-                                } else {
-                                    const projCount = Array.isArray(parsed) ? parsed.length : (parsed.data ? parsed.data.length : 0);
-                                    isGetSuccessful = true;
-                                    this.updateDiagItemStatus('gas_get', 'success', `讀取成功 · 延遲 ${lat}ms · 雲端目前收錄 ${projCount} 個專案`, `正常 (${lat}ms)`);
-                                    this.appendDiagLog(`GAS 雲端資料庫讀取正常 (${lat}ms)：成功取得 ${projCount} 個專案 (版本: ${parsed.revision || 0})`, 'success');
-                                    totalScore++;
-                                }
-                            }
+                        if (isReadPassed) {
+                            this.updateDiagItemStatus('gas_get', 'success', `讀取成功 (${channelUsed}) · 延遲 ${lat}ms · 雲端收錄 ${projectCount} 個專案`, `正常 (${lat}ms)`);
+                            this.appendDiagLog(`GAS 雲端資料庫讀取正常 [${channelUsed}] (${lat}ms)：成功取得 ${projectCount} 個專案 (版本: ${backendRev})`, 'success');
+                            totalScore++;
+                        } else if (getHealthPassed) {
+                            this.updateDiagItemStatus('gas_get', 'warning', `GET 通道就緒但讀取逾時或異常 · 延遲 ${lat}ms`, '待同步');
+                            this.appendDiagLog(`GET 通道就緒但尚未取得有效專案資料，請確認後端已完成部署`, 'warn');
+                            warningCount++;
                         } else {
-                            this.updateDiagItemStatus('gas_get', 'error', `HTTP 錯誤碼: ${res.status}`, `HTTP ${res.status}`);
-                            this.appendDiagLog(`GAS 讀取失敗：伺服器回傳 HTTP ${res.status}`, 'error');
+                            this.updateDiagItemStatus('gas_get', 'error', 'GET 404 / 連線逾時 (請確認 GAS 部署新版本)', '讀取失敗');
+                            this.appendDiagLog('GAS 讀取通道尚未就緒，伺服器可能尚未部署最新 Code.js', 'error');
                             errorCount++;
                         }
                     } catch (getErr) {
-                        this.updateDiagItemStatus('gas_get', 'error', `連線失敗: ${getErr.message}`, '連線失敗');
+                        this.updateDiagItemStatus('gas_get', 'error', `連線異常: ${getErr.message}`, '連線異常');
                         this.appendDiagLog(`GAS 讀取異常: ${getErr.message}`, 'error');
                         errorCount++;
                     }
                 }
 
-                // 3. 檢測 GAS 雲端雙向寫入 (POST Echo / Ping - 🛡️ 非破壞性測試，絕不覆寫資料庫)
+                // 3. 檢測 GAS 雲端雙向寫入 (POST Ping & pull_meta 輕量資料庫中繼探測)
                 this.updateDiagItemStatus('gas_post', 'testing', '正在發送非破壞性 POST Ping 驗證寫入通道與 CORS...');
                 if (!gasUrl) {
                     this.updateDiagItemStatus('gas_post', 'error', '尚未配置 GAS 網址', '未配置');
@@ -915,8 +950,26 @@ export const settings = {
                                     this.appendDiagLog('GAS POST 寫入失敗：Auth Token 錯誤或未設定', 'error');
                                     errorCount++;
                                 } else if (parsed.status === 'success' || parsed.service) {
-                                    this.updateDiagItemStatus('gas_post', 'success', `雙向通訊正常 · 延遲 ${lat}ms · 伺服器響應就緒`, `正常 (${lat}ms)`);
-                                    this.appendDiagLog(`GAS POST 雙向通訊成功 (${lat}ms)：非破壞性通道驗證通過 (版本: ${parsed.version || '2.6.0'})`, 'success');
+                                    // 額外探測 pull_meta 檢查試算表資料大小與結構
+                                    let metaInfo = '';
+                                    try {
+                                        const metaRes = await fetch(gasUrl, {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                                            body: JSON.stringify({ action: 'pull_meta', token: this.state.authToken || '' }),
+                                            redirect: 'follow',
+                                            cache: 'no-store'
+                                        });
+                                        if (metaRes.ok) {
+                                            const metaJson = await metaRes.json();
+                                            if (metaJson.status === 'success') {
+                                                metaInfo = ` | 資料量: ${(metaJson.jsonChars / 1024).toFixed(1)} KB (${metaJson.projectCount} 專案)`;
+                                            }
+                                        }
+                                    } catch(me) {}
+
+                                    this.updateDiagItemStatus('gas_post', 'success', `雙向通訊正常 · 延遲 ${lat}ms · 伺服器響應就緒${metaInfo}`, `正常 (${lat}ms)`);
+                                    this.appendDiagLog(`GAS POST 雙向通訊成功 (${lat}ms)：非破壞性通道驗證通過 (後端版本: ${parsed.version || '2.6.2'}${metaInfo})`, 'success');
                                     totalScore++;
                                 } else {
                                     this.updateDiagItemStatus('gas_post', 'warning', `GAS 回應: ${parsed.message || '未知回應'}`, '寫入警訊');
@@ -974,13 +1027,45 @@ export const settings = {
                     }
                 }
 
-                // 5. 檢測 Groq AI 智慧推理引擎 (Llama-3.3)
+                // 5. 檢測 Groq AI 智慧推理引擎 (ai_health 伺服端中繼探測與直連探測)
                 this.updateDiagItemStatus('ai', 'testing', '正在發送 Ping 封包測試 Groq AI 模型與金鑰...');
                 const clientKey = localStorage.getItem('flatSpecGroqApiKey') || '';
                 let aiPassed = false;
                 const testPrompt = 'Respond with exact word: PONG';
 
-                if (clientKey) {
+                // 5.1 優先檢查 GAS 雲端後端是否已配置 GROQ_API_KEY (ai_health 探測)
+                if (gasUrl) {
+                    try {
+                        const t0 = Date.now();
+                        const aiHealthRes = await fetch(gasUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                            body: JSON.stringify({
+                                action: 'ai_health',
+                                token: this.state.authToken || ''
+                            }),
+                            redirect: 'follow',
+                            cache: 'no-store'
+                        });
+                        const lat = Date.now() - t0;
+                        if (aiHealthRes.ok) {
+                            const aiHealthData = await aiHealthRes.json();
+                            if (aiHealthData.status === 'success' && aiHealthData.configured) {
+                                if (aiHealthData.reachable) {
+                                    aiPassed = true;
+                                    this.updateDiagItemStatus('ai', 'success', `GAS 雲端 AI 就緒 · 延遲 ${aiHealthData.latencyMs || lat}ms · 模型: ${aiHealthData.model || 'Llama-3.3'}`, `雲端正常 (${lat}ms)`);
+                                    this.appendDiagLog(`GAS 雲端 Groq AI 連線正常 (${lat}ms)：雲端後端已配置 API Key 且模型響應就緒`, 'success');
+                                    totalScore++;
+                                } else {
+                                    this.appendDiagLog(`GAS 雲端已配置 GROQ_API_KEY，但調用 API 異常: ${aiHealthData.error || '金鑰可能失效或配額耗盡'}`, 'warn');
+                                }
+                            }
+                        }
+                    } catch (ahErr) {}
+                }
+
+                // 5.2 若雲端未通過，檢查本機是否存有專屬 Direct Key
+                if (!aiPassed && clientKey) {
                     try {
                         const t0 = Date.now();
                         const groqRes = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -1001,49 +1086,14 @@ export const settings = {
                             const reply = groqData.choices?.[0]?.message?.content || '';
                             aiPassed = true;
                             this.updateDiagItemStatus('ai', 'success', `本機 Direct Key 正常 · 延遲 ${lat}ms · 模型: Llama-3.3-70b`, `直連正常 (${lat}ms)`);
-                            this.appendDiagLog(`Groq AI 直連測試成功 (${lat}ms)：模型響應「${reply.trim()}」`, 'success');
+                            this.appendDiagLog(`Groq AI 本機直連測試成功 (${lat}ms)：模型響應「${reply.trim()}」`, 'success');
                             totalScore++;
                         } else {
                             const errText = await groqRes.text();
-                            this.appendDiagLog(`本機 Groq Key 回應異常 (HTTP ${groqRes.status})：${errText.slice(0, 120)}，切換測試 GAS 雲端中繼...`, 'warn');
+                            this.appendDiagLog(`本機 Groq Key 回應異常 (HTTP ${groqRes.status})：${errText.slice(0, 120)}`, 'warn');
                         }
                     } catch (groqErr) {
-                        this.appendDiagLog(`本機 Groq 直連例外：${groqErr.message}，轉向測試 GAS 雲端中繼...`, 'warn');
-                    }
-                }
-
-                if (!aiPassed && gasUrl) {
-                    try {
-                        const t0 = Date.now();
-                        const proxyRes = await fetch(gasUrl, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                            body: JSON.stringify({
-                                action: 'ai_doc_chat',
-                                token: this.state.authToken || '',
-                                systemPrompt: 'You are a test ping bot. Output response format in json.',
-                                userMessage: testPrompt,
-                                responseFormat: 'text',
-                                clientApiKey: clientKey,
-                                maxTokens: 10
-                            }),
-                            redirect: 'follow',
-                            cache: 'no-store'
-                        });
-                        const lat = Date.now() - t0;
-                        if (proxyRes.ok) {
-                            const proxyData = await proxyRes.json();
-                            if (proxyData.status === 'success' && proxyData.data) {
-                                aiPassed = true;
-                                this.updateDiagItemStatus('ai', 'success', `GAS 雲端 AI 中繼正常 · 延遲 ${lat}ms · 免本機金鑰`, `中繼正常 (${lat}ms)`);
-                                this.appendDiagLog(`GAS 雲端 AI 代理中繼測試成功 (${lat}ms)：成功調用雲端 Groq 核心`, 'success');
-                                totalScore++;
-                            } else {
-                                this.appendDiagLog(`GAS AI 代理回應：${proxyData.message || '未配置 GROQ_API_KEY'}`, 'warn');
-                            }
-                        }
-                    } catch (pErr) {
-                        this.appendDiagLog(`GAS AI 中繼請求例外: ${pErr.message}`, 'warn');
+                        this.appendDiagLog(`本機 Groq 直連例外：${groqErr.message}`, 'warn');
                     }
                 }
 
@@ -1053,8 +1103,8 @@ export const settings = {
                         this.appendDiagLog('Groq API Key 檢驗未通過，請至「AI 核心配置」檢查金鑰是否正確', 'error');
                         errorCount++;
                     } else {
-                        this.updateDiagItemStatus('ai', 'warning', '尚未配置本地 API Key，將自動啟用本機離線智慧引擎', '本機引擎');
-                        this.appendDiagLog('未檢測到 Groq API Key，系統將使用內建智慧規則引擎執行任務拆解與助理', 'warn');
+                        this.updateDiagItemStatus('ai', 'warning', '尚未檢測到有效 Groq API Key，將自動啟用本機離線智慧引擎', '本機引擎');
+                        this.appendDiagLog('後端與本地皆未配置或尚未啟用有效 Groq API Key，系統將使用內建智慧規則引擎執行任務拆解與助理', 'warn');
                         warningCount++;
                     }
                 }

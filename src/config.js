@@ -5,7 +5,7 @@ export const CONFIG = {
     
     // 預期後端版本與服務標章
     EXPECTED_BACKEND_SERVICE: 'FlatSpec Backend',
-    EXPECTED_BACKEND_VERSION: '2.6.1',
+    EXPECTED_BACKEND_VERSION: '2.6.2',
 
     // 試算表資料庫資訊
     SPREADSHEET_ID: '1WSViTq8yVVtOt8ubh01l1441-HzgUWcJiiBD4MZgmnU',
