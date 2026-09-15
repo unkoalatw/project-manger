@@ -42,7 +42,7 @@ export const storage = {
                     const LEGACY_URLS = [
                         'https://script.google.com/macros/s/AKfycbxPLTdFYgqSv3PrGxK7U-UTIj3YIiJPU-QbMhLYq4NVyRd77263-xFsbFaFovHoKoC3/exec',
                         'https://script.google.com/macros/s/AKfycbxPoko2kbUAQas0LtRI-Vs2piyK-5Huj62iiQBK0HgULCZhcFUEjRU7-OgnQOpAo3pu/exec',
-                        'https://script.google.com/macros/s/AKfycbyKQNxw0NiU87rx9pxgb0r1XN74A2WLVAYeVLimNBZYYiY-07G1tK-pi1EXLhYn1nSyFw/exec'
+                        'https://script.google.com/macros/s/AKfycbxpCpIHMzlWOHBb92pCQG9T36vGH8I8ju8UZHHDP6BvOoeuxQ6ZXFXokp8IcDmSSGSn/exec'
                     ];
                     if (!savedUrl || !savedUrl.trim().startsWith('http') || LEGACY_URLS.includes(savedUrl.trim())) {
                         savedUrl = DEFAULT_GAS_URL;

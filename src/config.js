@@ -1,7 +1,7 @@
 // FlatSpec System Configuration (SSOT)
 export const CONFIG = {
     // 預設 Google Apps Script 雲端同步 Web App 端點
-    DEFAULT_GAS_ENDPOINT: 'https://script.google.com/macros/s/AKfycbxpCpIHMzlWOHBb92pCQG9T36vGH8I8ju8UZHHDP6BvOoeuxQ6ZXFXokp8IcDmSSGSn/exec',
+    DEFAULT_GAS_ENDPOINT: 'https://script.google.com/macros/s/AKfycbyKQNxw0NiU87rx9pxgb0r1XN74A2WLVAYeVLimNBZYYiY-07G1tK-pi1EXLhYn1nSyFw/exec',
     
     // 預期後端版本與服務標章
     EXPECTED_BACKEND_SERVICE: 'FlatSpec Backend',
