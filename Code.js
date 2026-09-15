@@ -16,42 +16,20 @@ var DEFAULT_OAUTH_CLIENT_SECRET = '';
 var DEFAULT_YOUTUBE_API_KEY = '';
 
 /**
- * 🔒 安全授權驗證器：驗證客戶端請求是否攜帶合法的 FLATSPEC_AUTH_TOKEN
- * 若 ScriptProperties 設有 FLATSPEC_AUTH_TOKEN，則強制所有讀寫與 AI 代理請求通過比對
+ * 🔒 身分驗證器 (已取消強制金鑰要求，保留直通相容)
  */
 function verifyAuth(token) {
-  var serverToken = PropertiesService.getScriptProperties().getProperty('FLATSPEC_AUTH_TOKEN') || '';
-  serverToken = serverToken.trim();
-  if (!serverToken) {
-    // 尚未在後端設定保護金鑰時，允許連線，但於日誌提示
-    return { authorized: true, tokenRequired: false };
-  }
-  var clientToken = (token || '').trim();
-  if (clientToken && clientToken === serverToken) {
-    return { authorized: true, tokenRequired: true };
-  }
-  return { authorized: false, tokenRequired: true };
+  return { authorized: true, tokenRequired: false };
 }
 
 /**
- * 處理 GET 請求：讀取 JSON 全量專案資料 (含版本號與安全驗證)
+ * 處理 GET 請求：讀取 JSON 全量專案資料 (含版本號)
  */
 function doGet(e) {
   try {
     var params = (e && e.parameter) ? e.parameter : {};
-    var clientToken = params.token || params.authToken || params.auth_token || '';
     
-    // 1. 執行安全性身分驗證
-    var authCheck = verifyAuth(clientToken);
-    if (!authCheck.authorized) {
-      return ContentService.createTextOutput(JSON.stringify({
-        status: 'error',
-        code: 401,
-        message: '未授權存取：無效或未提供身分驗證金鑰 (Auth Token)。請於設定面板填入正確金鑰。'
-      })).setMimeType(ContentService.MimeType.JSON);
-    }
-
-    // 2. 支援 GET 模式執行 OAuth 登入、YouTube 數據、AI 代理
+    // 支援 GET 模式執行 OAuth 登入、YouTube 數據、AI 代理
     if (params.action) {
       var act = params.action;
       if (act === 'oauth_login' || act === 'login') {
