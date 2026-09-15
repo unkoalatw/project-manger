@@ -1,4 +1,8 @@
 // FlatSpec Module: storage
+import { idbStorage, STORES } from '../core/storage/idb.js';
+import { SchemaManager } from '../core/schema/schemaManager.js';
+import { HealthChecker } from '../core/health/healthChecker.js';
+
 export const storage = {
 // ================= 本機儲存 (離線快取層) =================
             loadLocalData() {
@@ -20,10 +24,18 @@ export const storage = {
                                 return true;
                             });
 
-                            this.state.projects = validProjects;
-                            if (validProjects.length !== normalized.length) {
-                                localStorage.setItem('flatSpecData', JSON.stringify(validProjects));
-                                console.log(`[Storage] 🧹 已自動清理 ${normalized.length - validProjects.length} 個 2026/8/27 14:00 以前的過時本地快取專案。`);
+                            // 1. 執行 Schema Migration (自動無損升級至最新 Schema v3)
+                            const migrated = SchemaManager.migrateAll(validProjects);
+
+                            // 2. 執行資料健康檢查與自動修復
+                            const healthReport = HealthChecker.scanAndRepair(migrated);
+                            if (healthReport.fixedIssues > 0) {
+                                console.log(`[Storage] 🩺 已自動修復 ${healthReport.fixedIssues} 個資料一致性問題:`, healthReport.issues);
+                            }
+
+                            this.state.projects = healthReport.projects;
+                            if (validProjects.length !== normalized.length || healthReport.fixedIssues > 0) {
+                                localStorage.setItem('flatSpecData', JSON.stringify(healthReport.projects));
                             }
                         }
                     }
@@ -102,6 +114,13 @@ export const storage = {
                     localStorage.setItem('flatSpecGasUrl', this.state.gasUrl);
                     this.state.lastLocalSaveTime = new Date();
                     this.recordLocalHistorySnapshot(this.state.projects, '本地自動存檔');
+
+                    // 🚀 非同步雙寫至 IndexedDB 實體庫與分離附件庫 (Zero-blocking)
+                    try {
+                        this.persistToIndexedDB(this.state.projects);
+                    } catch (idbErr) {
+                        console.warn('[Storage] IndexedDB sync skipped:', idbErr);
+                    }
                 } catch (e) {
                     console.warn("LocalStorage 配額吃緊，自動啟動瘦身保存機制...", e.message);
                     try {
@@ -206,6 +225,82 @@ export const storage = {
                     }
                 } catch(e) {
                     // 靜默處理非致命的歷史快照配額異常
+                }
+            },
+
+            // ================= 非同步 IndexedDB 實體庫雙寫 =================
+            async persistToIndexedDB(projects) {
+                if (!Array.isArray(projects) || typeof window === 'undefined' || !window.indexedDB) return;
+                try {
+                    for (const proj of projects) {
+                        if (!proj || !proj.id) continue;
+                        
+                        // 1. 存儲專案本體 (不包含大型 docs 陣列以免冗餘)
+                        const projMeta = {
+                            id: proj.id,
+                            title: proj.title || '',
+                            description: proj.description || '',
+                            category: proj.category || 'General',
+                            tags: proj.tags || [],
+                            createdAt: proj.createdAt || new Date().toISOString(),
+                            updatedAt: proj.updatedAt || new Date().toISOString(),
+                            schemaVersion: proj.schemaVersion || 3,
+                            folders: proj.folders || []
+                        };
+                        await idbStorage.put(STORES.PROJECTS, projMeta);
+
+                        // 2. 存儲文檔實體與附件
+                        if (Array.isArray(proj.docs)) {
+                            for (const doc of proj.docs) {
+                                if (!doc || !doc.id) continue;
+                                const docEntity = {
+                                    id: doc.id,
+                                    projectId: proj.id,
+                                    title: doc.title || '',
+                                    folderId: doc.folderId || null,
+                                    content: doc.content || '',
+                                    updatedAt: doc.updatedAt || new Date().toISOString()
+                                };
+                                await idbStorage.put(STORES.DOCS, docEntity);
+
+                                // 分離儲存大型 Base64 附件
+                                if (doc.attachments && typeof doc.attachments === 'object') {
+                                    for (const [attId, att] of Object.entries(doc.attachments)) {
+                                        if (att && att.data && att.data.length > 100) {
+                                            await idbStorage.put(STORES.ATTACHMENTS, {
+                                                id: attId,
+                                                docId: doc.id,
+                                                name: att.name || 'attachment',
+                                                type: att.type || 'image/png',
+                                                data: att.data,
+                                                createdAt: Date.now()
+                                            });
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // 3. 存儲任務實體
+                        if (Array.isArray(proj.tasks)) {
+                            for (const task of proj.tasks) {
+                                if (!task || !task.id) continue;
+                                const taskEntity = {
+                                    id: task.id,
+                                    projectId: proj.id,
+                                    title: task.title || '',
+                                    status: task.status || (task.done ? 'DONE' : 'TODO'),
+                                    priority: task.priority || 'medium',
+                                    dueDate: task.dueDate || null,
+                                    tags: task.tags || [],
+                                    updatedAt: task.updatedAt || new Date().toISOString()
+                                };
+                                await idbStorage.put(STORES.TASKS, taskEntity);
+                            }
+                        }
+                    }
+                } catch (err) {
+                    console.warn('[Storage] persistToIndexedDB error:', err);
                 }
             },
 

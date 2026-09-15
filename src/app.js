@@ -35,7 +35,27 @@ import { docWidgets } from './modules/docWidgets.js';
 import { memorySearch } from './modules/memorySearch.js';
 import { codeEditor } from './modules/codeEditor.js';
 
+// FlatSpec Core Architecture Modules
+import { platform } from './core/platform/platformAdapter.js';
+import { idbStorage, STORES } from './core/storage/idb.js';
+import { SchemaManager, CURRENT_SCHEMA_VERSION } from './core/schema/schemaManager.js';
+import { ChangeJournal, OPERATIONS } from './core/journal/changeJournal.js';
+import { commandBus, Command } from './core/commands/commandBus.js';
+import { HealthChecker } from './core/health/healthChecker.js';
+
 export const app = {
+    core: {
+        platform,
+        idbStorage,
+        STORES,
+        SchemaManager,
+        CURRENT_SCHEMA_VERSION,
+        ChangeJournal,
+        OPERATIONS,
+        commandBus,
+        Command,
+        HealthChecker
+    },
     state,
     ...audio,
     ...dataModels,

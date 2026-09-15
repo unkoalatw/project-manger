@@ -184,8 +184,29 @@ export const lifecycle = {
                     }
                 });
 
-                // 鍵盤事件 (Ctrl+S 立即存檔, Ctrl+K 全域搜尋, Ctrl+F/H 文檔尋找取代, Esc 關閉彈窗)
-                document.addEventListener('keydown', (e) => {
+                // 鍵盤事件 (Ctrl+S 立即存檔, Ctrl+K 全域搜尋, Ctrl+F/H 文檔尋找取代, Ctrl+Z/Y 全域復原重做, Esc 關閉彈窗)
+                document.addEventListener('keydown', async (e) => {
+                    // Global Undo / Redo (僅在非聚焦在一般輸入框或編輯器時，或全域捕獲時觸發實體級 Undo/Redo)
+                    const isInputFocused = ['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName) || document.activeElement?.isContentEditable;
+                    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z' && !e.shiftKey && !isInputFocused) {
+                        e.preventDefault();
+                        if (this.core?.commandBus?.canUndo()) {
+                            await this.core.commandBus.undo();
+                            this.showToast('↩️ 已復原操作');
+                            this.renderSidebar();
+                            this.renderDashboard();
+                        }
+                    } else if (((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y' && !isInputFocused) || 
+                               ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'z' && !isInputFocused)) {
+                        e.preventDefault();
+                        if (this.core?.commandBus?.canRedo()) {
+                            await this.core.commandBus.redo();
+                            this.showToast('↪️ 已重做操作');
+                            this.renderSidebar();
+                            this.renderDashboard();
+                        }
+                    }
+
                     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
                         e.preventDefault();
                         this.pushToCloud(true);
