@@ -928,12 +928,16 @@ export const markdown = {
                 raw = raw.replace(/^([ \t]*(?:flowchart|graph)\s+[A-Za-z]+)[，,；; \t]+(.*)$/im, '$1\n$2');
                 raw = raw.replace(/^([ \t]*(?:sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|pie|gitGraph|mindmap|timeline))[，,；; \t]+(.*)$/im, '$1\n$2');
 
-                // 3. 逐行清理全形標點符號與連線語法
+                // 3. 逐行清理全形標點符號與連線語法，同時保留縮排 (供 mindmap 等依賴縮排的圖表使用)
                 const lines = raw.split('\n');
                 const fixedLines = [];
 
                 for (let line of lines) {
+                    // 保留縮排的空白
+                    const matchWhitespace = line.match(/^([ \t]*)/);
+                    const indentation = matchWhitespace ? matchWhitespace[1] : '';
                     let l = line.trim();
+
                     if (!l) {
                         fixedLines.push('');
                         continue;
@@ -942,7 +946,10 @@ export const markdown = {
                     // 處理圖表宣告後綴全形標點
                     if (/^(flowchart|graph)\s+[A-Za-z]+[，,；;]/i.test(l)) {
                         const parts = l.replace(/^((?:flowchart|graph)\s+[A-Za-z]+)[，,；;][ \t]*(.*)$/i, '$1\n$2').split('\n');
-                        fixedLines.push(...parts);
+                        fixedLines.push(indentation + parts[0]);
+                        if (parts.length > 1 && parts[1]) {
+                            fixedLines.push(indentation + parts[1]);
+                        }
                         continue;
                     }
 
@@ -951,7 +958,7 @@ export const markdown = {
                          .replace(/＝＝＞|══＞|==\>/g, '==>')
                          .replace(/－\.-|--\./g, '-.-');
 
-                    fixedLines.push(l);
+                    fixedLines.push(indentation + l);
                 }
 
                 return fixedLines.join('\n');
