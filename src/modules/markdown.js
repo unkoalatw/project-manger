@@ -1021,11 +1021,20 @@ export const markdown = {
                             resultLines.push(line);
                         }
                     } else {
+                        // 流程圖累積中：若偵測到新的圖表聲明（如前一張結束後緊接著出現 flowchart / mindmap），自動拆分為獨立代碼塊
+                        if (diagramStartRegex.test(trimmed) && diagramBuffer.length > 0) {
+                            resultLines.push('```mermaid');
+                            resultLines.push(...diagramBuffer);
+                            resultLines.push('```');
+                            diagramBuffer = [trimmed.replace(/^`+|`+$/g, '').trim()];
+                            continue;
+                        }
+
                         // 流程圖累積中：允許空行、反引號包裹行、以及常見的 mermaid 語法行 (節點定義、箭頭、style 等)
                         if (trimmed === '') {
                             diagramBuffer.push('');
                         } else if (trimmed.startsWith('`') || 
-                                   /^\s*(subgraph|end|style|class|click|direction|[A-Za-z0-9_\u4e00-\u9fa5]+|%%)/i.test(trimmed) || 
+                                   /^\s*(subgraph|end|style|class|click|direction|root|[A-Za-z0-9_\u4e00-\u9fa5]+|%%)/i.test(trimmed) || 
                                    trimmed.includes('-->') || trimmed.includes('---') || trimmed.includes('==>') || trimmed.includes('-.-') ||
                                    trimmed.includes('－－＞') || trimmed.includes('──＞')) {
                             const cleanLine = trimmed.replace(/^`+|`+$/g, '').trim();
