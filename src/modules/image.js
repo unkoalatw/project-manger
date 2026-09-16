@@ -1,4 +1,5 @@
 // FlatSpec Module: image & media attachments
+import { CONFIG } from '../config.js';
 import { idbStorage, STORES } from '../core/storage/idb.js';
 
 export const image = {
@@ -506,55 +507,74 @@ export const image = {
             },
 
             async uploadMediaToDrive(attId) {
-                const p = this.getCurrentProject();
-                const doc = p?.docs?.find(d => d.id === this.state.activeDocId);
-                const att = doc?.attachments?.[attId];
-                if (!att) {
-                    this.showToast('找不到指定的附件', 'error');
-                    return;
+                const btnEl = document.getElementById(`uploadDriveBtn_${attId}`);
+                if (btnEl) {
+                    btnEl.disabled = true;
+                    btnEl.innerText = '⏳';
+                    btnEl.classList.add('animate-spin');
                 }
-
-                const gasUrl = this.state.gasUrl || this.state.settings?.gasUrl || localStorage.getItem('flatSpecGasUrl');
-                if (!gasUrl) {
-                    this.showToast('尚未設定 Google Apps Script Web App 網址', 'error');
-                    return;
-                }
-
-                this.showToast(`☁️ 正在上傳「${att.name || '檔案'}」至 Google Drive...`);
 
                 try {
-                    let base64Payload = '';
-                    let mimeType = att.type || (att.isVideo ? 'video/mp4' : 'image/jpeg');
-                    let filename = att.name || 'attachment';
+                    const meta = this.resolveAttachment(attId);
+                    if (!meta) {
+                        this.showToast('找不到指定的附件資料', 'error');
+                        return;
+                    }
 
-                    if (att.data && att.data.startsWith('data:')) {
-                        base64Payload = att.data.split(',')[1];
+                    const gasUrl = this.state.gasUrl || this.state.settings?.gasUrl || localStorage.getItem('flatSpecGasUrl') || CONFIG.DEFAULT_GAS_ENDPOINT;
+                    if (!gasUrl) {
+                        this.showToast('尚未設定 Google Apps Script Web App 網址', 'error');
+                        return;
+                    }
+
+                    const fileName = meta.name || 'attachment';
+                    const isVid = meta.isVideo || meta.type?.startsWith('video/') || attId.startsWith('vid_');
+                    const mimeType = meta.type || (isVid ? 'video/mp4' : 'image/jpeg');
+
+                    this.showToast(`⏳ 正在讀取「${fileName}」本機資料...`);
+
+                    let base64Payload = '';
+                    let byteLength = 0;
+
+                    if (meta.data && meta.data.startsWith('data:')) {
+                        base64Payload = meta.data.split(',')[1];
+                        byteLength = Math.round((base64Payload.length * 3) / 4);
                     } else {
-                        // 從 IndexedDB 提取 Blob
+                        // 從 IndexedDB 提取二進位 Blob
                         const idbItem = await idbStorage.get(STORES.ATTACHMENTS, attId);
                         if (idbItem?.blob instanceof Blob) {
+                            byteLength = idbItem.blob.size;
+                            if (byteLength > 45 * 1024 * 1024) {
+                                throw new Error(`檔案大小 (${(byteLength / (1024 * 1024)).toFixed(1)} MB) 超過 Google Apps Script 45MB 上傳上限`);
+                            }
+
+                            this.showToast(`⏳ 正在編碼二進位檔案 (${(byteLength / (1024 * 1024)).toFixed(1)} MB)...`);
                             base64Payload = await new Promise((resolve, reject) => {
                                 const reader = new FileReader();
                                 reader.onload = () => {
                                     const res = reader.result;
                                     resolve(res.split(',')[1]);
                                 };
-                                reader.onerror = reject;
+                                reader.onerror = () => reject(new Error('讀取 Blob 失敗'));
                                 reader.readAsDataURL(idbItem.blob);
                             });
                         } else if (idbItem?.data && idbItem.data.startsWith('data:')) {
                             base64Payload = idbItem.data.split(',')[1];
+                            byteLength = Math.round((base64Payload.length * 3) / 4);
                         }
                     }
 
                     if (!base64Payload) {
-                        throw new Error('無法讀取本機媒體二進位資料');
+                        throw new Error('無法讀取本機媒體快取資料');
                     }
+
+                    const sizeMb = (byteLength / (1024 * 1024)).toFixed(1);
+                    this.showToast(`☁️ 正在上傳「${fileName}」(${sizeMb} MB) 至 Google Drive...`);
 
                     const payload = {
                         action: 'upload_drive_media',
                         authToken: this.state.authToken || this.state.settings?.driveAuthKey || localStorage.getItem('flatSpecDriveAuthKey') || '',
-                        fileName: `${filename}_${Date.now()}.${att.isVideo ? 'mp4' : 'jpg'}`,
+                        fileName: `${fileName}_${Date.now()}.${isVid ? 'mp4' : 'jpg'}`,
                         mimeType: mimeType,
                         base64Data: base64Payload
                     };
@@ -565,19 +585,48 @@ export const image = {
                         body: JSON.stringify(payload)
                     });
 
+                    if (!resp.ok) {
+                        throw new Error(`伺服端回應錯誤 HTTP ${resp.status}`);
+                    }
+
                     const result = await resp.json();
                     if (result && (result.status === 'success' || result.success) && (result.url || result.data?.viewUrl || result.previewUrl || result.downloadUrl)) {
-                        att.driveUrl = result.url || result.data?.viewUrl || result.previewUrl || result.downloadUrl;
-                        this.renderDocAttachmentsBar(doc);
+                        const driveLink = result.url || result.data?.viewUrl || result.previewUrl || result.downloadUrl;
+                        
+                        // 同步更新當前專案或所有關聯文檔中的 attachment 屬性
+                        const p = this.getCurrentProject();
+                        let updated = false;
+                        if (p?.docs) {
+                            for (const doc of p.docs) {
+                                if (doc?.attachments?.[attId]) {
+                                    doc.attachments[attId].driveUrl = driveLink;
+                                    updated = true;
+                                }
+                            }
+                        }
+
+                        meta.driveUrl = driveLink;
+
+                        const activeDoc = p?.docs?.find(d => d.id === this.state.activeDocId);
+                        if (activeDoc) {
+                            this.renderDocAttachmentsBar(activeDoc);
+                        }
+
                         this.saveToLocal();
                         this.debouncedSaveAndSync();
-                        this.showToast('🎉 上傳 Google Drive 成功！已更新雲端備份連結');
+                        this.showToast('🎉 上傳 Google Drive 成功！已建立永久雲端備份連結');
                     } else {
                         throw new Error(result?.message || 'Drive API 回應異常');
                     }
                 } catch (err) {
                     console.error('[Media] Upload to Drive error:', err);
                     this.showToast('上傳至 Google Drive 失敗: ' + err.message, 'error');
+                } finally {
+                    if (btnEl) {
+                        btnEl.disabled = false;
+                        btnEl.innerText = '☁️';
+                        btnEl.classList.remove('animate-spin');
+                    }
                 }
             },
 
@@ -599,11 +648,11 @@ export const image = {
                 }
 
                 let html = `
-                    <div class="w-full flex items-center justify-between pb-1 mb-1 border-b border-zinc-200">
-                        <span class="font-black text-[11px] text-zinc-700 flex items-center gap-1.5">
+                    <div class="w-full flex items-center justify-between pb-1 mb-1 border-b border-zinc-200 dark:border-zinc-700">
+                        <span class="font-black text-[11px] text-zinc-700 dark:text-zinc-300 flex items-center gap-1.5">
                             <span>📎</span> <span>文檔附件與影音快取庫 (${entries.length})</span>
                         </span>
-                        <button type="button" onclick="app.openInsertImageModal()" class="text-[10px] font-bold text-blue-600 hover:underline">＋ 新增圖片/影片</button>
+                        <button type="button" onclick="app.openInsertImageModal()" class="text-[10px] font-bold text-blue-600 dark:text-blue-400 hover:underline">＋ 新增圖片/影片</button>
                     </div>
                     <div class="w-full flex flex-wrap gap-2 pt-1">
                 `;
@@ -612,23 +661,23 @@ export const image = {
                     const isVid = att.isVideo || att.type?.startsWith('video/') || id.startsWith('vid_');
                     const icon = isVid ? '🎥' : '🖼️';
                     const sizeLabel = att.size ? `${(att.size / (1024 * (isVid ? 1024 : 1))).toFixed(1)} ${isVid ? 'MB' : 'KB'}` : (att.data ? `${(att.data.length / 1024).toFixed(0)} KB` : '快取中');
-                    const driveBadge = att.driveUrl ? `<span class="text-[9px] bg-green-100 text-green-800 px-1 py-0.5 rounded font-bold border border-green-300" title="已備份至 Google Drive">☁️ Drive</span>` : '';
+                    const driveBadge = att.driveUrl ? `<span class="text-[9px] bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-300 px-1 py-0.5 rounded font-bold border border-green-300 dark:border-green-700" title="已備份至 Google Drive">☁️ Drive</span>` : '';
 
                     html += `
-                        <div class="flex items-center gap-1.5 p-1 px-2 bg-white border-2 border-black flat-box shadow-[2px_2px_0px_0px_#000] text-xs max-w-[280px]">
+                        <div class="flex items-center gap-1.5 p-1 px-2 bg-white dark:bg-zinc-800 border-2 border-black dark:border-zinc-600 flat-box shadow-[2px_2px_0px_0px_#000] text-xs max-w-[280px]">
                             <span class="text-sm cursor-pointer" onclick="${isVid ? `app.playAttachmentVideo('${id}')` : `app.openImageViewerFromAttachment('${id}')`}">${icon}</span>
                             <div class="flex flex-col min-w-0 flex-1 cursor-pointer" onclick="app.insertAtCursor('\\n![${this.escapeHtml(att.name || (isVid ? '影片' : '圖片'))}](attachment:${id})\\n')">
-                                <span class="font-bold truncate text-black text-[11px]" title="${this.escapeHtml(att.name || id)}">${this.escapeHtml(att.name || id)}</span>
+                                <span class="font-bold truncate text-black dark:text-white text-[11px]" title="${this.escapeHtml(att.name || id)}">${this.escapeHtml(att.name || id)}</span>
                                 <div class="flex items-center gap-1">
-                                    <span class="text-[9px] text-zinc-400 font-mono">${sizeLabel}</span>
+                                    <span class="text-[9px] text-zinc-400 dark:text-zinc-500 font-mono">${sizeLabel}</span>
                                     ${driveBadge}
                                 </div>
                             </div>
                             <div class="flex items-center gap-1 ml-1">
                                 ${!att.driveUrl ? `
-                                    <button type="button" onclick="app.uploadMediaToDrive('${id}')" class="p-1 text-[10px] bg-zinc-100 hover:bg-zinc-200 border border-black rounded text-black font-bold" title="一鍵上傳備份至 Google Drive">☁️</button>
+                                    <button id="uploadDriveBtn_${id}" type="button" onclick="app.uploadMediaToDrive('${id}')" class="p-1 text-[10px] bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-700 dark:hover:bg-zinc-600 border border-black dark:border-zinc-500 rounded text-black dark:text-white font-bold" title="一鍵上傳備份至 Google Drive">☁️</button>
                                 ` : `
-                                    <a href="${att.driveUrl}" target="_blank" rel="noopener noreferrer" class="p-1 text-[10px] bg-blue-50 hover:bg-blue-100 border border-blue-600 rounded text-blue-800 font-bold" title="開啟 Google Drive 連結">↗</a>
+                                    <a href="${att.driveUrl}" target="_blank" rel="noopener noreferrer" class="p-1 text-[10px] bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/40 dark:hover:bg-blue-800/50 border border-blue-600 dark:border-blue-400 rounded text-blue-800 dark:text-blue-300 font-bold" title="開啟 Google Drive 連結">↗</a>
                                 `}
                                 <button type="button" onclick="app.deleteDocAttachment('${id}', event)" class="text-red-500 hover:text-red-700 font-black px-1" title="刪除附件">&times;</button>
                             </div>
