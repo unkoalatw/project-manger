@@ -1,16 +1,17 @@
 // FlatSpec Drive - Service Worker (Offline First Support)
-const CACHE_NAME = 'flatspec-cache-v29';
+const CACHE_NAME = 'flatspec-cache-v30';
 const PRECACHE_ASSETS = [
   './',
   './index.html',
   './manifest.json',
   './icon-192.png',
   './icon-512.png',
-  'https://cdn.tailwindcss.com',
   'https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js',
+  'https://cdn.jsdelivr.net/npm/marked@14.1.2/marked.min.js',
   'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css',
   'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js',
-  'https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&family=JetBrains+Mono:wght@400;700&display=swap'
+  'https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js',
+  'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500;600&display=swap'
 ];
 
 // 安裝階段：預先快取核心資源

@@ -16,10 +16,27 @@ var DEFAULT_OAUTH_CLIENT_SECRET = '';
 var DEFAULT_YOUTUBE_API_KEY = '';
 
 /**
- * 🔒 身分驗證器：直通模式 (免設定任何金鑰，直接連線存取)
+ * 🔒 身分驗證器：支援 ScriptProperties 中的 FLATSPEC_AUTH_TOKEN 配置
  */
 function verifyAuth(token) {
-  return { authorized: true, tokenRequired: false };
+  try {
+    var scriptProps = PropertiesService.getScriptProperties();
+    var serverToken = (scriptProps.getProperty('FLATSPEC_AUTH_TOKEN') || '').trim();
+    
+    // 若後端管理者尚未在 Script Properties 設定 FLATSPEC_AUTH_TOKEN，為方便開箱即用不阻擋，但一旦設定即全面嚴格驗證
+    if (!serverToken) {
+      return { authorized: true, tokenRequired: false };
+    }
+
+    var clientToken = (token || '').trim();
+    if (clientToken && clientToken === serverToken) {
+      return { authorized: true, tokenRequired: true };
+    }
+
+    return { authorized: false, tokenRequired: true };
+  } catch (e) {
+    return { authorized: false, tokenRequired: true, error: e.toString() };
+  }
 }
 
 /**

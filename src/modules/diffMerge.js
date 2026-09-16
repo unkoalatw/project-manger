@@ -271,7 +271,26 @@ export const diffMerge = {
                             mContent = lDoc.content || cDoc.content || '';
                         }
 
-                        const mFolderId = (lDoc && lDoc.folderId !== undefined) ? lDoc.folderId : (cDoc ? cDoc.folderId : null);
+                        // 3-Way 資料夾關聯智慧合併：防止本機 null 覆蓋雲端有效 folderId
+                        let mFolderId = null;
+                        if (bDoc) {
+                            const lFolderChanged = lDoc.folderId !== bDoc.folderId;
+                            const cFolderChanged = cDoc.folderId !== bDoc.folderId;
+
+                            if (lFolderChanged && !cFolderChanged) {
+                                mFolderId = lDoc.folderId || null;
+                            } else if (!lFolderChanged && cFolderChanged) {
+                                mFolderId = cDoc.folderId || null;
+                            } else if (lFolderChanged && cFolderChanged) {
+                                mFolderId = lDoc.folderId || cDoc.folderId || null;
+                            } else {
+                                mFolderId = lDoc.folderId || cDoc.folderId || bDoc.folderId || null;
+                            }
+                        } else {
+                            // 無 Base 紀錄時：優先保留具有非空 ID 之有效分類，杜絕空值覆蓋
+                            mFolderId = lDoc.folderId || cDoc.folderId || null;
+                        }
+
                         const mAttachments = {
                             ...((cDoc && typeof cDoc.attachments === 'object') ? cDoc.attachments : {}),
                             ...((lDoc && typeof lDoc.attachments === 'object') ? lDoc.attachments : {})
