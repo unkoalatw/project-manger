@@ -318,7 +318,7 @@
                             <span>🗂️ 文檔大綱目錄</span>
                             <span id="docTocDrawerCount" class="text-xs text-slate-400 font-mono">(0)</span>
                         </div>
-                        <button type="button" onclick="app.toggleDocToc(false)" class="text-lg font-bold text-slate-400 hover:text-slate-800 px-1">&times;</button>
+                        <button aria-label="關閉" type="button" onclick="app.toggleDocToc(false)" class="text-lg font-bold text-slate-400 hover:text-slate-800 px-1">&times;</button>
                     </div>
                     <div id="docTocList" class="flex-1 overflow-y-auto no-scrollbar space-y-1 text-xs">
                         <!-- 動態注入大綱項目 -->
@@ -363,7 +363,7 @@
                             <button type="button" id="btnFindMatchCase" onclick="app.toggleFindOption('matchCase')" class="px-2 py-1 border border-slate-200 rounded-md bg-white hover:bg-slate-100 font-mono font-bold text-[11px] text-slate-700 shrink-0" title="大小寫須相符 (Match Case)">Aa</button>
                             <button type="button" id="btnFindWholeWord" onclick="app.toggleFindOption('wholeWord')" class="px-2 py-1 border border-slate-200 rounded-md bg-white hover:bg-slate-100 font-mono font-bold text-[11px] text-slate-700 shrink-0" title="全字匹配 (Whole Word)">\b</button>
                         </div>
-                        <button type="button" onclick="app.closeDocFindReplace()" class="text-slate-400 hover:text-slate-700 font-bold text-sm px-1.5 shrink-0">✕</button>
+                        <button aria-label="關閉" type="button" onclick="app.closeDocFindReplace()" class="text-slate-400 hover:text-slate-700 font-bold text-sm px-1.5 shrink-0">✕</button>
                     </div>
 
                     <!-- 第二行：取代文字與按鈕 -->
@@ -1296,7 +1296,7 @@
         <div class="bg-white border border-slate-200 rounded-2xl p-6 w-full max-w-sm shadow-xl">
             <div class="flex items-center justify-between border-b border-slate-200 pb-2 mb-4">
                 <h3 class="font-black text-lg uppercase flex items-center gap-1.5">✏️ 編輯任務</h3>
-                <button onclick="app.closeModals()" class="text-xl font-bold hover:text-red-600 px-2">&times;</button>
+                <button aria-label="關閉" onclick="app.closeModals()" class="text-xl font-bold hover:text-red-600 px-2">&times;</button>
             </div>
             <input type="hidden" id="editTaskId">
             <div class="space-y-3">
@@ -1347,7 +1347,7 @@
         <div class="bg-white border border-slate-200 rounded-2xl p-6 w-full max-w-sm shadow-xl">
             <div class="flex items-center justify-between border-b border-slate-200 pb-2 mb-4">
                 <h3 class="font-black text-lg uppercase flex items-center gap-1.5">📁 新增專案</h3>
-                <button onclick="app.closeModals()" class="text-xl font-bold hover:text-red-600 px-2">&times;</button>
+                <button aria-label="關閉" onclick="app.closeModals()" class="text-xl font-bold hover:text-red-600 px-2">&times;</button>
             </div>
             <div class="space-y-3">
                 <div>
@@ -1390,7 +1390,7 @@
     <!-- Modal: 專案密碼驗證解鎖 -->
     <div id="projectPasswordModal" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4" onclick="app.cancelUnlockProject()">
         <div class="bg-white border border-slate-200 rounded-2xl p-6 w-full max-w-sm shadow-xl relative" onclick="event.stopPropagation()">
-            <button type="button" onclick="app.cancelUnlockProject()" class="absolute top-3 right-3 text-xl font-bold leading-none p-1 text-zinc-500 hover:text-black" title="取消">&times;</button>
+            <button aria-label="取消" type="button" onclick="app.cancelUnlockProject()" class="absolute top-3 right-3 text-xl font-bold leading-none p-1 text-zinc-500 hover:text-black" title="取消">&times;</button>
             <div class="text-center space-y-2 mb-4">
                 <span class="text-4xl block">🔒</span>
                 <h3 class="font-black text-lg uppercase" id="pwdModalProjectTitle">專案已受密碼保護</h3>
@@ -1413,7 +1413,7 @@
         <div class="bg-white border border-slate-200 rounded-2xl p-6 w-full max-w-md shadow-xl">
             <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
                 <h3 class="font-black text-base uppercase flex items-center gap-2">📄 新增專案文檔</h3>
-                <button onclick="app.closeModals()" class="text-lg font-bold hover:text-red-600 px-1">&times;</button>
+                <button aria-label="關閉" onclick="app.closeModals()" class="text-lg font-bold hover:text-red-600 px-1">&times;</button>
             </div>
             <div class="space-y-3.5">
                 <div>
@@ -1548,7 +1548,7 @@
         <div class="bg-white border border-slate-200 rounded-2xl p-6 w-full max-w-md shadow-xl flex flex-col max-h-[90vh]">
             <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4 shrink-0">
                 <h3 class="font-black text-lg uppercase flex items-center gap-2">🖼️/🎥 插入圖片與影片</h3>
-                <button onclick="app.closeModals()" class="text-xl font-bold hover:text-red-600 px-2">&times;</button>
+                <button aria-label="關閉" onclick="app.closeModals()" class="text-xl font-bold hover:text-red-600 px-2">&times;</button>
             </div>
             
             <div class="flex border border-slate-200 mb-4 bg-slate-100 p-0.5 shrink-0">
@@ -1600,7 +1600,7 @@
         <div class="relative max-w-4xl max-h-[90vh] flex flex-col items-center bg-white p-2 border border-slate-200 shadow-2xl" onclick="event.stopPropagation()">
             <div class="w-full flex justify-between items-center border-b border-zinc-300 pb-1 mb-2 px-1">
                 <span id="imageViewerCaption" class="text-xs font-bold text-zinc-700 truncate max-w-[300px]">📷 圖片檢視</span>
-                <button onclick="app.closeImageViewer()" class="text-lg font-bold hover:text-red-600 px-2 leading-none">&times;</button>
+                <button aria-label="關閉" onclick="app.closeImageViewer()" class="text-lg font-bold hover:text-red-600 px-2 leading-none">&times;</button>
             </div>
             <img id="imageViewerImg" src="" alt="放大圖片" class="max-w-full max-h-[75vh] object-contain border border-zinc-200">
         </div>
@@ -1659,7 +1659,7 @@
                     <span class="text-[10px] font-black text-zinc-500 uppercase tracking-widest block">💬 任務討論串</span>
                     <h3 id="commentTaskTitle" class="font-black text-base truncate"></h3>
                 </div>
-                <button onclick="app.closeTaskCommentsModal()" class="text-xl font-bold hover:text-red-600 px-2 shrink-0">&times;</button>
+                <button aria-label="關閉" onclick="app.closeTaskCommentsModal()" class="text-xl font-bold hover:text-red-600 px-2 shrink-0">&times;</button>
             </div>
 
             <!-- 留言清單 -->
@@ -1761,7 +1761,7 @@
                         <p class="text-[11px] text-slate-500 font-normal">高容量 IndexedDB 離線儲存，不佔用本機快取配額</p>
                     </div>
                 </div>
-                <button type="button" onclick="app.closeVoiceMemoModal()" class="text-slate-400 hover:text-slate-700 font-bold text-lg px-1.5">✕</button>
+                <button aria-label="關閉" type="button" onclick="app.closeVoiceMemoModal()" class="text-slate-400 hover:text-slate-700 font-bold text-lg px-1.5">✕</button>
             </div>
 
             <!-- Recording Display & Timer -->
@@ -1857,7 +1857,7 @@
                         <p class="text-[11px] text-slate-500 font-normal">自定義專案的工作流階段與顏色標籤</p>
                     </div>
                 </div>
-                <button type="button" onclick="app.closeCustomColumnModal()" class="text-slate-400 hover:text-slate-700 font-bold text-lg px-1.5">✕</button>
+                <button aria-label="關閉" type="button" onclick="app.closeCustomColumnModal()" class="text-slate-400 hover:text-slate-700 font-bold text-lg px-1.5">✕</button>
             </div>
 
             <!-- Form -->
@@ -1937,7 +1937,7 @@
                         <p class="text-[11px] text-slate-500 font-normal">依模糊記憶、關鍵特徵、時間情境快速定位全域文檔</p>
                     </div>
                 </div>
-                <button type="button" onclick="app.closeSearchModal()" class="text-slate-400 hover:text-black font-black text-lg px-2">✕</button>
+                <button aria-label="關閉" type="button" onclick="app.closeSearchModal()" class="text-slate-400 hover:text-black font-black text-lg px-2">✕</button>
             </div>
 
             <!-- 搜尋輸入框 -->
@@ -1985,7 +1985,7 @@
                         <p class="text-[11px] text-slate-500 font-normal">自動將專案目標拆解為「前期準備」、「進行時順序步驟」與「善後交付任務」</p>
                     </div>
                 </div>
-                <button type="button" onclick="app.closeAiTaskDecomposeModal()" class="text-slate-400 hover:text-slate-700 font-bold text-lg px-1.5">✕</button>
+                <button aria-label="關閉" type="button" onclick="app.closeAiTaskDecomposeModal()" class="text-slate-400 hover:text-slate-700 font-bold text-lg px-1.5">✕</button>
             </div>
 
             <!-- Modal Body (Scrollable) -->
@@ -2121,9 +2121,7 @@
                     <p class="text-[11px] text-slate-500 font-normal">風格改寫 · 智慧摘要 · 待辦提取 · 邏輯查核 · 內容問答</p>
                 </div>
             </div>
-            <button type="button" onclick="app.toggleAiDocAssistant(false)" class="w-7 h-7 rounded-md bg-white hover:bg-slate-100 border border-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center font-bold text-sm transition-colors" title="關閉 AI 文件助理 (Esc)">
-                ✕
-            </button>
+            <button aria-label="關閉 AI 文件助理 (Esc)" type="button" onclick="app.toggleAiDocAssistant(false)" class="w-7 h-7 rounded-md bg-white hover:bg-slate-100 border border-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center font-bold text-sm transition-colors" title="關閉 AI 文件助理 (Esc)">✕</button>
         </div>
 
         <!-- 快速功能 Tabs -->
