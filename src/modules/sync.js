@@ -162,6 +162,12 @@ export const sync = {
                             const mergedProjects = this.mergeProjects(normalizedCloud, this.state.projects);
 
                             // 檢查本地是否含有雲端完全沒有的新建專案 (例如斷網時在本地新建的專案)
+
+                            // 檢查合併結果是否與純雲端資料不同，若不同代表有保留本地端未存檔的變更
+                            const mergedProjectsStr = JSON.stringify(mergedProjects);
+                            const normalizedCloudStr = JSON.stringify(normalizedCloud);
+                            const hasLocalEditsMerged = mergedProjectsStr !== normalizedCloudStr;
+
                             const localOnlyProjects = this.state.projects.filter(lp => {
                                 if (normalizedCloud.some(cp => cp.id === lp.id)) return false;
                                 const isUntouchedDefault = (lp.title === '新專案' || lp.title === '未命名專案') &&
@@ -188,8 +194,8 @@ export const sync = {
                             this.smartRenderAll();
                             this.updateMyPresence();
 
-                            if (hasNewLocalProjects) {
-                                console.log("[Sync] 偵測到本地包含雲端未收錄的新建專案，自動回推完整合併清單至雲端...");
+                            if (hasNewLocalProjects || hasLocalEditsMerged) {
+                                console.log("[Sync] 偵測到本地包含雲端未收錄的專案或修改，自動回推完整合併清單至雲端...");
                                 this.state.hasUnsavedChanges = true;
                                 localStorage.setItem('flatSpecHasPendingChanges', 'true');
                                 this.debouncedSaveAndSync();
@@ -376,10 +382,25 @@ export const sync = {
             },
 
             async testGasConnection() {
-                const inputUrl = (document.getElementById('gasUrlInput')?.value || this.state.gasUrl || '').trim();
+                let inputUrl = (document.getElementById('gasUrlInput')?.value || this.state.gasUrl || '').trim();
                 if (!inputUrl) {
                     this.showToast('尚未配置 GAS URL', 'error');
                     return;
+                }
+
+                // 檢查是否以 /exec 結尾，若是 /edit 等自動擋下或替換
+                if (!inputUrl.endsWith('/exec')) {
+                    if (inputUrl.includes('/edit')) {
+                        inputUrl = inputUrl.replace(/\/edit.*$/, '/exec');
+                        this.showToast('已自動修正 URL 格式為 /exec', 'info');
+                    } else if (inputUrl.endsWith('/')) {
+                        inputUrl += 'exec';
+                    } else {
+                        inputUrl += '/exec';
+                    }
+                    if (document.getElementById('gasUrlInput')) {
+                        document.getElementById('gasUrlInput').value = inputUrl;
+                    }
                 }
 
                 const diagBox = document.getElementById('gasDiagResult');
@@ -423,7 +444,7 @@ export const sync = {
                                     }
                                 }
                             } catch(e) {
-                                logs.push(`❌ GET 解析失敗: 非合法 JSON 回應`);
+                                logs.push(`❌ GET 解析失敗: 非合法 JSON 回應。如果發生跨域問題，請確認已重新部署為「新版本」`);
                             }
                         }
                     } else {
