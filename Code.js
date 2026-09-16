@@ -294,9 +294,12 @@ function doPost(e) {
         }
       }
 
-      // 2.2.1 ☁️ 上傳多媒體檔案至 Google Drive (FlatSpec_Media_Vault)
+      // 2.2.1 ☁️ 上傳多媒體檔案至 Google Drive (支援單次直傳與大檔分塊合併上傳)
       if (act === 'upload_drive_media' || act === 'upload_media') {
         return handleUploadMediaToDrive(parsedPayload);
+      }
+      if (act === 'upload_drive_media_chunk' || act === 'upload_media_chunk') {
+        return handleUploadMediaChunkToDrive(parsedPayload);
       }
 
       // 2.3 🤖 安全 AI 任務拆解代理 (Cloud Groq Proxy)
@@ -749,6 +752,114 @@ function handleUploadMediaToDrive(payload) {
     return ContentService.createTextOutput(JSON.stringify({
       status: 'error',
       message: '上傳至 Google Drive 失敗: ' + err.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+/**
+ * ☁️ 處理分塊多媒體上傳 (支援突破單次 45MB 上限，分塊儲存並於最後一塊合併)
+ */
+function handleUploadMediaChunkToDrive(payload) {
+  try {
+    if (!payload || !payload.chunkData) {
+      throw new Error('未提供 chunkData 分塊資料');
+    }
+
+    var uploadId = payload.uploadId || ('upload_' + Date.now());
+    var chunkIndex = Number(payload.chunkIndex) || 0;
+    var totalChunks = Number(payload.totalChunks) || 1;
+    var fileName = payload.fileName || ('media_' + Date.now() + '.mp4');
+    var mimeType = payload.mimeType || 'video/mp4';
+    var rawChunk = payload.chunkData;
+
+    if (rawChunk.indexOf(',') > -1) {
+      rawChunk = rawChunk.split(',')[1];
+    }
+
+    // 尋找或建立 FlatSpec_Media_Vault / _temp_chunks 資料夾
+    var folderName = 'FlatSpec_Media_Vault';
+    var folders = DriveApp.getFoldersByName(folderName);
+    var vaultFolder = folders.hasNext() ? folders.next() : DriveApp.createFolder(folderName);
+
+    var tempFolderName = '_temp_chunks';
+    var tempFolders = vaultFolder.getFoldersByName(tempFolderName);
+    var tempFolder = tempFolders.hasNext() ? tempFolders.next() : vaultFolder.createFolder(tempFolderName);
+
+    // 儲存此分塊為臨時檔案
+    var chunkFileName = uploadId + '_part_' + ('000' + chunkIndex).slice(-4) + '.tmp';
+    var chunkDecoded = Utilities.base64Decode(rawChunk);
+    var chunkBlob = Utilities.newBlob(chunkDecoded, 'application/octet-stream', chunkFileName);
+    tempFolder.createFile(chunkBlob);
+
+    // 如果不是最後一塊，直接回傳進度成功
+    if (chunkIndex < totalChunks - 1) {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: 'success',
+        uploadId: uploadId,
+        chunkIndex: chunkIndex,
+        totalChunks: totalChunks,
+        isCompleted: false,
+        message: '分塊 ' + (chunkIndex + 1) + '/' + totalChunks + ' 上傳成功'
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // ============= 達到最後一塊：依序合併所有分塊 =============
+    var allChunkBytes = [];
+    var chunkFiles = [];
+    
+    for (var i = 0; i < totalChunks; i++) {
+      var searchName = uploadId + '_part_' + ('000' + i).slice(-4) + '.tmp';
+      var found = tempFolder.getFilesByName(searchName);
+      if (!found.hasNext()) {
+        throw new Error('分塊遺失: ' + searchName + '，請重新上傳');
+      }
+      var cFile = found.next();
+      chunkFiles.push(cFile);
+      var cBytes = cFile.getBlob().getBytes();
+      allChunkBytes = allChunkBytes.concat(cBytes);
+    }
+
+    var finalBlob = Utilities.newBlob(allChunkBytes, mimeType, fileName);
+    var finalFile = vaultFolder.createFile(finalBlob);
+
+    // 設定公開分享檢視權限
+    try {
+      finalFile.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    } catch(shareErr) {
+      Logger.log('設定分享權限警告: ' + shareErr.toString());
+    }
+
+    // 清理所有暫存分塊
+    try {
+      for (var k = 0; k < chunkFiles.length; k++) {
+        chunkFiles[k].setTrashed(true);
+      }
+    } catch(cleanErr) {
+      Logger.log('清理暫存塊警告: ' + cleanErr.toString());
+    }
+
+    var fileId = finalFile.getId();
+    var viewUrl = finalFile.getUrl();
+    var downloadUrl = 'https://drive.google.com/uc?export=download&id=' + fileId;
+    var previewUrl = 'https://drive.google.com/file/d/' + fileId + '/preview';
+
+    return ContentService.createTextOutput(JSON.stringify({
+      status: 'success',
+      isCompleted: true,
+      fileId: fileId,
+      fileName: fileName,
+      mimeType: mimeType,
+      size: finalFile.getSize(),
+      url: viewUrl,
+      downloadUrl: downloadUrl,
+      previewUrl: previewUrl,
+      timestamp: new Date().toISOString()
+    })).setMimeType(ContentService.MimeType.JSON);
+
+  } catch(err) {
+    return ContentService.createTextOutput(JSON.stringify({
+      status: 'error',
+      message: '分塊上傳 Google Drive 失敗: ' + err.toString()
     })).setMimeType(ContentService.MimeType.JSON);
   }
 }

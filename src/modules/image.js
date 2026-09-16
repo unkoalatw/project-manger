@@ -531,76 +531,131 @@ export const image = {
                     const isVid = meta.isVideo || meta.type?.startsWith('video/') || attId.startsWith('vid_');
                     const mimeType = meta.type || (isVid ? 'video/mp4' : 'image/jpeg');
 
-                    this.showToast(`⏳ 正在讀取「${fileName}」本機資料...`);
+                    this.showToast(`⏳ 正在讀取「${fileName}」本機快取資料...`);
 
+                    let blobToUpload = null;
                     let base64Payload = '';
-                    let byteLength = 0;
 
                     if (meta.data && meta.data.startsWith('data:')) {
                         base64Payload = meta.data.split(',')[1];
-                        byteLength = Math.round((base64Payload.length * 3) / 4);
                     } else {
                         // 從 IndexedDB 提取二進位 Blob
                         const idbItem = await idbStorage.get(STORES.ATTACHMENTS, attId);
                         if (idbItem?.blob instanceof Blob) {
-                            byteLength = idbItem.blob.size;
-                            if (byteLength > 45 * 1024 * 1024) {
-                                throw new Error(`檔案大小 (${(byteLength / (1024 * 1024)).toFixed(1)} MB) 超過 Google Apps Script 45MB 上傳上限`);
-                            }
-
-                            this.showToast(`⏳ 正在編碼二進位檔案 (${(byteLength / (1024 * 1024)).toFixed(1)} MB)...`);
-                            base64Payload = await new Promise((resolve, reject) => {
-                                const reader = new FileReader();
-                                reader.onload = () => {
-                                    const res = reader.result;
-                                    resolve(res.split(',')[1]);
-                                };
-                                reader.onerror = () => reject(new Error('讀取 Blob 失敗'));
-                                reader.readAsDataURL(idbItem.blob);
-                            });
+                            blobToUpload = idbItem.blob;
                         } else if (idbItem?.data && idbItem.data.startsWith('data:')) {
                             base64Payload = idbItem.data.split(',')[1];
-                            byteLength = Math.round((base64Payload.length * 3) / 4);
                         }
                     }
 
-                    if (!base64Payload) {
-                        throw new Error('無法讀取本機媒體快取資料');
+                    // 若為 Blob，計算大小決定是單次上傳還是自動分塊上傳
+                    const totalByteSize = blobToUpload ? blobToUpload.size : Math.round((base64Payload.length * 3) / 4);
+                    const sizeMb = (totalByteSize / (1024 * 1024)).toFixed(1);
+                    const authToken = this.state.authToken || this.state.settings?.driveAuthKey || localStorage.getItem('flatSpecDriveAuthKey') || '';
+
+                    let driveLink = '';
+
+                    // 1. 若大於 20MB 且有原始 Blob，採用「自動分塊上傳 (Chunked Upload)」
+                    const CHUNK_SIZE = 15 * 1024 * 1024; // 每塊 15MB，確保在 GAS 45MB 安全範圍內
+                    if (blobToUpload && blobToUpload.size > CHUNK_SIZE) {
+                        const totalChunks = Math.ceil(blobToUpload.size / CHUNK_SIZE);
+                        const uploadId = 'up_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+
+                        for (let i = 0; i < totalChunks; i++) {
+                            const start = i * CHUNK_SIZE;
+                            const end = Math.min(blobToUpload.size, start + CHUNK_SIZE);
+                            const chunkBlob = blobToUpload.slice(start, end);
+
+                            const percent = Math.round(((i + 1) / totalChunks) * 100);
+                            this.showToast(`☁️ 正在分塊上傳「${fileName}」(${i + 1}/${totalChunks} 塊，${percent}%)...`);
+
+                            const chunkBase64 = await new Promise((resolve, reject) => {
+                                const reader = new FileReader();
+                                reader.onload = () => resolve(reader.result.split(',')[1]);
+                                reader.onerror = () => reject(new Error(`讀取第 ${i + 1} 分塊失敗`));
+                                reader.readAsDataURL(chunkBlob);
+                            });
+
+                            const chunkPayload = {
+                                action: 'upload_drive_media_chunk',
+                                authToken: authToken,
+                                uploadId: uploadId,
+                                chunkIndex: i,
+                                totalChunks: totalChunks,
+                                fileName: `${fileName}_${Date.now()}.${isVid ? 'mp4' : 'jpg'}`,
+                                mimeType: mimeType,
+                                chunkData: chunkBase64
+                            };
+
+                            const resp = await fetch(gasUrl, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                                body: JSON.stringify(chunkPayload)
+                            });
+
+                            if (!resp.ok) {
+                                throw new Error(`第 ${i + 1} 塊伺服端回應錯誤 HTTP ${resp.status}`);
+                            }
+
+                            const result = await resp.json();
+                            if (result.status !== 'success') {
+                                throw new Error(result.message || `第 ${i + 1} 塊上傳失敗`);
+                            }
+
+                            if (result.isCompleted) {
+                                driveLink = result.url || result.data?.viewUrl || result.previewUrl || result.downloadUrl;
+                            }
+                        }
+                    } else {
+                        // 2. 小檔案 (<20MB) 採用一次性直接上傳
+                        if (!base64Payload && blobToUpload) {
+                            base64Payload = await new Promise((resolve, reject) => {
+                                const reader = new FileReader();
+                                reader.onload = () => resolve(reader.result.split(',')[1]);
+                                reader.onerror = () => reject(new Error('讀取 Blob 失敗'));
+                                reader.readAsDataURL(blobToUpload);
+                            });
+                        }
+
+                        if (!base64Payload) {
+                            throw new Error('無法讀取媒體二進位內容');
+                        }
+
+                        this.showToast(`☁️ 正在上傳「${fileName}」(${sizeMb} MB) 至 Google Drive...`);
+
+                        const payload = {
+                            action: 'upload_drive_media',
+                            authToken: authToken,
+                            fileName: `${fileName}_${Date.now()}.${isVid ? 'mp4' : 'jpg'}`,
+                            mimeType: mimeType,
+                            base64Data: base64Payload
+                        };
+
+                        const resp = await fetch(gasUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                            body: JSON.stringify(payload)
+                        });
+
+                        if (!resp.ok) {
+                            throw new Error(`伺服端回應錯誤 HTTP ${resp.status}`);
+                        }
+
+                        const result = await resp.json();
+                        if (result && (result.status === 'success' || result.success) && (result.url || result.data?.viewUrl || result.previewUrl || result.downloadUrl)) {
+                            driveLink = result.url || result.data?.viewUrl || result.previewUrl || result.downloadUrl;
+                        } else {
+                            throw new Error(result?.message || 'Drive API 回應異常');
+                        }
                     }
 
-                    const sizeMb = (byteLength / (1024 * 1024)).toFixed(1);
-                    this.showToast(`☁️ 正在上傳「${fileName}」(${sizeMb} MB) 至 Google Drive...`);
-
-                    const payload = {
-                        action: 'upload_drive_media',
-                        authToken: this.state.authToken || this.state.settings?.driveAuthKey || localStorage.getItem('flatSpecDriveAuthKey') || '',
-                        fileName: `${fileName}_${Date.now()}.${isVid ? 'mp4' : 'jpg'}`,
-                        mimeType: mimeType,
-                        base64Data: base64Payload
-                    };
-
-                    const resp = await fetch(gasUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                        body: JSON.stringify(payload)
-                    });
-
-                    if (!resp.ok) {
-                        throw new Error(`伺服端回應錯誤 HTTP ${resp.status}`);
-                    }
-
-                    const result = await resp.json();
-                    if (result && (result.status === 'success' || result.success) && (result.url || result.data?.viewUrl || result.previewUrl || result.downloadUrl)) {
-                        const driveLink = result.url || result.data?.viewUrl || result.previewUrl || result.downloadUrl;
-                        
+                    if (driveLink) {
                         // 同步更新當前專案或所有關聯文檔中的 attachment 屬性
                         const p = this.getCurrentProject();
-                        let updated = false;
                         if (p?.docs) {
                             for (const doc of p.docs) {
                                 if (doc?.attachments?.[attId]) {
                                     doc.attachments[attId].driveUrl = driveLink;
-                                    updated = true;
                                 }
                             }
                         }
@@ -616,16 +671,12 @@ export const image = {
                         this.debouncedSaveAndSync();
                         this.showToast('🎉 上傳 Google Drive 成功！已建立永久雲端備份連結');
                     } else {
-                        throw new Error(result?.message || 'Drive API 回應異常');
+                        throw new Error('上傳未取得雲端連結');
                     }
                 } catch (err) {
                     console.error('[Media] Upload to Drive error:', err);
                     const errMsg = err.message || '';
-                    if (errMsg.includes('超過 Google Apps Script')) {
-                        this.showToast(`⚠️ ${errMsg}。大檔請直接上傳至 Google Drive 後貼上連結！`, 'error');
-                    } else {
-                        this.showToast('上傳至 Google Drive 失敗: ' + errMsg, 'error');
-                    }
+                    this.showToast('上傳至 Google Drive 失敗: ' + errMsg, 'error');
                 } finally {
                     if (btnEl) {
                         btnEl.disabled = false;
