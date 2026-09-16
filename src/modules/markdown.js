@@ -590,10 +590,15 @@ export const markdown = {
                     mathBlocks.push(this.renderMath(formula.trim(), true));
                     return `\n\n${placeholder}\n\n`;
                 });
-                // 行內公式 $...$ (排除純金額如 $100 或 \$)
-                text = text.replace(/(^|[^\\])\$([^\$\n]+?)\$/g, (match, prefix, formula) => {
+                // 行內公式 $...$ (嚴格要求為有效數學符號/表達式，排除金額如 $100、Emoji 或純中文段落)
+                text = text.replace(/(^|[^\\])\$([a-zA-Z0-9\+\-\*\/\=\^\_\(\)\{\}\\\s\.,><±×÷α-ωΑ-Ω]+?)\$/g, (match, prefix, formula) => {
+                    const clean = formula.trim();
+                    // 排除純數字金額、空字串或過長的純文本
+                    if (!clean || /^\d+(?:\.\d+)?$/.test(clean) || clean.length > 150) {
+                        return match;
+                    }
                     const placeholder = `MATHBLOCKX${mathBlocks.length}Z`;
-                    mathBlocks.push(this.renderMath(formula.trim(), false));
+                    mathBlocks.push(this.renderMath(clean, false));
                     return prefix + placeholder;
                 });
                 // 行內公式 \(...\)
