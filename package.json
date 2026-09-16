@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "preview": "vite preview",
     "bundle:android": "node ./scripts/bundle_android.js",
     "gas:login": "clasp login",
     "gas:push": "clasp push",
@@ -15,9 +16,7 @@
   },
   "devDependencies": {
     "@google/clasp": "^2.4.2",
-    "@tailwindcss/vite": "^4.3.3",
     "html-minifier-terser": "^7.2.0",
-    "tailwindcss": "^4.3.3",
     "terser": "^5.51.2",
     "vite": "^8.2.2"
   },
