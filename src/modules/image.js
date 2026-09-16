@@ -620,7 +620,12 @@ export const image = {
                     }
                 } catch (err) {
                     console.error('[Media] Upload to Drive error:', err);
-                    this.showToast('上傳至 Google Drive 失敗: ' + err.message, 'error');
+                    const errMsg = err.message || '';
+                    if (errMsg.includes('超過 Google Apps Script')) {
+                        this.showToast(`⚠️ ${errMsg}。大檔請直接上傳至 Google Drive 後貼上連結！`, 'error');
+                    } else {
+                        this.showToast('上傳至 Google Drive 失敗: ' + errMsg, 'error');
+                    }
                 } finally {
                     if (btnEl) {
                         btnEl.disabled = false;
