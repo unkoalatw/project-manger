@@ -304,12 +304,15 @@ export const storage = {
             debouncedSaveAndSync() {
                 this.setUserTypingState();
                 
-                // 1. 0ms 本地快取立即寫入
-                this.saveToLocal();
-                this.state.hasUnsavedChanges = true;
-                localStorage.setItem('flatSpecHasPendingChanges', 'true');
-                this.updateSyncStatus('saved');
-                this.renderDashboard();
+                if (this.state.localSaveTimeout) clearTimeout(this.state.localSaveTimeout);
+                this.state.localSaveTimeout = setTimeout(() => {
+                    // 1. 本地快取防抖寫入 (Debounced 500ms for performance)
+                    this.saveToLocal();
+                    this.state.hasUnsavedChanges = true;
+                    localStorage.setItem('flatSpecHasPendingChanges', 'true');
+                    this.updateSyncStatus('saved');
+                    this.renderDashboard();
+                }, 500);
 
                 // 2. 防抖 800ms 推送至雲端試算表
                 if (this.state.syncTimeout) clearTimeout(this.state.syncTimeout);
