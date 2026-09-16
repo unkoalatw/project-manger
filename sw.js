@@ -1,11 +1,12 @@
 // FlatSpec Drive - Service Worker (Offline First Support)
-const CACHE_NAME = 'flatspec-cache-v31';
+const CACHE_NAME = 'flatspec-cache-v32';
 const PRECACHE_ASSETS = [
   './',
   './index.html',
   './manifest.json',
   './icon-192.png',
   './icon-512.png',
+  'https://cdn.tailwindcss.com',
   'https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js',
   'https://cdn.jsdelivr.net/npm/marked@14.1.2/marked.min.js',
   'https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css',

@@ -1,5 +1,3 @@
-@import "tailwindcss";
-
 :root {
             /* 聶永真極簡線條風 / 現代文檔設計變數 (Design Tokens) */
             --border-subtle: 1px solid #f1f3f5;
