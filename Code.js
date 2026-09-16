@@ -986,3 +986,59 @@ function formatVisualDashboard(ss, projects) {
     viewSheet.autoResizeColumn(col);
   }
 }
+
+/**
+ * ☁️ 處理影片與圖片上傳至 Google Drive (FlatSpec_Media_Vault)
+ */
+function handleUploadMediaToDrive(payload) {
+  try {
+    if (!payload || !payload.base64Data) {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: 'error',
+        message: '未提供多媒體 base64Data 資料'
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    var folderName = 'FlatSpec_Media_Vault';
+    var folders = DriveApp.getFoldersByName(folderName);
+    var targetFolder;
+
+    if (folders.hasNext()) {
+      targetFolder = folders.next();
+    } else {
+      targetFolder = DriveApp.createFolder(folderName);
+      targetFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    }
+
+    var filename = payload.filename || ('media_' + Date.now() + '.mp4');
+    var mimeType = payload.mimeType || 'video/mp4';
+    var decodedBytes = Utilities.base64Decode(payload.base64Data);
+    var blob = Utilities.newBlob(decodedBytes, mimeType, filename);
+
+    var file = targetFolder.createFile(blob);
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+
+    var fileId = file.getId();
+    var viewUrl = 'https://drive.google.com/uc?export=view&id=' + fileId;
+    var embedUrl = 'https://drive.google.com/file/d/' + fileId + '/preview';
+
+    return ContentService.createTextOutput(JSON.stringify({
+      status: 'success',
+      data: {
+        fileId: fileId,
+        fileName: file.getName(),
+        mimeType: mimeType,
+        sizeBytes: file.getSize(),
+        viewUrl: viewUrl,
+        embedUrl: embedUrl,
+        folderName: folderName
+      }
+    })).setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({
+      status: 'error',
+      message: '上傳至 Google Drive 失敗: ' + err.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+

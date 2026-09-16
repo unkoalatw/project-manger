@@ -402,7 +402,7 @@ export const image = {
                     return;
                 }
 
-                const gasUrl = this.state.settings?.gasUrl || localStorage.getItem('flatSpecGasUrl');
+                const gasUrl = this.state.gasUrl || this.state.settings?.gasUrl || localStorage.getItem('flatSpecGasUrl');
                 if (!gasUrl) {
                     this.showToast('尚未設定 Google Apps Script Web App 網址', 'error');
                     return;
