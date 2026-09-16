@@ -466,8 +466,28 @@ export const image = {
                                 if (progLabel) progLabel.innerText = '✅ 下載完成，已快取至本機！';
                                 setTimeout(() => progWrapper.classList.add('hidden'), 1200);
                             }
-                        } else if (progWrapper) {
-                            if (progLabel) progLabel.innerText = '⚠️ 影片下載失敗或連結已失效';
+                        } else {
+                            // 降級處理：若直接下載受 Google CORS 限制，檢查是否可直接切換為 Google Drive 串流播放器
+                            const meta = this.resolveAttachment(attId);
+                            if (meta && meta.driveUrl) {
+                                let fileId = null;
+                                const fileIdMatch = meta.driveUrl.match(/\/d\/([a-zA-Z0-9_-]+)/) || meta.driveUrl.match(/id=([a-zA-Z0-9_-]+)/);
+                                if (fileIdMatch && fileIdMatch[1]) fileId = fileIdMatch[1];
+
+                                if (fileId) {
+                                    const parentCard = vEl.closest('.video-attachment-card');
+                                    if (parentCard) {
+                                        const videoContainer = vEl.parentElement;
+                                        videoContainer.innerHTML = `
+                                            <iframe src="https://drive.google.com/file/d/${fileId}/preview" class="w-full h-[380px] md:h-[480px] border-0 bg-black" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>
+                                        `;
+                                    }
+                                }
+                            }
+                            if (progWrapper) {
+                                if (progLabel) progLabel.innerText = '🎬 已切換為 Google Drive 雲端即時串流播放模式';
+                                setTimeout(() => progWrapper.classList.add('hidden'), 2000);
+                            }
                         }
                     }
                 }
