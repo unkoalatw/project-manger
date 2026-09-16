@@ -241,13 +241,29 @@ export const markdown = {
                         }
 
                         if (isVid) {
+                            const meta = self.resolveAttachment(imgId);
+                            const sizeStr = meta?.size ? (meta.size > 1024 * 1024 ? `${(meta.size / (1024 * 1024)).toFixed(1)} MB` : `${(meta.size / 1024).toFixed(0)} KB`) : '';
+                            const sizeBadge = sizeStr ? `<span class="text-[10px] text-zinc-300 font-mono bg-zinc-800 px-1.5 py-0.5 rounded border border-zinc-700">📦 ${sizeStr}</span>` : '';
                             return `
-                                <div class="video-attachment-card my-4 border-2 border-black bg-white shadow-[3px_3px_0px_0px_#000] overflow-hidden not-prose">
+                                <div class="video-attachment-card my-4 border-2 border-black bg-white shadow-[3px_3px_0px_0px_#000] overflow-hidden not-prose" data-card-att-id="${imgId}">
                                     <div class="bg-zinc-900 text-white px-3 py-1.5 text-xs font-black flex items-center justify-between border-b-2 border-black">
-                                        <span class="flex items-center gap-1.5"><span>🎥</span> <span>${cleanAlt}</span></span>
-                                        <span class="text-[10px] text-zinc-400 font-mono">離線快取影片</span>
+                                        <span class="flex items-center gap-1.5 truncate"><span>🎥</span> <span class="truncate">${cleanAlt}</span></span>
+                                        <div class="flex items-center gap-2 shrink-0">
+                                            ${sizeBadge}
+                                            <span class="text-[10px] text-zinc-400 font-mono hidden sm:inline">離線快取影片</span>
+                                        </div>
                                     </div>
-                                    <div class="w-full bg-black flex items-center justify-center">
+                                    <!-- 雲端擷取進度條 (初始若無本地快取時顯示) -->
+                                    <div id="videoProgressWrapper_${imgId}" class="hidden p-3 bg-zinc-900 text-white border-b border-zinc-800 flex flex-col gap-2">
+                                        <div class="flex items-center justify-between text-xs font-bold font-mono">
+                                            <span class="flex items-center gap-1.5"><span class="animate-spin">⏳</span> <span id="videoProgressLabel_${imgId}">正在從雲端擷取影片...</span></span>
+                                            <span id="videoProgressSize_${imgId}" class="text-zinc-400">0%</span>
+                                        </div>
+                                        <div class="w-full h-2.5 bg-zinc-800 border border-zinc-700 rounded-full overflow-hidden">
+                                            <div id="videoProgressBar_${imgId}" class="h-full bg-blue-500 transition-all duration-150 w-0"></div>
+                                        </div>
+                                    </div>
+                                    <div class="w-full bg-black flex items-center justify-center relative">
                                         <video controls class="w-full max-h-[500px] bg-black attachment-video-player" data-att-id="${imgId}" preload="metadata" ${cachedSrc ? `src="${cachedSrc}"` : ''}>
                                             您的瀏覽器不支援影片播放。
                                         </video>

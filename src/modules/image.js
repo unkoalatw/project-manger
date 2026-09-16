@@ -107,7 +107,7 @@ export const image = {
                 }
             },
 
-            async getAttachmentBlobUrl(attId) {
+            async getAttachmentBlobUrl(attId, onProgress = null) {
                 if (!attId) return null;
                 const cleanId = String(attId).replace(/^attachment:/, '').trim();
                 if (!cleanId) return null;
@@ -136,7 +136,7 @@ export const image = {
                     }
                 } catch(e) {}
 
-                // 3. 搜尋記憶體與 LocalStorage
+                // 3. 搜尋記憶體與 LocalStorage (若有直接 DataURL)
                 const meta = this.resolveAttachment(cleanId);
                 if (meta && meta.data) {
                     if (meta.data.startsWith('data:')) {
@@ -146,7 +146,82 @@ export const image = {
                     }
                     return meta.data;
                 }
+
+                // 4. 若本機無快取但具有 Google Drive 雲端連結，透過串流擷取並顯示進度條
+                if (meta && (meta.driveUrl || meta.url)) {
+                    const remoteUrl = meta.driveUrl || meta.url;
+                    try {
+                        const blob = await this.downloadMediaWithProgress(remoteUrl, meta, onProgress);
+                        if (blob instanceof Blob) {
+                            // 存回本地 IndexedDB，達成永久離線快取
+                            try {
+                                await idbStorage.put(STORES.ATTACHMENTS, {
+                                    id: cleanId,
+                                    docId: this.state.activeDocId || 'general',
+                                    name: meta.name || cleanId,
+                                    type: blob.type || meta.type || 'video/mp4',
+                                    size: blob.size,
+                                    blob: blob,
+                                    createdAt: new Date().toISOString()
+                                });
+                            } catch (ie) {}
+
+                            const url = URL.createObjectURL(blob);
+                            this._mediaBlobUrlCache[cleanId] = url;
+                            return url;
+                        }
+                    } catch (netErr) {
+                        console.warn('[Media] 雲端擷取失敗:', netErr);
+                    }
+                }
+
                 return null;
+            },
+
+            /**
+             * 雲端媒體串流下載輔助函式：即時計算進度百分比與檔案大小
+             */
+            async downloadMediaWithProgress(url, meta = {}, onProgress = null) {
+                // 轉換 Google Drive 連結為直接下載端點
+                let fetchUrl = url;
+                if (url.includes('drive.google.com') && !url.includes('uc?export=download')) {
+                    const fileIdMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/id=([a-zA-Z0-9_-]+)/);
+                    if (fileIdMatch && fileIdMatch[1]) {
+                        fetchUrl = `https://drive.google.com/uc?export=download&id=${fileIdMatch[1]}`;
+                    }
+                }
+
+                const response = await fetch(fetchUrl);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+                const contentLength = response.headers.get('content-length');
+                const totalBytes = contentLength ? parseInt(contentLength, 10) : (meta.size || 0);
+
+                const reader = response.body.getReader();
+                let receivedBytes = 0;
+                const chunks = [];
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    chunks.push(value);
+                    receivedBytes += value.length;
+
+                    if (typeof onProgress === 'function') {
+                        const percent = totalBytes > 0 ? Math.min(100, Math.round((receivedBytes / totalBytes) * 100)) : 0;
+                        onProgress({
+                            receivedBytes,
+                            totalBytes,
+                            percent,
+                            loadedMb: (receivedBytes / (1024 * 1024)).toFixed(2),
+                            totalMb: totalBytes > 0 ? (totalBytes / (1024 * 1024)).toFixed(2) : '未知'
+                        });
+                    }
+                }
+
+                const mimeType = meta.type || (meta.isVideo ? 'video/mp4' : 'application/octet-stream');
+                return new Blob(chunks, { type: mimeType });
             },
 
             dataURLToBlobUrl(dataUrl) {
@@ -373,9 +448,26 @@ export const image = {
                 for (const vEl of videoEls) {
                     const attId = vEl.getAttribute('data-att-id');
                     if (attId && !vEl.src) {
-                        const blobUrl = await this.getAttachmentBlobUrl(attId);
+                        const progWrapper = document.getElementById(`videoProgressWrapper_${attId}`);
+                        const progBar = document.getElementById(`videoProgressBar_${attId}`);
+                        const progSize = document.getElementById(`videoProgressSize_${attId}`);
+                        const progLabel = document.getElementById(`videoProgressLabel_${attId}`);
+
+                        const blobUrl = await this.getAttachmentBlobUrl(attId, (progress) => {
+                            if (progWrapper) progWrapper.classList.remove('hidden');
+                            if (progBar) progBar.style.width = `${progress.percent}%`;
+                            if (progSize) progSize.innerText = `${progress.loadedMb} MB / ${progress.totalMb} MB (${progress.percent}%)`;
+                            if (progLabel) progLabel.innerText = `從雲端下載影片中... (${progress.percent}%)`;
+                        });
+
                         if (blobUrl) {
                             vEl.src = blobUrl;
+                            if (progWrapper) {
+                                if (progLabel) progLabel.innerText = '✅ 下載完成，已快取至本機！';
+                                setTimeout(() => progWrapper.classList.add('hidden'), 1200);
+                            }
+                        } else if (progWrapper) {
+                            if (progLabel) progLabel.innerText = '⚠️ 影片下載失敗或連結已失效';
                         }
                     }
                 }
