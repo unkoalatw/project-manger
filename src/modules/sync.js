@@ -3,6 +3,60 @@ import { CONFIG } from '../config.js';
 
 export const sync = {
 // ================= 雲端同步核心 (Cloud-First SSOT & CORS Safe) =================
+            /**
+             * 封裝帶有專屬 AbortController 與超時保護的 fetch 輔助函式
+             */
+            async fetchWithTimeout(url, options = {}, timeoutMs = 25000) {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+                try {
+                    const res = await fetch(url, {
+                        ...options,
+                        signal: controller.signal
+                    });
+                    return res;
+                } finally {
+                    clearTimeout(timeoutId);
+                }
+            },
+
+            /**
+             * 輕量化檢查雲端版本號 (pull_meta)，若版本有變動才觸發完整 pullFromCloud
+             */
+            async checkCloudRevision() {
+                if (!this.state.gasUrl || this.state.isPulling || this.state.isSyncing || this.state.hasUnsavedChanges) {
+                    return false;
+                }
+
+                try {
+                    const res = await this.fetchWithTimeout(this.state.gasUrl, {
+                        method: 'POST',
+                        body: JSON.stringify({ action: 'pull_meta', token: this.state.authToken || '' }),
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        redirect: 'follow',
+                        cache: 'no-store'
+                    }, 12000);
+
+                    if (!res.ok) return false;
+                    const meta = await res.json();
+                    if (meta && meta.status === 'success' && typeof meta.revision === 'number') {
+                        const currentLocalRev = this.state.cloudRevision || parseInt(localStorage.getItem('flatSpecCloudRevision') || '0', 10);
+                        if (meta.revision > currentLocalRev) {
+                            console.log(`[Sync] 偵測到雲端版本更新 (本機 rev: ${currentLocalRev} ➔ 雲端 rev: ${meta.revision})，觸發全量載入...`);
+                            return await this.pullFromCloud(false, true);
+                        }
+                        return true;
+                    }
+                } catch (err) {
+                    // 背景 meta 檢查失敗時靜默忽略或降級
+                    const isAbort = err.name === 'AbortError' || err.message?.includes('aborted');
+                    if (!isAbort) {
+                        // 若後端不支援 pull_meta，降級由常規 pull 處理
+                    }
+                }
+                return false;
+            },
+
             async pullFromCloud(isManual = false, isBackgroundPoll = false) {
                 if (!this.state.gasUrl) {
                     this.updateSyncStatus('offline');
@@ -19,8 +73,6 @@ export const sync = {
                 }
 
                 this.state.isPulling = true;
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 45000); // 45 秒超時，支援 GAS 雲端冷啟動 (Cold Start)
 
                 if (!isBackgroundPoll) {
                     this.updateSyncStatus('syncing', '正在讀取雲端...');
@@ -31,14 +83,14 @@ export const sync = {
                     
                     // 1. 優先嘗試以 POST action: 'pull' 直連讀取 (避開 Google GET 302 重導向 404 與快取問題)
                     try {
-                        const postRes = await fetch(this.state.gasUrl, {
+                        const postRes = await this.fetchWithTimeout(this.state.gasUrl, {
                             method: 'POST',
                             body: JSON.stringify({ action: 'pull', token: this.state.authToken || '' }),
                             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
                             redirect: 'follow',
-                            cache: 'no-store',
-                            signal: controller.signal
-                        });
+                            cache: 'no-store'
+                        }, 25000);
+
                         if (postRes.ok) {
                             const postText = await postRes.text();
                             const parsedPost = JSON.parse(postText);
@@ -50,20 +102,20 @@ export const sync = {
                             }
                         }
                     } catch (postErr) {
-                        if (postErr.message.includes('未授權')) throw postErr;
-                        // POST 失敗或後端版本不支援 pull 時，順暢 fallback 至 GET
+                        if (postErr.message?.includes('未授權')) throw postErr;
+                        // POST 失敗或超時時，順暢 fallback 至 GET
                     }
 
-                    // 2. 若 POST pull 未成功取得合法專案資料，Fallback 至 GET 讀取
+                    // 2. 若 POST pull 未成功取得合法專案資料，Fallback 至 GET 讀取 (使用獨立的超時控制器)
                     if (!rawPayload) {
                         const tokenParam = this.state.authToken ? `&token=${encodeURIComponent(this.state.authToken)}` : '';
-                        const fetchUrl = this.state.gasUrl + (this.state.gasUrl.includes('?') ? '&' : '?') + 't=' + now + tokenParam;
-                        const response = await fetch(fetchUrl, { 
+                        const fetchUrl = this.state.gasUrl + (this.state.gasUrl.includes('?') ? '&' : '?') + 't=' + Date.now() + tokenParam;
+                        const response = await this.fetchWithTimeout(fetchUrl, { 
                             method: 'GET',
                             redirect: 'follow',
-                            cache: 'no-store',
-                            signal: controller.signal
-                        });
+                            cache: 'no-store'
+                        }, 25000);
+
                         if (!response.ok) {
                             throw new Error(`HTTP Error ${response.status}`);
                         }
@@ -165,15 +217,15 @@ export const sync = {
                     }
                 } catch (error) {
                     this.state.lastPullErrorTime = Date.now();
-                    const isAbort = error.name === 'AbortError' || error.message.includes('aborted');
-                    if (!isBackgroundPoll || !isAbort) {
+                    const isAbort = error.name === 'AbortError' || error.message?.includes('aborted');
+                    if (!isBackgroundPoll && !isAbort) {
                         console.warn("Pull from cloud Notice:", error.message);
                     }
                     let errMsg = error.message;
-                    if (errMsg.includes('404')) {
+                    if (errMsg?.includes('404')) {
                         this.state.consecutive404Count = (this.state.consecutive404Count || 0) + 1;
                     }
-                    if (errMsg.includes('Failed to fetch') || errMsg.includes('NetworkError') || isAbort) {
+                    if (errMsg?.includes('Failed to fetch') || errMsg?.includes('NetworkError') || isAbort) {
                         errMsg = isAbort ? '雲端連線逾時' : '連線或 CORS 異常';
                     }
                     if (!isBackgroundPoll) {
@@ -185,7 +237,6 @@ export const sync = {
                     }
                     return false;
                 } finally {
-                    clearTimeout(timeoutId);
                     this.state.isPulling = false;
                 }
             },

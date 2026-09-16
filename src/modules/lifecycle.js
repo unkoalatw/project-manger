@@ -165,7 +165,9 @@ export const lifecycle = {
                         const now = Date.now();
                         const timeSinceLastPull = now - (this.state.lastPullTime || 0);
                         if (!this.state.hasUnsavedChanges && this.state.gasUrl && !this.state.isUserTyping && !this.state.isPulling && timeSinceLastPull > 4000) {
-                            this.pullFromCloud(false, true);
+                            this.checkCloudRevision().then(handled => {
+                                if (!handled) this.pullFromCloud(false, true);
+                            }).catch(() => {});
                         }
                     } else if (document.visibilityState === 'hidden') {
                         this.startAutoPull(30000);
@@ -373,7 +375,14 @@ export const lifecycle = {
                         return; // 遇到 404 暫停背景輪詢，等待使用者部署或手動觸發
                     }
                     if (!this.state.isSyncing && !this.state.hasUnsavedChanges && !this.state.isUserTyping && this.state.gasUrl) {
-                        this.pullFromCloud(false, true);
+                        this.checkCloudRevision().then(handled => {
+                            if (!handled) {
+                                // 若 checkCloudRevision 未能處理 (如初次未載入或不支援 meta)，依舊嘗試常規 pull
+                                if (!this.state.isCloudLoaded) {
+                                    this.pullFromCloud(false, true);
+                                }
+                            }
+                        }).catch(() => {});
                     } else {
                         this.updateMyPresence();
                     }

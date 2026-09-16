@@ -1,6 +1,6 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
-        
-        :root {
+@import "tailwindcss";
+
+:root {
             /* 聶永真極簡線條風 / 現代文檔設計變數 (Design Tokens) */
             --border-subtle: 1px solid #f1f3f5;
             --border-default: 1px solid #e2e8f0;
