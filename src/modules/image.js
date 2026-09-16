@@ -442,7 +442,7 @@ export const image = {
                     const payload = {
                         action: 'upload_drive_media',
                         authToken: this.state.authToken || this.state.settings?.driveAuthKey || localStorage.getItem('flatSpecDriveAuthKey') || '',
-                        filename: `${filename}_${Date.now()}.${att.isVideo ? 'mp4' : 'jpg'}`,
+                        fileName: `${filename}_${Date.now()}.${att.isVideo ? 'mp4' : 'jpg'}`,
                         mimeType: mimeType,
                         base64Data: base64Payload
                     };
@@ -454,8 +454,8 @@ export const image = {
                     });
 
                     const result = await resp.json();
-                    if (result && result.status === 'success' && result.data?.viewUrl) {
-                        att.driveUrl = result.data.viewUrl;
+                    if (result && (result.status === 'success' || result.success) && (result.url || result.data?.viewUrl || result.previewUrl || result.downloadUrl)) {
+                        att.driveUrl = result.url || result.data?.viewUrl || result.previewUrl || result.downloadUrl;
                         this.renderDocAttachmentsBar(doc);
                         this.saveToLocal();
                         this.debouncedSaveAndSync();
