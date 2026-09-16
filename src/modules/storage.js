@@ -41,8 +41,7 @@ export const storage = {
                     // 自動清理/升級過往已失效或錯誤的歷史預設端點
                     const LEGACY_URLS = [
                         'https://script.google.com/macros/s/AKfycbxPLTdFYgqSv3PrGxK7U-UTIj3YIiJPU-QbMhLYq4NVyRd77263-xFsbFaFovHoKoC3/exec',
-                        'https://script.google.com/macros/s/AKfycbxPoko2kbUAQas0LtRI-Vs2piyK-5Huj62iiQBK0HgULCZhcFUEjRU7-OgnQOpAo3pu/exec',
-                        'https://script.google.com/macros/s/AKfycbxpCpIHMzlWOHBb92pCQG9T36vGH8I8ju8UZHHDP6BvOoeuxQ6ZXFXokp8IcDmSSGSn/exec'
+                        'https://script.google.com/macros/s/AKfycbxPoko2kbUAQas0LtRI-Vs2piyK-5Huj62iiQBK0HgULCZhcFUEjRU7-OgnQOpAo3pu/exec'
                     ];
                     if (!savedUrl || !savedUrl.trim().startsWith('http') || LEGACY_URLS.includes(savedUrl.trim())) {
                         savedUrl = DEFAULT_GAS_URL;
