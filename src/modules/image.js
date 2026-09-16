@@ -555,8 +555,8 @@ export const image = {
 
                     let driveLink = '';
 
-                    // 1. 若大於 20MB 且有原始 Blob，採用「自動分塊上傳 (Chunked Upload)」
-                    const CHUNK_SIZE = 15 * 1024 * 1024; // 每塊 15MB，確保在 GAS 45MB 安全範圍內
+                    // 1. 若大於 10MB 且有原始 Blob，採用「自動分塊上傳 (Chunked Upload)」
+                    const CHUNK_SIZE = 6 * 1024 * 1024; // 每塊 6MB，確保在 GAS 轉發與記憶體最佳平衡
                     if (blobToUpload && blobToUpload.size > CHUNK_SIZE) {
                         const totalChunks = Math.ceil(blobToUpload.size / CHUNK_SIZE);
                         const uploadId = 'up_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
@@ -590,6 +590,8 @@ export const image = {
                             const resp = await fetch(gasUrl, {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                                redirect: 'follow',
+                                cache: 'no-store',
                                 body: JSON.stringify(chunkPayload)
                             });
 
@@ -607,7 +609,7 @@ export const image = {
                             }
                         }
                     } else {
-                        // 2. 小檔案 (<20MB) 採用一次性直接上傳
+                        // 2. 小檔案 (<10MB) 採用一次性直接上傳
                         if (!base64Payload && blobToUpload) {
                             base64Payload = await new Promise((resolve, reject) => {
                                 const reader = new FileReader();
@@ -634,6 +636,8 @@ export const image = {
                         const resp = await fetch(gasUrl, {
                             method: 'POST',
                             headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                            redirect: 'follow',
+                            cache: 'no-store',
                             body: JSON.stringify(payload)
                         });
 
