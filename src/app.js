@@ -99,6 +99,14 @@ if (typeof window !== 'undefined') {
     window.onload = () => {
         app.init();
     };
+
+    // Add beforeunload event listener to flush any pending local saves
+    window.addEventListener('beforeunload', () => {
+        if (app.state && app.state.localSaveTimeout) {
+            clearTimeout(app.state.localSaveTimeout);
+            app.saveToLocal();
+        }
+    });
 }
 
 export default app;
