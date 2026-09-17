@@ -583,6 +583,7 @@ export const image = {
                                 chunkIndex: i,
                                 totalChunks: totalChunks,
                                 fileName: `${fileName}_${Date.now()}.${isVid ? 'mp4' : 'jpg'}`,
+                                filename: `${fileName}_${Date.now()}.${isVid ? 'mp4' : 'jpg'}`,
                                 mimeType: mimeType,
                                 chunkData: chunkBase64
                             };
@@ -629,6 +630,7 @@ export const image = {
                             action: 'upload_drive_media',
                             authToken: authToken,
                             fileName: `${fileName}_${Date.now()}.${isVid ? 'mp4' : 'jpg'}`,
+                            filename: `${fileName}_${Date.now()}.${isVid ? 'mp4' : 'jpg'}`,
                             mimeType: mimeType,
                             base64Data: base64Payload
                         };
