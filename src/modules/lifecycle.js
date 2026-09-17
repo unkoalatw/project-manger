@@ -19,6 +19,23 @@ export const lifecycle = {
                         this.updatePageBreakButtonUI();
                     } catch(e) {}
 
+                    // 初始化列印與排版縮放偏好設定
+                    try {
+                        const savedScale = localStorage.getItem('flatSpecPrintScale');
+                        if (savedScale) this.state.printScale = Math.min(200, Math.max(50, parseInt(savedScale, 10) || 100));
+                        const savedOrientation = localStorage.getItem('flatSpecPrintOrientation');
+                        if (savedOrientation) this.state.printOrientation = savedOrientation;
+                        const savedPaperSize = localStorage.getItem('flatSpecPrintPaperSize');
+                        if (savedPaperSize) this.state.printPaperSize = savedPaperSize;
+                        const savedMargin = localStorage.getItem('flatSpecPrintMargin');
+                        if (savedMargin) this.state.printMargin = savedMargin;
+                        const savedShowHeader = localStorage.getItem('flatSpecPrintShowHeader');
+                        if (savedShowHeader !== null) this.state.printShowHeader = savedShowHeader !== '0';
+                        if (typeof this.applyPrintStyles === 'function') {
+                            this.applyPrintStyles();
+                        }
+                    } catch(e) {}
+
                     // 初始化關聯網絡 (Links & Backlinks) 顯示開關
                     try {
                         const savedDocLinks = localStorage.getItem('flatSpecShowDocLinks');
@@ -226,6 +243,10 @@ export const lifecycle = {
                         e.preventDefault();
                         this.toggleDocFindReplace(true);
                         setTimeout(() => document.getElementById('docReplaceInput')?.focus(), 60);
+                    }
+                    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'p' && this.state.currentView === 'Docs') {
+                        e.preventDefault();
+                        this.openPrintModal();
                     }
                     if (e.key === 'Escape') {
                         this.closeModals();

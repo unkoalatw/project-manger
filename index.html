@@ -2426,6 +2426,146 @@
         </div>
     </aside>
 
+    <!-- Modal: 列印與頁面縮放設定 (Print & Page Scale Settings Modal) -->
+    <div id="printModal" class="hidden fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-3 sm:p-4" onclick="app.closePrintModal()">
+        <div class="bg-white rounded-2xl border border-slate-200 shadow-2xl w-full max-w-2xl max-h-[92vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150" onclick="event.stopPropagation()">
+            <!-- Modal 頂部標題 -->
+            <div class="p-4 md:px-6 border-b border-slate-200 bg-slate-50/80 flex items-center justify-between shrink-0">
+                <div class="flex items-center gap-2.5">
+                    <span class="text-2xl p-1.5 bg-blue-100 text-blue-800 rounded-xl">🖨️</span>
+                    <div>
+                        <h3 class="font-bold text-base md:text-lg text-slate-900 leading-tight">文檔列印與頁面縮放設定</h3>
+                        <p class="text-xs text-slate-500 font-medium">調整列印縮放比例、紙張方向、邊距與分頁，完美輸出 PDF 或實體紙張</p>
+                    </div>
+                </div>
+                <button type="button" onclick="app.closePrintModal()" class="p-1.5 hover:bg-slate-200 rounded-lg text-slate-500 hover:text-slate-800 transition-colors text-lg leading-none" title="關閉 (Esc)">✕</button>
+            </div>
+
+            <!-- Modal 內容滾動區 -->
+            <div class="flex-1 overflow-y-auto p-4 md:p-6 space-y-5 text-xs text-slate-700">
+                <!-- 1. 縮放比例控制 -->
+                <div class="p-4 bg-slate-50/70 border border-slate-200/90 rounded-xl space-y-3">
+                    <div class="flex items-center justify-between">
+                        <label class="font-bold text-slate-800 flex items-center gap-1.5 text-sm">
+                            <span>🔍</span> <span>列印縮放比例 (Scale / Zoom)</span>
+                        </label>
+                        <div class="flex items-center gap-1.5">
+                            <span id="printScaleValueBadge" class="font-mono font-bold text-sm bg-blue-600 text-white px-2.5 py-0.5 rounded-lg">100%</span>
+                            <button type="button" onclick="app.resetPrintScale()" class="text-[11px] text-slate-500 hover:text-blue-600 underline font-medium ml-1">重設 100%</button>
+                        </div>
+                    </div>
+
+                    <!-- 滑桿與微調按鈕 -->
+                    <div class="flex items-center gap-3">
+                        <button type="button" onclick="app.adjustPrintScale(-5)" class="w-8 h-8 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 font-bold text-base flex items-center justify-center shrink-0 shadow-xs text-slate-700" title="縮小 5%">-</button>
+                        <input type="range" id="printScaleSlider" min="50" max="150" step="5" value="100" class="flex-1 accent-blue-600 cursor-pointer h-2 bg-slate-200 rounded-lg" oninput="app.setPrintScale(this.value)">
+                        <button type="button" onclick="app.adjustPrintScale(5)" class="w-8 h-8 rounded-lg bg-white border border-slate-200 hover:bg-slate-100 font-bold text-base flex items-center justify-center shrink-0 shadow-xs text-slate-700" title="放大 5%">+</button>
+                    </div>
+
+                    <!-- 常用快速比例預設按鈕 -->
+                    <div class="flex flex-wrap items-center gap-1.5 pt-1">
+                        <span class="text-[11px] text-slate-400 font-medium mr-1">常用預設:</span>
+                        <button type="button" onclick="app.setPrintScale(67)" class="print-scale-chip px-2 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-md font-mono font-semibold text-[11px]" data-scale="67">67%</button>
+                        <button type="button" onclick="app.setPrintScale(75)" class="print-scale-chip px-2 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-md font-mono font-semibold text-[11px]" data-scale="75">75% (精巧)</button>
+                        <button type="button" onclick="app.setPrintScale(80)" class="print-scale-chip px-2 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-md font-mono font-semibold text-[11px]" data-scale="80">80%</button>
+                        <button type="button" onclick="app.setPrintScale(85)" class="print-scale-chip px-2 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-md font-mono font-semibold text-[11px]" data-scale="85">85% (推薦)</button>
+                        <button type="button" onclick="app.setPrintScale(90)" class="print-scale-chip px-2 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-md font-mono font-semibold text-[11px]" data-scale="90">90%</button>
+                        <button type="button" onclick="app.setPrintScale(100)" class="print-scale-chip px-2 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-md font-mono font-semibold text-[11px]" data-scale="100">100% (標準)</button>
+                        <button type="button" onclick="app.setPrintScale(110)" class="print-scale-chip px-2 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-md font-mono font-semibold text-[11px]" data-scale="110">110%</button>
+                        <button type="button" onclick="app.setPrintScale(125)" class="print-scale-chip px-2 py-1 bg-white hover:bg-slate-100 border border-slate-200 rounded-md font-mono font-semibold text-[11px]" data-scale="125">125% (大字)</button>
+                    </div>
+
+                    <p class="text-[11px] text-slate-500 font-normal leading-normal">
+                        💡 提示：若長表格或寬流程圖跨頁被裁切，選擇 <strong>80% ~ 90%</strong> 縮放比例能大幅提升排版緊湊度，將內容精美收納於 A4 紙張內。
+                    </p>
+                </div>
+
+                <!-- 2. 紙張方向與邊距 -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <!-- 方向 -->
+                    <div class="p-3.5 bg-slate-50/70 border border-slate-200/90 rounded-xl space-y-2">
+                        <label class="font-bold text-slate-800 flex items-center gap-1">
+                            <span>🧭</span> <span>紙張方向</span>
+                        </label>
+                        <div class="grid grid-cols-2 gap-2">
+                            <button type="button" id="btnPrintOrientPortrait" onclick="app.setPrintOrientation('portrait')" class="p-2 bg-blue-50 border-2 border-blue-600 text-blue-800 rounded-lg font-bold flex items-center justify-center gap-1.5 shadow-xs">
+                                <span>📄</span> <span>直向 (Portrait)</span>
+                            </button>
+                            <button type="button" id="btnPrintOrientLandscape" onclick="app.setPrintOrientation('landscape')" class="p-2 bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 rounded-lg font-medium flex items-center justify-center gap-1.5 transition-colors">
+                                <span>📑</span> <span>橫向 (Landscape)</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 頁面邊距 -->
+                    <div class="p-3.5 bg-slate-50/70 border border-slate-200/90 rounded-xl space-y-2">
+                        <label class="font-bold text-slate-800 flex items-center gap-1">
+                            <span>📐</span> <span>頁面邊距 (Margin)</span>
+                        </label>
+                        <div class="grid grid-cols-3 gap-1.5">
+                            <button type="button" id="btnPrintMarginNarrow" onclick="app.setPrintMargin('narrow')" class="p-1.5 bg-white border border-slate-200 text-slate-600 rounded-lg font-medium text-center hover:bg-slate-50 transition-colors" title="窄邊距 (8mm)">窄邊距</button>
+                            <button type="button" id="btnPrintMarginNormal" onclick="app.setPrintMargin('normal')" class="p-1.5 bg-blue-50 border-2 border-blue-600 text-blue-800 rounded-lg font-bold text-center shadow-xs" title="標準邊距 (15mm)">標準 (推薦)</button>
+                            <button type="button" id="btnPrintMarginWide" onclick="app.setPrintMargin('wide')" class="p-1.5 bg-white border border-slate-200 text-slate-600 rounded-lg font-medium text-center hover:bg-slate-50 transition-colors" title="寬邊距 (25mm)">寬邊距</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. 高級列印選項 -->
+                <div class="p-3.5 bg-slate-50/70 border border-slate-200/90 rounded-xl space-y-2">
+                    <label class="font-bold text-slate-800 flex items-center gap-1">
+                        <span>⚙️</span> <span>進階輸出設定</span>
+                    </label>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <label class="flex items-center gap-2 p-2 bg-white border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50">
+                            <input type="checkbox" id="chkPrintPageBreaks" onchange="app.setPrintPageBreaks(this.checked)" class="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 accent-blue-600" checked>
+                            <span class="font-medium text-slate-800">支援 <code>&lt;!-- pagebreak --&gt;</code> 自動換頁</span>
+                        </label>
+                        <label class="flex items-center gap-2 p-2 bg-white border border-slate-200 rounded-lg cursor-pointer hover:bg-slate-50">
+                            <input type="checkbox" id="chkPrintShowHeader" onchange="app.setPrintShowHeader(this.checked)" class="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 accent-blue-600" checked>
+                            <span class="font-medium text-slate-800">列印時包含文檔標題與更新時間</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 4. 即時效果小預覽框 -->
+                <div class="space-y-1.5">
+                    <div class="flex items-center justify-between font-bold text-slate-700">
+                        <span class="flex items-center gap-1"><span>👁️</span> <span>即時版面模擬預覽</span></span>
+                        <span id="printPreviewDimensionsLabel" class="text-[10px] font-mono text-slate-400">A4 直向 · 縮放 100%</span>
+                    </div>
+                    <div class="border border-slate-200 rounded-xl bg-slate-100 p-3 flex items-center justify-center overflow-hidden min-h-[160px] max-h-[220px]">
+                        <div id="printMiniPreviewPaper" class="bg-white shadow-md border border-slate-300 transition-all duration-200 flex flex-col p-4 overflow-hidden select-none" style="width: 140px; height: 198px;">
+                            <div class="w-2/3 h-2.5 bg-slate-800 rounded-xs mb-2"></div>
+                            <div class="w-1/3 h-1.5 bg-slate-300 rounded-xs mb-3"></div>
+                            <div class="space-y-1 w-full flex-1">
+                                <div class="w-full h-1 bg-slate-200 rounded-xs"></div>
+                                <div class="w-5/6 h-1 bg-slate-200 rounded-xs"></div>
+                                <div class="w-4/5 h-1 bg-slate-200 rounded-xs"></div>
+                                <div class="w-full h-1 bg-slate-200 rounded-xs"></div>
+                                <div class="w-3/4 h-1 bg-slate-200 rounded-xs"></div>
+                                <div class="w-full h-4 bg-blue-50 border border-blue-200 rounded-xs my-1 flex items-center justify-center text-[7px] text-blue-600 font-mono">📊 TABLE / DIAGRAM</div>
+                                <div class="w-full h-1 bg-slate-200 rounded-xs"></div>
+                                <div class="w-2/3 h-1 bg-slate-200 rounded-xs"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Modal 底部按鈕區 -->
+            <div class="p-3.5 md:px-6 border-t border-slate-200 bg-slate-50/90 flex items-center justify-between shrink-0">
+                <button type="button" onclick="app.closePrintModal()" class="px-4 py-2 bg-white hover:bg-slate-100 text-slate-700 font-bold rounded-xl border border-slate-200 text-xs transition-colors shadow-xs">
+                    取消
+                </button>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="app.executePrint()" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl text-xs flex items-center gap-2 shadow-sm hover:shadow transition-all">
+                        <span>🖨️</span> <span>立即列印 / 另存為 PDF</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script type="module" src="./src/app.js"></script>
 </body>
 </html>

@@ -45,5 +45,11 @@ export const state = {
     cloudRevision: 0,          // 雲端資料庫版本號 (樂觀並行鎖定 OCC)
     isSidebarCollapsed: false,
     unlockedProjects: new Set(),
-    pendingPasswordProjectId: null
+    pendingPasswordProjectId: null,
+    // 列印與排版縮放偏好
+    printScale: 100,           // 縮放比例百分比 (50% ~ 200%)
+    printOrientation: 'portrait', // portrait (直向) | landscape (橫向)
+    printPaperSize: 'a4',      // a4 | letter | auto
+    printMargin: 'normal',     // normal (15mm) | narrow (8mm) | wide (25mm) | none (0mm)
+    printShowHeader: true      // 列印時是否包含文檔標題與更新時間
 };

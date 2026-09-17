@@ -206,7 +206,7 @@ export const settings = {
             },
             closeModals() {
                 this.closeCleanReader();
-                ['settingsModal', 'gasModal', 'newProjectModal', 'newDocModal', 'docHistoryModal', 'backupModal', 'editProjectModal', 'editTaskModal', 'insertImageModal', 'imageViewerModal', 'searchModal', 'teamModal', 'taskCommentsModal', 'fontModal', 'historyModal', 'projectPasswordModal', 'voiceMemoModal', 'cleanReaderOverlay', 'customColumnModal'].forEach(id => {
+                ['settingsModal', 'gasModal', 'newProjectModal', 'newDocModal', 'docHistoryModal', 'backupModal', 'editProjectModal', 'editTaskModal', 'insertImageModal', 'imageViewerModal', 'searchModal', 'teamModal', 'taskCommentsModal', 'fontModal', 'historyModal', 'projectPasswordModal', 'voiceMemoModal', 'cleanReaderOverlay', 'customColumnModal', 'printModal'].forEach(id => {
                     const el = document.getElementById(id);
                     if(el) el.classList.add('hidden');
                 });
@@ -846,7 +846,7 @@ export const settings = {
                             } catch(e) {}
                         }
 
-                        // 2.2 檢測專案讀取通道 (優先驗證 POST pull，若遇舊版則驗證 GET)
+                        // 2.2 檢測專案讀取通道 (優先驗證 POST pull 直連，完全避開 Google GET 302 重導向限制)
                         let isReadPassed = false;
                         let projectCount = 0;
                         let backendRev = 0;
@@ -863,51 +863,61 @@ export const settings = {
                             });
                             if (postPullRes.ok) {
                                 const pTxt = await postPullRes.text();
-                                const pJson = JSON.parse(pTxt);
-                                if (pJson && (pJson.status === 'success' || Array.isArray(pJson)) && (Array.isArray(pJson.data) || Array.isArray(pJson.projects) || Array.isArray(pJson))) {
-                                    isReadPassed = true;
-                                    channelUsed = 'POST 直連';
-                                    const list = Array.isArray(pJson) ? pJson : (pJson.data || pJson.projects || []);
-                                    projectCount = list.length;
-                                    backendRev = pJson.revision || 0;
-                                }
+                                try {
+                                    const pJson = JSON.parse(pTxt);
+                                    if (pJson && (pJson.status === 'success' || Array.isArray(pJson)) && (Array.isArray(pJson.data) || Array.isArray(pJson.projects) || Array.isArray(pJson))) {
+                                        isReadPassed = true;
+                                        channelUsed = 'POST 直連通道 (推薦)';
+                                        const list = Array.isArray(pJson) ? pJson : (pJson.data || pJson.projects || []);
+                                        projectCount = list.length;
+                                        backendRev = pJson.revision || 0;
+                                    }
+                                } catch(parseErr) {}
                             }
                         } catch(pe) {}
 
-                        // 若 POST pull 未成功，嘗試 GET 讀取
+                        // 若 POST pull 未成功，才降級嘗試 GET 讀取
                         if (!isReadPassed) {
-                            const fetchUrl = gasUrl + (gasUrl.includes('?') ? '&' : '?') + 't=' + Date.now() + tokenParam;
-                            let res = await fetch(fetchUrl, { method: 'GET', redirect: 'follow', cache: 'no-store' });
-                            if (res.ok) {
-                                const txt = await res.text();
-                                if (txt.includes('<!DOCTYPE') || txt.includes('<html')) {
-                                    throw new Error('Google 登入重定向 (請確認 Web App 存取權限設為 Anyone)');
+                            try {
+                                const fetchUrl = gasUrl + (gasUrl.includes('?') ? '&' : '?') + 't=' + Date.now() + tokenParam;
+                                let res = await fetch(fetchUrl, { method: 'GET', redirect: 'follow', cache: 'no-store' });
+                                if (res.ok) {
+                                    const txt = await res.text();
+                                    if (txt.includes('<!DOCTYPE') || txt.includes('<html')) {
+                                        throw new Error('Google 登入重定向 (請確認 Web App 存取權限設為 Anyone)');
+                                    }
+                                    const parsed = JSON.parse(txt);
+                                    if (parsed.code === 401 || (parsed.status === 'error' && parsed.message && parsed.message.includes('未授權'))) {
+                                        throw new Error('未授權存取：後端要求 Auth Token，但本機未設定或不符');
+                                    }
+                                    const list = Array.isArray(parsed) ? parsed : (parsed.data || parsed.projects || []);
+                                    if (Array.isArray(list)) {
+                                        isReadPassed = true;
+                                        channelUsed = 'GET 通道';
+                                        projectCount = list.length;
+                                        backendRev = parsed.revision || 0;
+                                    }
+                                } else {
+                                    if (!getHealthPassed) {
+                                        this.appendDiagLog(`GET 資料讀取回傳 HTTP ${res.status}`, 'warn');
+                                    }
                                 }
-                                const parsed = JSON.parse(txt);
-                                if (parsed.code === 401 || (parsed.status === 'error' && parsed.message && parsed.message.includes('未授權'))) {
-                                    throw new Error('未授權存取：後端要求 Auth Token，但本機未設定或不符');
-                                }
-                                const list = Array.isArray(parsed) ? parsed : (parsed.data || parsed.projects || []);
-                                if (Array.isArray(list)) {
-                                    isReadPassed = true;
-                                    channelUsed = 'GET 通道';
-                                    projectCount = list.length;
-                                    backendRev = parsed.revision || 0;
-                                }
-                            } else {
-                                if (!getHealthPassed) {
-                                    this.appendDiagLog(`GET 資料讀取回傳 HTTP ${res.status} (若後端已有資料，可能為 GET 302 限制或 payload 過大)`, 'warn');
+                            } catch(getFallbackErr) {
+                                if (getHealthPassed) {
+                                    this.appendDiagLog(`GET 大資料傳輸受限 (${getFallbackErr.message})，自動由 POST 專屬通道承載`, 'info');
+                                } else {
+                                    throw getFallbackErr;
                                 }
                             }
                         }
 
                         const lat = Date.now() - t0;
                         if (isReadPassed) {
-                            this.updateDiagItemStatus('gas_get', 'success', `讀取成功 (${channelUsed}) · 延遲 ${lat}ms · 雲端收錄 ${projectCount} 個專案`, `正常 (${lat}ms)`);
+                            this.updateDiagItemStatus('gas_get', 'success', `讀取正常 [${channelUsed}] · 延遲 ${lat}ms · 雲端收錄 ${projectCount} 個專案`, `正常 (${lat}ms)`);
                             this.appendDiagLog(`GAS 雲端資料庫讀取正常 [${channelUsed}] (${lat}ms)：成功取得 ${projectCount} 個專案 (版本: ${backendRev})`, 'success');
                             totalScore++;
                         } else if (getHealthPassed) {
-                            this.updateDiagItemStatus('gas_get', 'warning', `GET 通道就緒但讀取逾時或異常 · 延遲 ${lat}ms`, '待同步');
+                            this.updateDiagItemStatus('gas_get', 'warning', `GET 通道就緒但讀取逾時 · 延遲 ${lat}ms`, '待同步');
                             this.appendDiagLog(`GET 通道就緒但尚未取得有效專案資料，請確認後端已完成部署`, 'warn');
                             warningCount++;
                         } else {

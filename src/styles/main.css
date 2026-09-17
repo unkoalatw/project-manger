@@ -532,11 +532,14 @@
                 display: block !important;
                 border: none !important;
                 box-shadow: none !important;
-                padding: 1.8cm 1.5cm 1.5cm 1.5cm !important;
-                margin: 0 !important;
+                padding: var(--print-padding-y, 1.5cm) var(--print-padding-x, 1.2cm) !important;
+                margin: 0 auto !important;
                 width: 100% !important;
+                max-width: 100% !important;
                 min-height: auto !important;
                 background: transparent !important;
+                zoom: var(--print-scale, 1);
+                transform-origin: top left;
             }
             .doc-page-break {
                 display: block !important;
@@ -633,8 +636,8 @@
                 box-shadow: none !important;
             }
             @page {
-                margin: 0 !important;
-                size: auto;
+                margin: var(--print-page-margin, 10mm);
+                size: var(--print-page-size, auto);
             }
         }
 

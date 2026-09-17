@@ -1041,12 +1041,25 @@ pie title 影片流量與曝光來源佔比 (%)
                 }
             },
 
-            printDocPreview() {
+            printDocPreview(direct = false) {
                 const p = this.getCurrentProject();
                 const doc = p?.docs?.find(d => d.id === this.state.activeDocId);
                 if (!doc) {
                     this.showToast('找不到當前文檔', 'error');
                     return;
+                }
+
+                // 若非直接列印模式，先開啟列印縮放與排版設定對話框
+                if (direct !== true) {
+                    if (typeof this.openPrintModal === 'function') {
+                        this.openPrintModal();
+                        return;
+                    }
+                }
+
+                // 套用最新的列印縮放與頁面樣式
+                if (typeof this.applyPrintStyles === 'function') {
+                    this.applyPrintStyles();
                 }
 
                 // 1. 若當前在編輯模式，先自動切換至純檢視預覽模式，確保渲染與圖表生成完畢
