@@ -241,7 +241,7 @@ export const sync = {
                 }
             },
 
-            async pushToCloud(isManual = false) {
+            async pushToCloud(isManual = false, isForce = false) {
                 if (!this.state.gasUrl) {
                     this.updateSyncStatus('offline', '離線模式');
                     return false;
@@ -273,11 +273,12 @@ export const sync = {
                 this.updateSyncStatus('syncing', '正在寫入試算表...');
 
                 try {
-                    // 打包帶有 action, baseRevision 與 authToken 的安全同步封包
+                    // 打包帶有 action, baseRevision, force 與 authToken 的安全同步封包
                     const payloadObj = {
                         action: 'sync',
                         authToken: this.state.authToken || '',
                         baseRevision: this.state.cloudRevision || 0,
+                        force: isForce || isManual,
                         projects: this.state.projects,
                         timestamp: new Date().toISOString()
                     };
@@ -308,9 +309,13 @@ export const sync = {
                     }
 
                     if (result.status === 'conflict' || result.code === 409) {
-                        console.warn('🛡️ [OCC] 偵測到雲端版本已遞增，自動拉取最新資料進行合併...', result);
+                        console.warn('🛡️ [OCC] 偵測到雲端版本已遞增，更新本機版本號並拉取...', result);
+                        if (result.currentRevision) {
+                            this.state.cloudRevision = result.currentRevision;
+                            try { localStorage.setItem('flatSpecCloudRevision', result.currentRevision.toString()); } catch(e) {}
+                        }
                         this.state.isSyncing = false;
-                        await this.pullFromCloud(false);
+                        await this.pullFromCloud(false, true);
                         return false;
                     }
 

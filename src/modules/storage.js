@@ -122,6 +122,15 @@ export const storage = {
                     try {
                         // 清理過往歷史快照與緩存釋放空間
                         localStorage.removeItem('flatSpecAttachmentCache');
+                        
+                        // 裁剪時光機快照至最近 3 筆以釋出寶貴空間
+                        try {
+                            const hist = JSON.parse(localStorage.getItem('flatSpecHistory') || '[]');
+                            if (Array.isArray(hist) && hist.length > 3) {
+                                localStorage.setItem('flatSpecHistory', JSON.stringify(hist.slice(-3)));
+                            }
+                        } catch(hErr) {}
+
                         const leanProjects = this.state.projects.map(proj => {
                             const clone = JSON.parse(JSON.stringify(proj));
                             if (Array.isArray(clone.docs)) {
@@ -140,7 +149,13 @@ export const storage = {
                         });
                         localStorage.setItem('flatSpecData', JSON.stringify(leanProjects));
                     } catch(retryErr) {
-                        console.error("Local storage error:", retryErr);
+                        // 若依然超限，刪除歷史快照確保主專案資料絕對能寫入
+                        try {
+                            localStorage.removeItem('flatSpecHistory');
+                            localStorage.setItem('flatSpecData', JSON.stringify(this.state.projects));
+                        } catch(finalErr) {
+                            console.error("Local storage error:", finalErr);
+                        }
                     }
                 }
             },
