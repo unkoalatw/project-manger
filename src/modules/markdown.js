@@ -606,11 +606,15 @@ export const markdown = {
                     mathBlocks.push(this.renderMath(formula.trim(), true));
                     return `\n\n${placeholder}\n\n`;
                 });
-                // 行內公式 $...$ (嚴格要求為有效數學符號/表達式，排除金額如 $100、Emoji 或純中文段落)
+                // 行內公式 $...$ (嚴格要求為有效數學符號/表達式，包含 LaTeX 反斜線指令或常見數學運算符號，排除金額如 $100、Emoji 或純中文段落)
                 text = text.replace(/(^|[^\\])\$([a-zA-Z0-9\+\-\*\/\=\^\_\(\)\{\}\\\s\.,><±×÷α-ωΑ-Ω]+?)\$/g, (match, prefix, formula) => {
                     const clean = formula.trim();
-                    // 排除純數字金額、空字串或過長的純文本
-                    if (!clean || /^\d+(?:\.\d+)?$/.test(clean) || clean.length > 150) {
+                    // 排除純數字金額、包含常見 Emoji、空字串或過長的純文本
+                    if (!clean || /^\d+(?:\.\d+)?$/.test(clean) || clean.length > 150 || /\p{Extended_Pictographic}/u.test(clean)) {
+                        return match;
+                    }
+                    // 必須包含至少一個 LaTeX 標誌性符號或數學運算子/關係符，防止將普通英文 prose 誤判為公式
+                    if (!/(\\[a-zA-Z]+|[_\^=+\-*/><±×÷α-ωΑ-Ω\(\)\{\}\\])/.test(clean)) {
                         return match;
                     }
                     const placeholder = `MATHBLOCKX${mathBlocks.length}Z`;
@@ -1022,6 +1026,18 @@ export const markdown = {
 
                 const diagramStartRegex = /^\s*`?\s*(flowchart|graph|sequenceDiagram|classDiagram|stateDiagram|erDiagram|gantt|pie|gitGraph|mindmap|timeline)\b/i;
 
+                const flushDiagram = (buffer) => {
+                    const validLines = buffer.filter(l => l.trim() && !l.trim().startsWith('%%'));
+                    // 至少要有 2 行且不只有 header，例如只有 "mindmap" 就不應被當成圖表塊
+                    if (validLines.length >= 2) {
+                        resultLines.push('```mermaid');
+                        resultLines.push(...buffer);
+                        resultLines.push('```');
+                    } else if (buffer.length > 0) {
+                        resultLines.push(...buffer);
+                    }
+                };
+
                 for (let i = 0; i < lines.length; i++) {
                     const line = lines[i];
                     const trimmed = line.trim();
@@ -1031,9 +1047,7 @@ export const markdown = {
                         inFencedBlock = !inFencedBlock;
                         if (inDiagram) {
                             // 遇到新 code fence，結算之前的 diagram
-                            resultLines.push('```mermaid');
-                            resultLines.push(...diagramBuffer);
-                            resultLines.push('```');
+                            flushDiagram(diagramBuffer);
                             diagramBuffer = [];
                             inDiagram = false;
                         }
@@ -1060,9 +1074,7 @@ export const markdown = {
                     } else {
                         // 流程圖累積中：若偵測到新的圖表聲明（如前一張結束後緊接著出現 flowchart / mindmap），自動拆分為獨立代碼塊
                         if (diagramStartRegex.test(trimmed) && diagramBuffer.length > 0) {
-                            resultLines.push('```mermaid');
-                            resultLines.push(...diagramBuffer);
-                            resultLines.push('```');
+                            flushDiagram(diagramBuffer);
                             diagramBuffer = [trimmed.replace(/^`+|`+$/g, '').trim()];
                             continue;
                         }
@@ -1078,9 +1090,7 @@ export const markdown = {
                             diagramBuffer.push(cleanLine);
                         } else {
                             // 圖表結束
-                            resultLines.push('```mermaid');
-                            resultLines.push(...diagramBuffer);
-                            resultLines.push('```');
+                            flushDiagram(diagramBuffer);
                             diagramBuffer = [];
                             inDiagram = false;
                             resultLines.push(line);
@@ -1089,9 +1099,7 @@ export const markdown = {
                 }
 
                 if (inDiagram) {
-                    resultLines.push('```mermaid');
-                    resultLines.push(...diagramBuffer);
-                    resultLines.push('```');
+                    flushDiagram(diagramBuffer);
                 }
 
                 return resultLines.join('\n');
