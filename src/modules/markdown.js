@@ -56,9 +56,25 @@ export const markdown = {
                 };
 
                 renderer.tablecell = function(token) {
-                    const text = this.parser.parseInline(token.tokens || []);
+                    let text = this.parser.parseInline(token.tokens || []);
                     const align = token.align;
                     const alignClass = align === 'center' ? 'text-center' : (align === 'right' ? 'text-right' : 'text-left');
+                    
+                    // 支援表格儲存格內的 Markdown 待辦勾選框 [ ]、[x]、- [ ]、- [x]、* [ ]、+ [ ]
+                    text = text.replace(/(?:^|\s|<br\s*\/?>|&lt;br\s*\/?&gt;)(?:[-*+]\s+)?\[([ xX])\](?:\s+([\s\S]*?))?(?=(?:<br\s*\/?>|&lt;br\s*\/?&gt;|$))/gi, (m, state, label) => {
+                        const currentTaskIdx = self._docTaskCount++;
+                        const isChecked = state.toLowerCase() === 'x';
+                        const itemLabel = (label || '').trim();
+                        return `
+                            <span class="inline-flex items-center gap-1.5 my-0.5 doc-task-item ${isChecked ? 'is-completed text-zinc-400' : 'text-zinc-900'}">
+                                <label class="inline-flex items-center cursor-pointer select-none shrink-0" title="點擊切換完成狀態">
+                                    <input type="checkbox" data-task-index="${currentTaskIdx}" ${isChecked ? 'checked ' : ''}onchange="app.toggleDocTaskCheckbox(${currentTaskIdx}, this.checked)" class="doc-task-checkbox w-4 h-4 rounded border-2 border-black accent-black cursor-pointer transition-transform active:scale-90 align-middle" />
+                                </label>
+                                ${itemLabel ? `<span class="doc-task-label ${isChecked ? 'line-through text-zinc-400' : 'text-zinc-900 font-medium'}">${itemLabel}</span>` : ''}
+                            </span>
+                        `;
+                    });
+
                     if (token.header) {
                         return `<th class="border-b border-slate-200 px-4 py-2.5 font-semibold text-xs tracking-wider text-slate-700 ${alignClass}">${text}</th>`;
                     }
@@ -867,7 +883,22 @@ export const markdown = {
                     tableHtml += '</tr></thead><tbody class="divide-y-2 divide-black">';
                     rows.forEach(r => {
                         tableHtml += '<tr class="hover:bg-zinc-100 transition-colors">';
-                        r.forEach(c => { tableHtml += `<td class="border-2 border-black px-3 py-2 text-zinc-900 bg-white font-medium">${c}</td>`; });
+                        r.forEach(c => {
+                            let cellContent = c.replace(/(?:^|\s|<br\s*\/?>|&lt;br\s*\/?&gt;)(?:[-*+]\s+)?\[([ xX])\](?:\s+([\s\S]*?))?(?=(?:<br\s*\/?>|&lt;br\s*\/?&gt;|$))/gi, (m, state, label) => {
+                                const currentTaskIdx = this._docTaskCount++;
+                                const isChecked = state.toLowerCase() === 'x';
+                                const itemLabel = (label || '').trim();
+                                return `
+                                    <span class="inline-flex items-center gap-1.5 my-0.5 doc-task-item ${isChecked ? 'is-completed text-zinc-400' : 'text-zinc-900'}">
+                                        <label class="inline-flex items-center cursor-pointer select-none shrink-0" title="點擊切換完成狀態">
+                                            <input type="checkbox" data-task-index="${currentTaskIdx}" ${isChecked ? 'checked ' : ''}onchange="app.toggleDocTaskCheckbox(${currentTaskIdx}, this.checked)" class="doc-task-checkbox w-4 h-4 rounded border-2 border-black accent-black cursor-pointer transition-transform active:scale-90 align-middle" />
+                                        </label>
+                                        ${itemLabel ? `<span class="doc-task-label ${isChecked ? 'line-through text-zinc-400' : 'text-zinc-900 font-medium'}">${itemLabel}</span>` : ''}
+                                    </span>
+                                `;
+                            });
+                            tableHtml += `<td class="border-2 border-black px-3 py-2 text-zinc-900 bg-white font-medium">${cellContent}</td>`;
+                        });
                         tableHtml += '</tr>';
                     });
                     tableHtml += '</tbody></table></div>';
@@ -893,7 +924,7 @@ export const markdown = {
                            .replace(/\*(.*?)\*/g, '<em>$1</em>')
                            .replace(/~~(.*?)~~/g, '<del class="text-zinc-400">$1</del>');
 
-                // 待辦核取方塊 Checkbox 解析支援
+                // 待辦核取方塊 Checkbox 解析支援 (一般清單行)
                 html = html.replace(/^([ \t]*)[-*+]\s+\[([ xX])\]\s+(.*)$/gim, (match, indent, state, label) => {
                     const currentTaskIdx = this._docTaskCount++;
                     const isChecked = state.toLowerCase() === 'x';
@@ -907,7 +938,7 @@ export const markdown = {
                 return html;
             },
 
-            // ================= ☑️ 文檔 Markdown 待辦清單互動切換引擎 =================
+            // ================= ☑️ 文檔 Markdown 待辦清單互動切換引擎 (支援一般清單與表格內勾選) =================
             toggleDocTaskCheckbox(taskIndex, newChecked) {
                 const p = this.getCurrentProject();
                 const doc = p?.docs?.find(d => d.id === this.state.activeDocId);
@@ -916,12 +947,13 @@ export const markdown = {
                 let currentIdx = 0;
                 let found = false;
                 
-                // 替換第 taskIndex 個 - [ ] 或 - [x]
-                const newContent = doc.content.replace(/^([ \t]*[-*+]\s+\[)([ xX])(\]\s+.*)$/gm, (match, prefix, state, suffix) => {
+                // 依序搜尋整個文檔內容中的所有 Checkbox 形式（包含行首清單以及表格儲存格內的 [ ] / [x]）
+                const newContent = doc.content.replace(/(^|[|\n\r\t\s]|<br\s*\/?>)([-*+]\s+)?\[([ xX])\]/g, (match, prefix, listBullet, state) => {
                     if (currentIdx === taskIndex) {
                         found = true;
                         currentIdx++;
-                        return prefix + (newChecked ? 'x' : ' ') + suffix;
+                        const bullet = listBullet || '';
+                        return `${prefix}${bullet}[${newChecked ? 'x' : ' '}]`;
                     }
                     currentIdx++;
                     return match;
