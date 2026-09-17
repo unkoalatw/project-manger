@@ -94,8 +94,7 @@ export const sync = {
                         if (postRes.ok) {
                             const postText = await postRes.text();
                             const parsedPost = JSON.parse(postText);
-                            // 嚴格驗證：必須為 status === 'success' 且包含專案陣列，否則視為舊版或不支援 pull 之 GAS 端點
-                            if (parsedPost && (parsedPost.status === 'success' || Array.isArray(parsedPost)) && (Array.isArray(parsedPost.data) || Array.isArray(parsedPost.projects) || Array.isArray(parsedPost))) {
+                            if (parsedPost && (parsedPost.status === 'success' || Array.isArray(parsedPost))) {
                                 rawPayload = parsedPost;
                             } else if (parsedPost && (parsedPost.code === 401 || (parsedPost.status === 'error' && parsedPost.message && parsedPost.message.includes('未授權')))) {
                                 throw new Error('未授權存取 (Auth Token 錯誤或未設定)，請至「設定 ➔ 雲端同步」填入正確金鑰。');
@@ -103,31 +102,37 @@ export const sync = {
                         }
                     } catch (postErr) {
                         if (postErr.message?.includes('未授權')) throw postErr;
-                        // POST 失敗或超時時，順暢 fallback 至 GET
+                        // 若 POST 直連失敗，嘗試以 GET 作為最後備援
                     }
 
                     // 2. 若 POST pull 未成功取得合法專案資料，Fallback 至 GET 讀取 (使用獨立的超時控制器)
                     if (!rawPayload) {
-                        const tokenParam = this.state.authToken ? `&token=${encodeURIComponent(this.state.authToken)}` : '';
-                        const fetchUrl = this.state.gasUrl + (this.state.gasUrl.includes('?') ? '&' : '?') + 't=' + Date.now() + tokenParam;
-                        const response = await this.fetchWithTimeout(fetchUrl, { 
-                            method: 'GET',
-                            redirect: 'follow',
-                            cache: 'no-store'
-                        }, 25000);
-
-                        if (!response.ok) {
-                            throw new Error(`HTTP Error ${response.status}`);
-                        }
-                        const textData = await response.text();
                         try {
-                            rawPayload = JSON.parse(textData);
-                        } catch (jsonErr) {
-                            if (textData.includes('<!DOCTYPE') || textData.includes('<html')) {
-                                throw new Error('CORS 存取被拒 (偵測到 Google 登入重定向，請確認 Web App 存取權限設為 Anyone_Anonymous)');
+                            const tokenParam = this.state.authToken ? `&token=${encodeURIComponent(this.state.authToken)}` : '';
+                            const fetchUrl = this.state.gasUrl + (this.state.gasUrl.includes('?') ? '&' : '?') + 't=' + Date.now() + tokenParam;
+                            const response = await this.fetchWithTimeout(fetchUrl, { 
+                                method: 'GET',
+                                redirect: 'follow',
+                                cache: 'no-store'
+                            }, 15000);
+
+                            if (response.ok) {
+                                const textData = await response.text();
+                                try {
+                                    rawPayload = JSON.parse(textData);
+                                } catch (jsonErr) {
+                                    if (textData.includes('<!DOCTYPE') || textData.includes('<html')) {
+                                        throw new Error('CORS 存取被拒 (偵測到 Google 登入重定向，請確認 Web App 存取權限設為 Anyone_Anonymous)');
+                                    }
+                                }
                             }
-                            throw new Error('雲端回傳格式非合法 JSON: ' + jsonErr.message);
+                        } catch(getErr) {
+                            // 靜默降級，若皆無資料由下方判定
                         }
+                    }
+
+                    if (!rawPayload) {
+                        throw new Error('無法從雲端取得專案資料 (POST 與 GET 通道均未回應有效資料)');
                     }
                     
                     let data = rawPayload;
