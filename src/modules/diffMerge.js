@@ -168,9 +168,10 @@ export const diffMerge = {
                     const lTime = new Date(lNorm.updatedAt || 0).getTime();
                     const isTypingNow = this.state.isUserTyping || (this.state.hasUnsavedChanges && (Date.now() - (this.state.lastLocalSaveTime?.getTime() || 0) < 5000));
 
-                    // ✅ 核心防線 1：如果當前裝置沒有在主動打字，且雲端時間戳 >= 本地（例如電腦剛同步，手機剛打開 App）
-                    // 100% 以最新雲端為準（SSOT），絕對防止手機舊快取倒灌覆蓋雲端！
-                    if (!isTypingNow && cTime >= lTime) {
+                    const localHasChanges = this.state.hasUnsavedChanges || isTypingNow || (bNorm ? JSON.stringify(lNorm) !== JSON.stringify(bNorm) : JSON.stringify(lNorm) !== JSON.stringify(cNorm));
+
+                    // ✅ 核心防線 1：如果本機完全沒有新變更且未在編輯中，且雲端時間戳 >= 本地，直接採用雲端版本（SSOT）
+                    if (!localHasChanges && cTime >= lTime) {
                         mergedMap.set(projId, cNorm);
                         return;
                     }

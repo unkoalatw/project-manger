@@ -937,26 +937,58 @@ export const markdown = {
                 const doc = p?.docs?.find(d => d.id === this.state.activeDocId);
                 if (!doc || typeof doc.content !== 'string') return;
 
+                let text = doc.content;
+
+                // 1. 保護程式碼區塊 (Fenced Code Blocks 與 Inline Code)，防止代碼區塊內的方括號干擾 task index
+                const codeBlocks = [];
+                text = text.replace(/(?:^|\n)(```[\s\S]*?```|~~~[\s\S]*?~~~)(?=\n|$)/g, (match) => {
+                    const placeholder = `CODEBLOCKX${codeBlocks.length}Z`;
+                    codeBlocks.push(match);
+                    return `\n${placeholder}\n`;
+                });
+
+                const inlineCodes = [];
+                text = text.replace(/`([^`\n]+)`/g, (match) => {
+                    const placeholder = `INLINECODEX${inlineCodes.length}Z`;
+                    inlineCodes.push(match);
+                    return placeholder;
+                });
+
                 let currentIdx = 0;
                 let found = false;
-                
-                // 依序搜尋整個文檔內容中的所有 Checkbox 形式（包含行首清單以及表格儲存格內的 [ ] / [x]）
-                const newContent = doc.content.replace(/(^|[|\n\r\t\s]|<br\s*\/?>)([-*+]\s+)?\[([ xX])\]/g, (match, prefix, listBullet, state) => {
+
+                // 2. 精確匹配：行首清單任務 (- [ ]、* [ ]、+ [ ]、> - [ ]) 或 Markdown 表格/換行內的待辦項 (| [ ]、<br> [ ])
+                // 嚴格保留所有前綴、縮排與清單標記 (如 '  - ')，只替換 [ ] / [x]
+                const taskRegex = /(^|[|\n\r]|<br\s*\/?>)([ \t]*(?:>+[ \t]*)?(?:[-*+]\s+)?)\[([ xX])\](?=[ \t\r\n|]|<br\s*\/?>|$)/gi;
+
+                let replacedText = text.replace(taskRegex, (match, prefix, indentAndBullet, state) => {
                     if (currentIdx === taskIndex) {
                         found = true;
                         currentIdx++;
-                        const bullet = listBullet || '';
-                        return `${prefix}${bullet}[${newChecked ? 'x' : ' '}]`;
+                        const leader = indentAndBullet || '';
+                        return `${prefix}${leader}[${newChecked ? 'x' : ' '}]`;
                     }
                     currentIdx++;
                     return match;
                 });
 
+                // 3. 還原程式碼區塊與行內代碼
+                inlineCodes.forEach((ic, idx) => {
+                    replacedText = replacedText.split(`INLINECODEX${idx}Z`).join(ic);
+                });
+                codeBlocks.forEach((cb, idx) => {
+                    replacedText = replacedText.split(`CODEBLOCKX${idx}Z`).join(cb);
+                });
+
                 if (found) {
-                    this.updateDocContent(newContent);
+                    this.setUserTypingState();
+                    this.state.hasUnsavedChanges = true;
+                    this.state.lastLocalSaveTime = new Date();
+
+                    this.updateDocContent(replacedText);
                     const editor = document.getElementById('docEditor');
                     if (editor) {
-                        editor.value = newContent;
+                        editor.value = replacedText;
                     }
                     this.playSound('click');
                     this.showToast(newChecked ? '☑️ 待辦任務已標記為完成' : '◻️ 待辦任務已標記為未完成', 'info');
