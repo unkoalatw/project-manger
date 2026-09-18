@@ -194,8 +194,24 @@ export const codeEditor = {
                 const tabStr = '    '; // 4 Spaces standard IDE tab
 
                 if (start === end) {
-                    // 單行游標處插入 4 空格
-                    if (!e.shiftKey) {
+                    if (e.shiftKey) {
+                        // Shift+Tab: 單行反縮排 (移除當前行開頭 1~4 個空格或 1 個 tab)
+                        const lineStart = val.lastIndexOf('\n', start - 1) + 1;
+                        const lineEnd = val.indexOf('\n', start) === -1 ? val.length : val.indexOf('\n', start);
+                        const lineText = val.substring(lineStart, lineEnd);
+                        const unindented = lineText.replace(/^( {1,4}|\t)/, '');
+                        const removedCount = lineText.length - unindented.length;
+                        if (removedCount > 0) {
+                            editor.value = val.slice(0, lineStart) + unindented + val.slice(lineEnd);
+                            const newCursor = Math.max(lineStart, start - removedCount);
+                            editor.selectionStart = editor.selectionEnd = newCursor;
+                            this.updateDocContent(editor.value);
+                            this.updateLineNumbers();
+                            this.updateIdeStatusBar();
+                        }
+                        return;
+                    } else {
+                        // 單行游標處插入 4 空格
                         editor.value = val.slice(0, start) + tabStr + val.slice(end);
                         editor.selectionStart = editor.selectionEnd = start + tabStr.length;
                     }
@@ -258,24 +274,22 @@ export const codeEditor = {
                 return;
             }
 
-            // 3. Alt + Up / Alt + Down 上下移動整行代碼
+            // 3. Alt + Up / Down 行上下快速移動 (Move Line Up / Down)
             if (e.altKey && !e.shiftKey && (e.key === 'ArrowUp' || e.key === 'ArrowDown')) {
                 e.preventDefault();
                 const lineStart = val.lastIndexOf('\n', start - 1) + 1;
                 const lineEnd = val.indexOf('\n', end) === -1 ? val.length : val.indexOf('\n', end);
                 const currentLines = val.substring(lineStart, lineEnd);
 
-                if (e.key === 'ArrowUp') {
-                    if (lineStart === 0) return; // 已在第一行
+                if (e.key === 'ArrowUp' && lineStart > 0) {
                     const prevLineStart = val.lastIndexOf('\n', lineStart - 2) + 1;
                     const prevLine = val.substring(prevLineStart, lineStart - 1);
-                    
+
                     editor.value = val.slice(0, prevLineStart) + currentLines + '\n' + prevLine + val.slice(lineEnd);
                     const newStart = prevLineStart;
                     editor.selectionStart = newStart;
                     editor.selectionEnd = newStart + currentLines.length;
-                } else {
-                    if (lineEnd >= val.length) return; // 已在最後一行
+                } else if (e.key === 'ArrowDown' && lineEnd < val.length) {
                     const nextLineEnd = val.indexOf('\n', lineEnd + 1) === -1 ? val.length : val.indexOf('\n', lineEnd + 1);
                     const nextLine = val.substring(lineEnd + 1, nextLineEnd);
 
@@ -298,10 +312,18 @@ export const codeEditor = {
                 const lineEnd = val.indexOf('\n', end) === -1 ? val.length : val.indexOf('\n', end);
                 const currentLines = val.substring(lineStart, lineEnd);
 
-                editor.value = val.slice(0, lineEnd) + '\n' + currentLines + val.slice(lineEnd);
-                if (e.key === 'ArrowDown') {
-                    editor.selectionStart = lineEnd + 1;
-                    editor.selectionEnd = lineEnd + 1 + currentLines.length;
+                if (e.key === 'ArrowUp') {
+                    // 向上複製：在當前行上方插入一份，游標停留在原本行（位置下移）
+                    editor.value = val.slice(0, lineStart) + currentLines + '\n' + val.slice(lineStart);
+                    const offset = currentLines.length + 1;
+                    editor.selectionStart = start + offset;
+                    editor.selectionEnd = end + offset;
+                } else {
+                    // 向下複製：在當前行下方插入一份，游標選取新的下方行
+                    editor.value = val.slice(0, lineEnd) + '\n' + currentLines + val.slice(lineEnd);
+                    const offset = lineEnd + 1 - lineStart;
+                    editor.selectionStart = start + offset;
+                    editor.selectionEnd = end + offset;
                 }
 
                 this.updateDocContent(editor.value);
@@ -326,7 +348,7 @@ export const codeEditor = {
                 const closeChar = pairs[e.key];
 
                 if (start !== end) {
-                    // 選取文字時按括號 -> 直接將選取文字包裹
+                    // 選取文字時按括號/引號 -> 直接將選取文字包裹
                     e.preventDefault();
                     const selected = val.substring(start, end);
                     editor.value = val.slice(0, start) + openChar + selected + closeChar + val.slice(end);
@@ -334,8 +356,14 @@ export const codeEditor = {
                     editor.selectionEnd = end + 1;
                     this.updateDocContent(editor.value);
                     return;
-                } else if (openChar === '{' || openChar === '[' || openChar === '(' || openChar === '`') {
-                    // 自動補齊對稱括號
+                } else {
+                    // 若下一個字元剛好是相同的閉合引號，直接跳過 (Step over)
+                    if (val[start] === closeChar && (openChar === '"' || openChar === "'" || openChar === '`')) {
+                        e.preventDefault();
+                        editor.selectionStart = editor.selectionEnd = start + 1;
+                        return;
+                    }
+                    // 自動補齊對稱括號/引號
                     e.preventDefault();
                     editor.value = val.slice(0, start) + openChar + closeChar + val.slice(end);
                     editor.selectionStart = editor.selectionEnd = start + 1;
@@ -368,15 +396,18 @@ export const codeEditor = {
             if (e.key === 'Enter' && !e.shiftKey) {
                 const lineStart = val.lastIndexOf('\n', start - 1) + 1;
                 const currentLine = val.substring(lineStart, start);
-                const indentMatch = currentLine.match(/^(\s+)/);
+                const indentMatch = currentLine.match(/^(\s*)/);
+                const baseIndent = indentMatch ? indentMatch[1] : '';
+                const trimmed = currentLine.trim();
 
-                if (indentMatch) {
+                let extraIndent = '';
+                if (trimmed.endsWith('{') || trimmed.endsWith('[') || trimmed.endsWith(':') || trimmed.endsWith('(')) {
+                    extraIndent = '    ';
+                }
+
+                const indent = baseIndent + extraIndent;
+                if (indent.length > 0) {
                     e.preventDefault();
-                    let extraIndent = '';
-                    if (currentLine.trim().endsWith('{') || currentLine.trim().endsWith('[') || currentLine.trim().endsWith(':')) {
-                        extraIndent = '    ';
-                    }
-                    const indent = indentMatch[1] + extraIndent;
                     editor.value = val.slice(0, start) + '\n' + indent + val.slice(end);
                     editor.selectionStart = editor.selectionEnd = start + 1 + indent.length;
                     this.updateDocContent(editor.value);

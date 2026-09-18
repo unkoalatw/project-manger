@@ -43,6 +43,24 @@ export const docFindReplace = {
                 this.handleDocFindInput(input?.value || '');
             },
 
+            buildDocFindRegex(query, options) {
+                if (!query) return null;
+                const escaped = this.escapeRegex(query);
+                let pattern = escaped;
+
+                if (options?.wholeWord) {
+                    // 若關鍵字為純 ASCII 字母數字，使用標準 \b 邊界；若是中文或含標點，使用前後空格、標點或字串首尾作為字詞邊界
+                    if (/^[A-Za-z0-9_]+$/.test(query)) {
+                        pattern = `\\b${escaped}\\b`;
+                    } else {
+                        pattern = `(?<=^|[\\s\\p{P}])${escaped}(?=[\\s\\p{P}]|$)`;
+                    }
+                }
+
+                const flags = (options?.matchCase ? 'g' : 'gi') + 'u';
+                return new RegExp(pattern, flags);
+            },
+
             handleDocFindInput(query) {
                 const p = this.getCurrentProject();
                 const doc = p?.docs?.find(d => d.id === this.state.activeDocId);
@@ -56,23 +74,21 @@ export const docFindReplace = {
                     return;
                 }
 
-                let pattern = this.escapeRegex(query);
-                if (this.state.docFindOptions?.wholeWord) {
-                    pattern = `\\b${pattern}\\b`;
-                }
-                const flags = this.state.docFindOptions?.matchCase ? 'g' : 'gi';
-
                 try {
-                    const regex = new RegExp(pattern, flags);
-                    let m;
-                    while ((m = regex.exec(content)) !== null) {
-                        this.state.docFindMatches.push({
-                            index: m.index,
-                            length: m[0].length,
-                            text: m[0]
-                        });
+                    const regex = this.buildDocFindRegex(query, this.state.docFindOptions);
+                    if (regex) {
+                        let m;
+                        while ((m = regex.exec(content)) !== null) {
+                            this.state.docFindMatches.push({
+                                index: m.index,
+                                length: m[0].length,
+                                text: m[0]
+                            });
+                        }
                     }
-                } catch (e) {}
+                } catch (e) {
+                    console.warn('[DocFind] Regex error:', e);
+                }
 
                 if (this.state.docFindMatches.length > 0) {
                     this.state.docFindCurrentIndex = 0;
@@ -180,12 +196,8 @@ export const docFindReplace = {
                 const doc = p?.docs?.find(d => d.id === this.state.activeDocId);
                 if (!doc) return;
 
-                let pattern = this.escapeRegex(query);
-                if (this.state.docFindOptions?.wholeWord) {
-                    pattern = `\\b${pattern}\\b`;
-                }
-                const flags = this.state.docFindOptions?.matchCase ? 'g' : 'gi';
-                const regex = new RegExp(pattern, flags);
+                const regex = this.buildDocFindRegex(query, this.state.docFindOptions);
+                if (!regex) return;
 
                 const oldContent = doc.content || '';
                 const count = matches.length;

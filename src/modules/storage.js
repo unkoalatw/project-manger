@@ -265,9 +265,18 @@ export const storage = {
                 }
             },
 
-            // ================= 非同步 IndexedDB 實體庫雙寫 =================
+            // ================= 非同步 IndexedDB 實體庫雙寫 (Mutex 防重疊) =================
+            _isPersistingToIdb: false,
+            _pendingIdbProjects: null,
+
             async persistToIndexedDB(projects) {
                 if (!Array.isArray(projects) || typeof window === 'undefined' || !window.indexedDB) return;
+                if (this._isPersistingToIdb) {
+                    this._pendingIdbProjects = projects;
+                    return;
+                }
+
+                this._isPersistingToIdb = true;
                 try {
                     for (const proj of projects) {
                         if (!proj || !proj.id) continue;
@@ -338,6 +347,13 @@ export const storage = {
                     }
                 } catch (err) {
                     console.warn('[Storage] persistToIndexedDB error:', err);
+                } finally {
+                    this._isPersistingToIdb = false;
+                    if (this._pendingIdbProjects) {
+                        const nextProjects = this._pendingIdbProjects;
+                        this._pendingIdbProjects = null;
+                        this.persistToIndexedDB(nextProjects);
+                    }
                 }
             },
 

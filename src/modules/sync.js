@@ -37,9 +37,14 @@ export const sync = {
                         cache: 'no-store'
                     }, 12000);
 
+                    if (res.status === 404) {
+                        this.state.consecutive404Count = (this.state.consecutive404Count || 0) + 1;
+                        return false;
+                    }
                     if (!res.ok) return false;
                     const meta = await res.json();
                     if (meta && meta.status === 'success' && typeof meta.revision === 'number') {
+                        this.state.consecutive404Count = 0;
                         const currentLocalRev = this.state.cloudRevision || parseInt(localStorage.getItem('flatSpecCloudRevision') || '0', 10);
                         if (meta.revision > currentLocalRev) {
                             console.log(`[Sync] 偵測到雲端版本更新 (本機 rev: ${currentLocalRev} ➔ 雲端 rev: ${meta.revision})，觸發全量載入...`);
@@ -280,6 +285,10 @@ export const sync = {
                         cache: 'no-store'
                     });
 
+                    if (response.status === 404) {
+                        this.state.consecutive404Count = (this.state.consecutive404Count || 0) + 1;
+                        throw new Error(`HTTP 404 (端點不存在或已失效)`);
+                    }
                     if (!response.ok) throw new Error(`HTTP ${response.status}`);
                     
                     const textRes = await response.text();
@@ -309,6 +318,7 @@ export const sync = {
                     }
 
                     if (result.status === 'success') {
+                        this.state.consecutive404Count = 0;
                         if (typeof result.revision === 'number') {
                             this.state.cloudRevision = result.revision;
                             try { localStorage.setItem('flatSpecCloudRevision', result.revision.toString()); } catch(e) {}
@@ -327,6 +337,9 @@ export const sync = {
                 } catch (error) {
                     console.error("Push error:", error);
                     let errMsg = error.message;
+                    if (errMsg.includes('404')) {
+                        this.state.consecutive404Count = (this.state.consecutive404Count || 0) + 1;
+                    }
                     if (errMsg.includes('Failed to fetch') || errMsg.includes('NetworkError')) {
                         errMsg = 'CORS/連線異常 (請檢查部署權限設為 Anyone)';
                     }
@@ -392,7 +405,10 @@ export const sync = {
                     const fetchUrl = inputUrl + (inputUrl.includes('?') ? '&' : '?') + 'action=health&t=' + Date.now() + tokenParam;
                     const getRes = await fetch(fetchUrl, { method: 'GET', redirect: 'follow', cache: 'no-store' });
                     const getLat = Date.now() - startTime;
-                    if (getRes.ok) {
+                    if (getRes.status === 404) {
+                        this.state.consecutive404Count = (this.state.consecutive404Count || 0) + 1;
+                        logs.push(`❌ GET 失敗: HTTP 404 (端點不存在或已失效)`);
+                    } else if (getRes.ok) {
                         const txt = await getRes.text();
                         if (txt.includes('<!DOCTYPE') || txt.includes('<html')) {
                             logs.push(`❌ GET 失敗: 偵測到 Google 登入重定向 (CORS 被阻擋，請將「誰可以存取」設為 Anyone)`);
@@ -433,7 +449,10 @@ export const sync = {
                         cache: 'no-store'
                     });
                     const postLat = Date.now() - startTime;
-                    if (postRes.ok) {
+                    if (postRes.status === 404) {
+                        this.state.consecutive404Count = (this.state.consecutive404Count || 0) + 1;
+                        logs.push(`❌ POST 失敗: HTTP 404 (端點不存在或已失效)`);
+                    } else if (postRes.ok) {
                         const txt = await postRes.text();
                         if (txt.includes('<!DOCTYPE') || txt.includes('<html')) {
                             logs.push(`❌ POST 失敗: 偵測到 Google 登入重定向 (CORS 被阻擋)`);
@@ -462,6 +481,7 @@ export const sync = {
                 if (diagBox) {
                     let resultHtml = logs.map(l => `<div class="text-[11px] font-mono mb-1 leading-tight">${l}</div>`).join('');
                     if (isGetOk && isPostOk) {
+                        this.state.consecutive404Count = 0;
                         resultHtml += `<div class="mt-2 text-green-700 font-black text-xs">🎉 雙向通訊與 CORS 檢驗完全正常！已成功儲存設定。</div>`;
                         this.showToast('✅ 雲端連線與 CORS 檢測通過！');
                     } else {

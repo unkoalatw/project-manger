@@ -1154,6 +1154,15 @@ pie title 影片流量與曝光來源佔比 (%)
                 }
             },
 
+            _docAuxTimer: null,
+            debouncedRenderDocAuxiliary(doc) {
+                if (this._docAuxTimer) clearTimeout(this._docAuxTimer);
+                this._docAuxTimer = setTimeout(() => {
+                    this.renderDocLinksPanel(doc);
+                    this.renderDocToc();
+                }, 300);
+            },
+
             updateDocContent(val) {
                 this.setUserTypingState();
                 const p = this.getCurrentProject();
@@ -1166,8 +1175,7 @@ pie title 影片流量與曝光來源佔比 (%)
                     if (previewEl && this.state.docMode === 'preview') {
                         this.updateDocPreview(val, previewEl);
                     }
-                    this.renderDocLinksPanel(doc);
-                    this.renderDocToc();
+                    this.debouncedRenderDocAuxiliary(doc);
                     this.recordDocSnapshotDebounced(doc);
                     this.debouncedSaveAndSync();
                 }
@@ -1177,7 +1185,7 @@ pie title 影片流量與曝光來源佔比 (%)
             _docHistoryState: {
                 activeSnapshotId: null,
                 viewMode: 'diff', // 'diff' | 'preview'
-                _debounceTimer: null
+                _timers: {}
             },
 
             recordDocSnapshot(doc, note = '自動儲存', isManual = false) {
@@ -1196,11 +1204,14 @@ pie title 影片流量與曝光來源佔比 (%)
                         return;
                     }
                     const timeDiff = now - new Date(lastSnap.timestamp).getTime();
-                    const charDiff = Math.abs(content.length - (lastSnap.charCount || 0));
-                    // 若時間小於 2 分鐘且字數變動小於 40 字，更新最後一筆而非一直新增
-                    if (timeDiff < 120000 && charDiff < 40 && lastSnap.note === '自動儲存') {
+                    const prevContent = lastSnap.content || '';
+                    const minLen = Math.min(content.length, prevContent.length);
+                    // 嚴格判定是否為同段輸入的微小延續 (2分鐘內、開頭高相似度、且字數差小於 30 字)
+                    const isContinuousTyping = minLen > 0 && content.slice(0, Math.floor(minLen * 0.85)) === prevContent.slice(0, Math.floor(minLen * 0.85));
+                    const charDiff = Math.abs(content.length - prevContent.length);
+
+                    if (timeDiff < 120000 && charDiff < 30 && isContinuousTyping && lastSnap.note === '自動儲存' && lastSnap.title === title) {
                         lastSnap.content = content;
-                        lastSnap.title = title;
                         lastSnap.timestamp = new Date().toISOString();
                         lastSnap.charCount = content.length;
                         return;
@@ -1226,16 +1237,27 @@ pie title 影片流量與曝光來源佔比 (%)
             },
 
             recordDocSnapshotDebounced(doc) {
-                if (!doc) return;
-                clearTimeout(this._docHistoryState._debounceTimer);
-                this._docHistoryState._debounceTimer = setTimeout(() => {
-                    this.recordDocSnapshot(doc, '自動儲存', false);
-                    this.saveToLocal();
-                    this.state.hasUnsavedChanges = true;
-                    if (this.state.syncTimeout) clearTimeout(this.state.syncTimeout);
-                    this.state.syncTimeout = setTimeout(() => {
-                        this.pushToCloud(false);
-                    }, 1000);
+                if (!doc || !doc.id) return;
+                if (!this._docHistoryState._timers) this._docHistoryState._timers = {};
+
+                const docId = doc.id;
+                if (this._docHistoryState._timers[docId]) {
+                    clearTimeout(this._docHistoryState._timers[docId]);
+                }
+
+                this._docHistoryState._timers[docId] = setTimeout(() => {
+                    const p = this.getCurrentProject();
+                    const targetDoc = p?.docs?.find(d => d.id === docId);
+                    if (targetDoc) {
+                        this.recordDocSnapshot(targetDoc, '自動儲存', false);
+                        this.saveToLocal();
+                        this.state.hasUnsavedChanges = true;
+                        if (this.state.syncTimeout) clearTimeout(this.state.syncTimeout);
+                        this.state.syncTimeout = setTimeout(() => {
+                            this.pushToCloud(false);
+                        }, 1000);
+                    }
+                    delete this._docHistoryState._timers[docId];
                 }, 3000);
             },
 
