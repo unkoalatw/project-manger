@@ -377,7 +377,42 @@ export const markdown = {
                     `;
                 }
 
-                // 2. Vimeo 支援 (vimeo.com/12345678)
+                // 2. Bilibili 支援 (bilibili.com/video/BV... / av... / b23.tv)
+                let bvid = null;
+                let aid = null;
+                let page = 1;
+                const pMatch = cleanUrl.match(/[?&]p=(\d+)/i);
+                if (pMatch) page = parseInt(pMatch[1], 10) || 1;
+
+                const bvMatch = cleanUrl.match(/(?:bilibili\.com\/video\/|b23\.tv\/)?(BV[a-zA-Z0-9]{10})/i);
+                const avMatch = cleanUrl.match(/(?:bilibili\.com\/video\/)?av(\d+)/i);
+                if (bvMatch && bvMatch[1]) {
+                    bvid = bvMatch[1];
+                } else if (avMatch && avMatch[1]) {
+                    aid = avMatch[1];
+                }
+
+                if (bvid || aid) {
+                    const embedSrc = bvid 
+                        ? `https://player.bilibili.com/player.html?bvid=${bvid}&page=${page}&high_quality=1&as_wide=1`
+                        : `https://player.bilibili.com/player.html?aid=${aid}&page=${page}&high_quality=1&as_wide=1`;
+                    const linkUrl = bvid ? `https://www.bilibili.com/video/${bvid}` : `https://www.bilibili.com/video/av${aid}`;
+
+                    return `
+                        <div class="video-preview-card my-4 border-2 border-black bg-white shadow-[3px_3px_0px_0px_#000] overflow-hidden not-prose">
+                            <div class="bg-[#00aeec] text-white px-3 py-1.5 text-xs font-black flex items-center justify-between border-b-2 border-black">
+                                <span class="flex items-center gap-1.5"><span>📺</span> <span>Bilibili 嗶哩嗶哩播放器</span></span>
+                                <a href="${linkUrl}" target="_blank" rel="noopener noreferrer" class="hover:underline text-[10px] text-white flex items-center gap-0.5 font-bold">新分頁開啟 ↗</a>
+                            </div>
+                            <div class="relative w-full aspect-video bg-black">
+                                <iframe src="${embedSrc}" class="w-full h-full border-0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen loading="lazy" sandbox="allow-top-navigation allow-same-origin allow-forms allow-scripts"></iframe>
+                            </div>
+                            ${label && label !== cleanUrl ? `<div class="p-2 text-xs font-bold text-zinc-700 bg-zinc-50 border-t border-zinc-200">📺 ${this.escapeHtml(label)}</div>` : ''}
+                        </div>
+                    `;
+                }
+
+                // 3. Vimeo 支援 (vimeo.com/12345678)
                 const vimeoMatch = cleanUrl.match(/(?:vimeo\.com\/(?:video\/)?|player\.vimeo\.com\/video\/)(\d+)/i);
                 if (vimeoMatch && vimeoMatch[1]) {
                     const vId = vimeoMatch[1];
@@ -395,7 +430,7 @@ export const markdown = {
                     `;
                 }
 
-                // 3. 原生影片支援 (.mp4, .webm, .ogg, .mov)
+                // 4. 原生影片支援 (.mp4, .webm, .ogg, .mov)
                 if (/\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(cleanUrl)) {
                     return `
                         <div class="video-preview-card my-4 border-2 border-black bg-white shadow-[3px_3px_0px_0px_#000] overflow-hidden not-prose">
@@ -626,10 +661,14 @@ export const markdown = {
                     mathBlocks.push(this.renderMath(formula.trim(), true));
                     return `\n\n${placeholder}\n\n`;
                 });
-                // 塊級公式 \[...\]
+                // 塊級公式 \[...\] (嚴格要求包含 LaTeX 數學反斜線語法或典型運算符，避免將跳脫括號如 \[專案代碼\] 或普通文字誤判)
                 text = text.replace(/\\\[([\s\S]*?)\\\]/g, (match, formula) => {
+                    const clean = formula.trim();
+                    if (!clean || !/(\\[a-zA-Z]+|[_\^=+\-*/><±×÷α-ωΑ-Ω\{])/.test(clean)) {
+                        return match; // 維持原樣，讓 marked 解析為一般括號內容
+                    }
                     const placeholder = `MATHBLOCKX${mathBlocks.length}Z`;
-                    mathBlocks.push(this.renderMath(formula.trim(), true));
+                    mathBlocks.push(this.renderMath(clean, true));
                     return `\n\n${placeholder}\n\n`;
                 });
                 // 行內公式 $...$ (嚴格要求為有效數學符號/表達式，包含 LaTeX 反斜線指令或常見數學運算符號，排除金額如 $100、Emoji 或純中文段落)
@@ -647,10 +686,14 @@ export const markdown = {
                     mathBlocks.push(this.renderMath(clean, false));
                     return prefix + placeholder;
                 });
-                // 行內公式 \(...\)
+                // 行內公式 \(...\) (同樣要求必須包含 LaTeX 數學語法或運算符)
                 text = text.replace(/\\\(([\s\S]*?)\\\)/g, (match, formula) => {
+                    const clean = formula.trim();
+                    if (!clean || !/(\\[a-zA-Z]+|[_\^=+\-*/><±×÷α-ωΑ-Ω\{])/.test(clean)) {
+                        return match;
+                    }
                     const placeholder = `MATHBLOCKX${mathBlocks.length}Z`;
-                    mathBlocks.push(this.renderMath(formula.trim(), false));
+                    mathBlocks.push(this.renderMath(clean, false));
                     return placeholder;
                 });
 
