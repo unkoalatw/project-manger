@@ -69,7 +69,7 @@ self.addEventListener('fetch', event => {
     return;
   }
 
-  // 3. 靜態資源、CDN 與字體：Cache First + 背景更新 (Stale-While-Revalidate)
+  // 3. 靜態資源、JS/CSS 模組、CDN 與字體：Stale-While-Revalidate / Network Fallback
   event.respondWith(
     caches.match(req).then(cachedRes => {
       const fetchPromise = fetch(req).then(networkRes => {
@@ -78,9 +78,12 @@ self.addEventListener('fetch', event => {
           caches.open(CACHE_NAME).then(cache => cache.put(req, resClone));
         }
         return networkRes;
-      }).catch(() => null);
+      }).catch(err => {
+        console.warn('[SW] Network fetch failed for:', url, err);
+        return cachedRes || null;
+      });
 
       return cachedRes || fetchPromise;
-    })
+    }).catch(() => fetch(req))
   );
 });
