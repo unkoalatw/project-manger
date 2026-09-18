@@ -60,11 +60,14 @@ export const markdown = {
                     const align = token.align;
                     const alignClass = align === 'center' ? 'text-center' : (align === 'right' ? 'text-right' : 'text-left');
                     
-                    // 支援表格儲存格內的 Markdown 待辦勾選框 [ ]、[x]、- [ ]、- [x]、* [ ]、+ [ ]
+                    // 支援表格儲存格內的 Markdown 待辦勾選框 [ ]、[x]、- [ ]、- [x]、* [ ]、+ [ ] (支援 Source ID Marker)
                     text = text.replace(/(?:^|\s|<br\s*\/?>|&lt;br\s*\/?&gt;)(?:[-*+]\s+)?\[([ xX])\](?:\s+([\s\S]*?))?(?=(?:<br\s*\/?>|&lt;br\s*\/?&gt;|$))/gi, (m, state, label) => {
-                        const currentTaskIdx = self._docTaskCount++;
+                        let itemLabel = (label || '').trim();
+                        const refMatch = itemLabel.match(/DOC_TASK_REF_(\d+)Z/);
+                        const currentTaskIdx = refMatch ? parseInt(refMatch[1], 10) : self._docTaskCount++;
+                        itemLabel = itemLabel.replace(/DOC_TASK_REF_\d+Z\s*/g, '').trim();
+
                         const isChecked = state.toLowerCase() === 'x';
-                        const itemLabel = (label || '').trim();
                         return `
                             <span class="inline-flex items-center gap-1.5 my-0.5 doc-task-item ${isChecked ? 'is-completed text-zinc-400' : 'text-zinc-900'}">
                                 <label class="inline-flex items-center cursor-pointer select-none shrink-0" title="點擊切換完成狀態">
@@ -207,10 +210,14 @@ export const markdown = {
 
                 renderer.listitem = function(token) {
                     if (token.task) {
-                        const currentTaskIdx = self._docTaskCount++;
                         const isChecked = Boolean(token.checked);
                         const parsedBody = this.parser.parse(token.tokens || []);
-                        const cleanContent = parsedBody.replace(/^<p>([\s\S]*)<\/p>\s*$/, '$1');
+                        let cleanContent = parsedBody.replace(/^<p>([\s\S]*)<\/p>\s*$/, '$1');
+                        
+                        const refMatch = cleanContent.match(/DOC_TASK_REF_(\d+)Z/);
+                        const currentTaskIdx = refMatch ? parseInt(refMatch[1], 10) : self._docTaskCount++;
+                        cleanContent = cleanContent.replace(/DOC_TASK_REF_\d+Z\s*/g, '').trim();
+
                         return `
                             <li class="doc-task-item flex items-start gap-2.5 my-2 list-none group ${isChecked ? 'is-completed text-zinc-400' : 'text-zinc-900'}">
                                 <label class="inline-flex items-center mt-0.5 cursor-pointer select-none shrink-0" title="點擊切換完成狀態">
@@ -560,6 +567,33 @@ export const markdown = {
                 }
             },
 
+            // ================= 統一 Markdown Checkbox Source ID 標記引擎 =================
+            prepareDocTaskRefs(text) {
+                if (!text || typeof text !== 'string') return text;
+                let taskId = 0;
+
+                // 1. 保護行內代碼，防止代碼內的 [ ] 被注入 Task Ref
+                const inlineCodes = [];
+                text = text.replace(/`([^`\n]+)`/g, match => {
+                    const key = `INLINECODEX${inlineCodes.length}Z`;
+                    inlineCodes.push(match);
+                    return key;
+                });
+
+                // 2. 匹配所有待辦 Checkbox（支援開頭、空白、表格管道符號 | 或引言 >），注入唯一 DOC_TASK_REF_{id}Z
+                text = text.replace(/(^|[\s|>])\[([ xX])\](?=$|[\s|<])/gim, (match, prefix, state) => {
+                    const id = taskId++;
+                    return `${prefix}[${state}] DOC_TASK_REF_${id}Z`;
+                });
+
+                // 3. 還原行內代碼
+                inlineCodes.forEach((code, idx) => {
+                    text = text.split(`INLINECODEX${idx}Z`).join(code);
+                });
+
+                return text;
+            },
+
             parseMarkdown(md) {
                 if (!md) return '';
 
@@ -576,6 +610,9 @@ export const markdown = {
                     codeBlocks.push(match);
                     return `\n${placeholder}\n`;
                 });
+
+                // 0.1 統一標記所有 Checkbox 的 Source ID
+                text = this.prepareDocTaskRefs(text);
 
                 // 0.5 流程圖 / Mermaid 語法智慧容錯前處理
                 text = this.preprocessMermaidDiagrams(text);
@@ -885,9 +922,12 @@ export const markdown = {
                         tableHtml += '<tr class="hover:bg-zinc-100 transition-colors">';
                         r.forEach(c => {
                             let cellContent = c.replace(/(?:^|\s|<br\s*\/?>|&lt;br\s*\/?&gt;)(?:[-*+]\s+)?\[([ xX])\](?:\s+([\s\S]*?))?(?=(?:<br\s*\/?>|&lt;br\s*\/?&gt;|$))/gi, (m, state, label) => {
-                                const currentTaskIdx = this._docTaskCount++;
+                                let itemLabel = (label || '').trim();
+                                const refMatch = itemLabel.match(/DOC_TASK_REF_(\d+)Z/);
+                                const currentTaskIdx = refMatch ? parseInt(refMatch[1], 10) : this._docTaskCount++;
+                                itemLabel = itemLabel.replace(/DOC_TASK_REF_\d+Z\s*/g, '').trim();
+
                                 const isChecked = state.toLowerCase() === 'x';
-                                const itemLabel = (label || '').trim();
                                 return `
                                     <span class="inline-flex items-center gap-1.5 my-0.5 doc-task-item ${isChecked ? 'is-completed text-zinc-400' : 'text-zinc-900'}">
                                         <label class="inline-flex items-center cursor-pointer select-none shrink-0" title="點擊切換完成狀態">
@@ -926,9 +966,13 @@ export const markdown = {
 
                 // 待辦核取方塊 Checkbox 解析支援 (一般清單行)
                 html = html.replace(/^([ \t]*)[-*+]\s+\[([ xX])\]\s+(.*)$/gim, (match, indent, state, label) => {
-                    const currentTaskIdx = this._docTaskCount++;
+                    let itemLabel = (label || '').trim();
+                    const refMatch = itemLabel.match(/DOC_TASK_REF_(\d+)Z/);
+                    const currentTaskIdx = refMatch ? parseInt(refMatch[1], 10) : this._docTaskCount++;
+                    itemLabel = itemLabel.replace(/DOC_TASK_REF_\d+Z\s*/g, '').trim();
+
                     const isChecked = state.toLowerCase() === 'x';
-                    return `<div class="doc-task-item flex items-start gap-2.5 my-1.5 list-none group ${isChecked ? 'is-completed text-zinc-400' : 'text-zinc-900'}"><label class="inline-flex items-center mt-0.5 cursor-pointer select-none shrink-0" title="點擊切換完成狀態"><input type="checkbox" data-task-index="${currentTaskIdx}" ${isChecked ? 'checked ' : ''}onchange="app.toggleDocTaskCheckbox(${currentTaskIdx}, this.checked)" class="doc-task-checkbox w-4 h-4 rounded border-2 border-black accent-black cursor-pointer transition-transform active:scale-90" /></label><div class="doc-task-label flex-1 leading-snug break-words ${isChecked ? 'line-through text-zinc-400' : 'text-zinc-900 font-medium'}">${label}</div></div>`;
+                    return `<div class="doc-task-item flex items-start gap-2.5 my-1.5 list-none group ${isChecked ? 'is-completed text-zinc-400' : 'text-zinc-900'}"><label class="inline-flex items-center mt-0.5 cursor-pointer select-none shrink-0" title="點擊切換完成狀態"><input type="checkbox" data-task-index="${currentTaskIdx}" ${isChecked ? 'checked ' : ''}onchange="app.toggleDocTaskCheckbox(${currentTaskIdx}, this.checked)" class="doc-task-checkbox w-4 h-4 rounded border-2 border-black accent-black cursor-pointer transition-transform active:scale-90" /></label><div class="doc-task-label flex-1 leading-snug break-words ${isChecked ? 'line-through text-zinc-400' : 'text-zinc-900 font-medium'}">${itemLabel}</div></div>`;
                 });
 
                 // 色彩標籤解析
@@ -961,54 +1005,15 @@ export const markdown = {
                     return placeholder;
                 });
 
-                let currentIdx = 0;
-                let found = false;
-
-                // 2. 精確逐行與表格儲存格匹配：
-                // 與 Marked / 表格渲染順序嚴格 1:1 對齊
-                const lines = text.split('\n');
-                for (let i = 0; i < lines.length; i++) {
-                    let line = lines[i];
-
-                    // 判斷是否為表格行 (以 | 開頭或包含多個 |)
-                    const isTableRow = /^\s*\|/.test(line) && line.includes('|');
-                    if (isTableRow) {
-                        // 排除表格分隔行 (如 |---|---|)
-                        if (/^\s*\|(?:\s*:?-+:?\s*\|)+\s*$/.test(line)) {
-                            continue;
-                        }
-
-                        // 表格單元格內部的 Checkbox 替換：
-                        // 支援單元格開頭、文字中間、<br> 分隔後的任意 [ ] 或 [x]
-                        const tableCellCheckboxRegex = /(?:^|\s|<br\s*\/?>|&lt;br\s*\/?&gt;)(?:[-*+]\s+)?\[([ xX])\](?=(?:\s+[\s\S]*?)?(?:<br\s*\/?>|&lt;br\s*\/?&gt;|\||$))/gi;
-                        
-                        // 使用逐字匹配進行精確索引定位
-                        line = line.replace(/(?:^|\s|<br\s*\/?>|&lt;br\s*\/?&gt;)(?:[-*+]\s+)?\[([ xX])\]/gi, (match, state) => {
-                            if (currentIdx === taskIndex) {
-                                found = true;
-                                currentIdx++;
-                                return match.replace(/\[[ xX]\]$/, `[${newChecked ? 'x' : ' '}]`);
-                            }
-                            currentIdx++;
-                            return match;
-                        });
-                        lines[i] = line;
-                    } else {
-                        // 一般清單行或引用清單行 (如 - [ ]、* [ ]、+ [ ]、> - [ ])
-                        const listTaskRegex = /^([ \t]*(?:>+[ \t]*)?[-*+]\s+)\[([ xX])\](?=[ \t]|$)/i;
-                        if (listTaskRegex.test(line)) {
-                            if (currentIdx === taskIndex) {
-                                found = true;
-                                lines[i] = line.replace(listTaskRegex, (m, prefix, state) => {
-                                    return `${prefix}[${newChecked ? 'x' : ' '}]`;
-                                });
-                            }
-                            currentIdx++;
-                        }
+                let currentId = 0;
+                let replacedText = text.replace(/(^|[\s|>])\[([ xX])\](?=$|[\s|<])/gim, (match, prefix, state) => {
+                    const id = currentId++;
+                    if (id !== taskIndex) {
+                        return match;
                     }
-                }
-
-                let replacedText = lines.join('\n');
+                    found = true;
+                    return `${prefix}[${newChecked ? 'x' : ' '}]`;
+                });
 
                 // 3. 還原程式碼區塊與行內代碼
                 inlineCodes.forEach((ic, idx) => {
