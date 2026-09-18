@@ -788,7 +788,7 @@ export const settings = {
                 this.appendDiagLog('開始執行 FlatSpec 全方位連線與 API 自檢流程...', 'head');
 
                 let totalScore = 0;
-                let maxScore = 6;
+                let maxScore = 5;
                 let warningCount = 0;
                 let errorCount = 0;
 
@@ -1017,45 +1017,7 @@ export const settings = {
                     }
                 }
 
-                // 4. 檢測 Google Drive 雲端檔案儲存權限 (DriveApp Vault)
-                this.updateDiagItemStatus('drive', 'testing', '正在向 GAS 驗證您的 Google Drive 儲存金庫權限...');
-                if (!gasUrl) {
-                    this.updateDiagItemStatus('drive', 'error', '尚未配置 GAS 網址', '未配置');
-                } else {
-                    try {
-                        const t0 = Date.now();
-                        const driveCheckRes = await fetch(gasUrl, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                            body: JSON.stringify({ action: 'check_drive_permission', token: this.state.authToken || '' }),
-                            redirect: 'follow',
-                            cache: 'no-store'
-                        });
-                        const lat = Date.now() - t0;
-                        if (driveCheckRes.ok) {
-                            const driveData = await driveCheckRes.json();
-                            if (driveData.status === 'success') {
-                                this.updateDiagItemStatus('drive', 'success', `金庫就緒 · Google Drive 專屬測試資料夾建立/清除正常 (${lat}ms)`, `已授權 (${lat}ms)`);
-                                this.appendDiagLog(`Google Drive 金庫驗證正常 (${lat}ms)：DriveApp 資料夾建立與讀寫權限真實就緒`, 'success');
-                                totalScore++;
-                            } else {
-                                this.updateDiagItemStatus('drive', 'error', `Drive 權限不足: ${driveData.message || '未知錯誤'}`, '權限不足');
-                                this.appendDiagLog(`Google Drive 權限異常: ${driveData.message}`, 'error');
-                                errorCount++;
-                            }
-                        } else {
-                            this.updateDiagItemStatus('drive', 'error', `HTTP ${driveCheckRes.status}`, `HTTP ${driveCheckRes.status}`);
-                            this.appendDiagLog(`Google Drive 檢驗請求失敗：HTTP ${driveCheckRes.status}`, 'error');
-                            errorCount++;
-                        }
-                    } catch (driveErr) {
-                        this.updateDiagItemStatus('drive', 'error', `Drive 檢驗異常: ${driveErr.message}`, '連線異常');
-                        this.appendDiagLog(`Google Drive 檢驗異常: ${driveErr.message}`, 'error');
-                        errorCount++;
-                    }
-                }
-
-                // 5. 檢測 Groq AI 智慧推理引擎 (ai_health 伺服端中繼探測與直連探測)
+                // 4. 檢測 Groq AI 智慧推理引擎 (ai_health 伺服端中繼探測與直連探測)
                 this.updateDiagItemStatus('ai', 'testing', '正在發送 Ping 封包測試 Groq AI 模型與金鑰...');
                 const clientKey = localStorage.getItem('flatSpecGroqApiKey') || '';
                 let aiPassed = false;
@@ -1181,7 +1143,7 @@ export const settings = {
                     if (errorCount === 0 && warningCount === 0) {
                         summaryEl.className = 'text-emerald-400 font-black';
                         summaryEl.textContent = `🎉 全部通過！(${totalScore}/${maxScore} 項指標完美)`;
-                        this.appendDiagLog('🎉 恭喜！所有雲端連線、Google Drive、AI 核心與本地資料庫皆 100% 運作正常！', 'success');
+                        this.appendDiagLog('🎉 恭喜！所有雲端連線、AI 核心與本地資料庫皆 100% 運作正常！', 'success');
                         this.showToast('✅ 全系統連線與 API 自檢全數通過！');
                     } else if (errorCount === 0) {
                         summaryEl.className = 'text-yellow-400 font-bold';

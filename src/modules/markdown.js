@@ -250,9 +250,8 @@ export const markdown = {
                         let cachedSrc = self._mediaBlobUrlCache?.[imgId] || null;
                         if (!cachedSrc) {
                             const resolved = self.resolveAttachment(imgId);
-                            if (resolved) {
-                                if (resolved.driveUrl) cachedSrc = resolved.driveUrl;
-                                else if (resolved.data) cachedSrc = resolved.data;
+                            if (resolved && resolved.data) {
+                                cachedSrc = resolved.data;
                             }
                         }
 
@@ -267,16 +266,6 @@ export const markdown = {
                                         <div class="flex items-center gap-2 shrink-0">
                                             ${sizeBadge}
                                             <span class="text-[10px] text-zinc-400 font-mono hidden sm:inline">離線快取影片</span>
-                                        </div>
-                                    </div>
-                                    <!-- 雲端擷取進度條 (初始若無本地快取時顯示) -->
-                                    <div id="videoProgressWrapper_${imgId}" class="hidden p-3 bg-zinc-900 text-white border-b border-zinc-800 flex flex-col gap-2">
-                                        <div class="flex items-center justify-between text-xs font-bold font-mono">
-                                            <span class="flex items-center gap-1.5"><span class="animate-spin">⏳</span> <span id="videoProgressLabel_${imgId}">正在從雲端擷取影片...</span></span>
-                                            <span id="videoProgressSize_${imgId}" class="text-zinc-400">0%</span>
-                                        </div>
-                                        <div class="w-full h-2.5 bg-zinc-800 border border-zinc-700 rounded-full overflow-hidden">
-                                            <div id="videoProgressBar_${imgId}" class="h-full bg-blue-500 transition-all duration-150 w-0"></div>
                                         </div>
                                     </div>
                                     <div class="w-full bg-black flex items-center justify-center relative">

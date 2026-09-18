@@ -3,7 +3,7 @@ import { CONFIG } from '../config.js';
 import { idbStorage, STORES } from '../core/storage/idb.js';
 
 export const image = {
-// ================= 圖片與多媒體功能管理 (支援離線 IndexedDB 快取與 Google Drive) =================
+// ================= 圖片與多媒體功能管理 (支援離線 IndexedDB 快取與本機持久化) =================
             currentSelectedImageBase64: null,
             currentSelectedMediaFile: null,
             _mediaBlobUrlCache: {}, // mediaId -> ObjectURL 緩存
@@ -147,82 +147,7 @@ export const image = {
                     }
                     return meta.data;
                 }
-
-                // 4. 若本機無快取但具有 Google Drive 雲端連結，透過串流擷取並顯示進度條
-                if (meta && (meta.driveUrl || meta.url)) {
-                    const remoteUrl = meta.driveUrl || meta.url;
-                    try {
-                        const blob = await this.downloadMediaWithProgress(remoteUrl, meta, onProgress);
-                        if (blob instanceof Blob) {
-                            // 存回本地 IndexedDB，達成永久離線快取
-                            try {
-                                await idbStorage.put(STORES.ATTACHMENTS, {
-                                    id: cleanId,
-                                    docId: this.state.activeDocId || 'general',
-                                    name: meta.name || cleanId,
-                                    type: blob.type || meta.type || 'video/mp4',
-                                    size: blob.size,
-                                    blob: blob,
-                                    createdAt: new Date().toISOString()
-                                });
-                            } catch (ie) {}
-
-                            const url = URL.createObjectURL(blob);
-                            this._mediaBlobUrlCache[cleanId] = url;
-                            return url;
-                        }
-                    } catch (netErr) {
-                        console.warn('[Media] 雲端擷取失敗:', netErr);
-                    }
-                }
-
                 return null;
-            },
-
-            /**
-             * 雲端媒體串流下載輔助函式：即時計算進度百分比與檔案大小
-             */
-            async downloadMediaWithProgress(url, meta = {}, onProgress = null) {
-                // 轉換 Google Drive 連結為直接下載端點
-                let fetchUrl = url;
-                if (url.includes('drive.google.com') && !url.includes('uc?export=download')) {
-                    const fileIdMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/) || url.match(/id=([a-zA-Z0-9_-]+)/);
-                    if (fileIdMatch && fileIdMatch[1]) {
-                        fetchUrl = `https://drive.google.com/uc?export=download&id=${fileIdMatch[1]}`;
-                    }
-                }
-
-                const response = await fetch(fetchUrl);
-                if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-                const contentLength = response.headers.get('content-length');
-                const totalBytes = contentLength ? parseInt(contentLength, 10) : (meta.size || 0);
-
-                const reader = response.body.getReader();
-                let receivedBytes = 0;
-                const chunks = [];
-
-                while (true) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-
-                    chunks.push(value);
-                    receivedBytes += value.length;
-
-                    if (typeof onProgress === 'function') {
-                        const percent = totalBytes > 0 ? Math.min(100, Math.round((receivedBytes / totalBytes) * 100)) : 0;
-                        onProgress({
-                            receivedBytes,
-                            totalBytes,
-                            percent,
-                            loadedMb: (receivedBytes / (1024 * 1024)).toFixed(2),
-                            totalMb: totalBytes > 0 ? (totalBytes / (1024 * 1024)).toFixed(2) : '未知'
-                        });
-                    }
-                }
-
-                const mimeType = meta.type || (meta.isVideo ? 'video/mp4' : 'application/octet-stream');
-                return new Blob(chunks, { type: mimeType });
             },
 
             dataURLToBlobUrl(dataUrl) {
@@ -378,8 +303,7 @@ export const image = {
                         type: mimeType,
                         size: fileSize,
                         isVideo: true,
-                        time: new Date().toISOString(),
-                        driveUrl: null
+                        time: new Date().toISOString()
                     };
 
                     this.renderDocAttachmentsBar(doc);
@@ -468,25 +392,8 @@ export const image = {
                                 setTimeout(() => progWrapper.classList.add('hidden'), 1200);
                             }
                         } else {
-                            // 降級處理：若直接下載受 Google CORS 限制，檢查是否可直接切換為 Google Drive 串流播放器
-                            const meta = this.resolveAttachment(attId);
-                            if (meta && meta.driveUrl) {
-                                let fileId = null;
-                                const fileIdMatch = meta.driveUrl.match(/\/d\/([a-zA-Z0-9_-]+)/) || meta.driveUrl.match(/id=([a-zA-Z0-9_-]+)/);
-                                if (fileIdMatch && fileIdMatch[1]) fileId = fileIdMatch[1];
-
-                                if (fileId) {
-                                    const parentCard = vEl.closest('.video-attachment-card');
-                                    if (parentCard) {
-                                        const videoContainer = vEl.parentElement;
-                                        videoContainer.innerHTML = `
-                                            <iframe src="https://drive.google.com/file/d/${fileId}/preview" class="w-full h-[380px] md:h-[480px] border-0 bg-black" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>
-                                        `;
-                                    }
-                                }
-                            }
                             if (progWrapper) {
-                                if (progLabel) progLabel.innerText = '🎬 已切換為 Google Drive 雲端即時串流播放模式';
+                                if (progLabel) progLabel.innerText = '⚠️ 找不到影片快取資料';
                                 setTimeout(() => progWrapper.classList.add('hidden'), 2000);
                             }
                         }
@@ -502,190 +409,6 @@ export const image = {
                         if (blobUrl) {
                             imgEl.src = blobUrl;
                         }
-                    }
-                }
-            },
-
-            async uploadMediaToDrive(attId) {
-                const btnEl = document.getElementById(`uploadDriveBtn_${attId}`);
-                if (btnEl) {
-                    btnEl.disabled = true;
-                    btnEl.innerText = '⏳';
-                    btnEl.classList.add('animate-spin');
-                }
-
-                try {
-                    const meta = this.resolveAttachment(attId);
-                    if (!meta) {
-                        this.showToast('找不到指定的附件資料', 'error');
-                        return;
-                    }
-
-                    const gasUrl = this.state.gasUrl || this.state.settings?.gasUrl || localStorage.getItem('flatSpecGasUrl') || CONFIG.DEFAULT_GAS_ENDPOINT;
-                    if (!gasUrl) {
-                        this.showToast('尚未設定 Google Apps Script Web App 網址', 'error');
-                        return;
-                    }
-
-                    const fileName = meta.name || 'attachment';
-                    const isVid = meta.isVideo || meta.type?.startsWith('video/') || attId.startsWith('vid_');
-                    const mimeType = meta.type || (isVid ? 'video/mp4' : 'image/jpeg');
-
-                    this.showToast(`⏳ 正在讀取「${fileName}」本機快取資料...`);
-
-                    let blobToUpload = null;
-                    let base64Payload = '';
-
-                    if (meta.data && meta.data.startsWith('data:')) {
-                        base64Payload = meta.data.split(',')[1];
-                    } else {
-                        // 從 IndexedDB 提取二進位 Blob
-                        const idbItem = await idbStorage.get(STORES.ATTACHMENTS, attId);
-                        if (idbItem?.blob instanceof Blob) {
-                            blobToUpload = idbItem.blob;
-                        } else if (idbItem?.data && idbItem.data.startsWith('data:')) {
-                            base64Payload = idbItem.data.split(',')[1];
-                        }
-                    }
-
-                    // 若為 Blob，計算大小決定是單次上傳還是自動分塊上傳
-                    const totalByteSize = blobToUpload ? blobToUpload.size : Math.round((base64Payload.length * 3) / 4);
-                    const sizeMb = (totalByteSize / (1024 * 1024)).toFixed(1);
-                    const authToken = this.state.authToken || this.state.settings?.driveAuthKey || localStorage.getItem('flatSpecDriveAuthKey') || '';
-
-                    let driveLink = '';
-
-                    // 1. 若大於 10MB 且有原始 Blob，採用「自動分塊上傳 (Chunked Upload)」
-                    const CHUNK_SIZE = 6 * 1024 * 1024; // 每塊 6MB，確保在 GAS 轉發與記憶體最佳平衡
-                    if (blobToUpload && blobToUpload.size > CHUNK_SIZE) {
-                        const totalChunks = Math.ceil(blobToUpload.size / CHUNK_SIZE);
-                        const uploadId = 'up_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
-
-                        for (let i = 0; i < totalChunks; i++) {
-                            const start = i * CHUNK_SIZE;
-                            const end = Math.min(blobToUpload.size, start + CHUNK_SIZE);
-                            const chunkBlob = blobToUpload.slice(start, end);
-
-                            const percent = Math.round(((i + 1) / totalChunks) * 100);
-                            this.showToast(`☁️ 正在分塊上傳「${fileName}」(${i + 1}/${totalChunks} 塊，${percent}%)...`);
-
-                            const chunkBase64 = await new Promise((resolve, reject) => {
-                                const reader = new FileReader();
-                                reader.onload = () => resolve(reader.result.split(',')[1]);
-                                reader.onerror = () => reject(new Error(`讀取第 ${i + 1} 分塊失敗`));
-                                reader.readAsDataURL(chunkBlob);
-                            });
-
-                            const chunkPayload = {
-                                action: 'upload_drive_media_chunk',
-                                authToken: authToken,
-                                uploadId: uploadId,
-                                chunkIndex: i,
-                                totalChunks: totalChunks,
-                                fileName: `${fileName}_${Date.now()}.${isVid ? 'mp4' : 'jpg'}`,
-                                mimeType: mimeType,
-                                chunkData: chunkBase64
-                            };
-
-                            const resp = await fetch(gasUrl, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                                redirect: 'follow',
-                                cache: 'no-store',
-                                body: JSON.stringify(chunkPayload)
-                            });
-
-                            if (!resp.ok) {
-                                throw new Error(`第 ${i + 1} 塊伺服端回應錯誤 HTTP ${resp.status}`);
-                            }
-
-                            const result = await resp.json();
-                            if (result.status !== 'success') {
-                                throw new Error(result.message || `第 ${i + 1} 塊上傳失敗`);
-                            }
-
-                            if (result.isCompleted) {
-                                driveLink = result.url || result.data?.viewUrl || result.previewUrl || result.downloadUrl;
-                            }
-                        }
-                    } else {
-                        // 2. 小檔案 (<10MB) 採用一次性直接上傳
-                        if (!base64Payload && blobToUpload) {
-                            base64Payload = await new Promise((resolve, reject) => {
-                                const reader = new FileReader();
-                                reader.onload = () => resolve(reader.result.split(',')[1]);
-                                reader.onerror = () => reject(new Error('讀取 Blob 失敗'));
-                                reader.readAsDataURL(blobToUpload);
-                            });
-                        }
-
-                        if (!base64Payload) {
-                            throw new Error('無法讀取媒體二進位內容');
-                        }
-
-                        this.showToast(`☁️ 正在上傳「${fileName}」(${sizeMb} MB) 至 Google Drive...`);
-
-                        const payload = {
-                            action: 'upload_drive_media',
-                            authToken: authToken,
-                            fileName: `${fileName}_${Date.now()}.${isVid ? 'mp4' : 'jpg'}`,
-                            mimeType: mimeType,
-                            base64Data: base64Payload
-                        };
-
-                        const resp = await fetch(gasUrl, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                            redirect: 'follow',
-                            cache: 'no-store',
-                            body: JSON.stringify(payload)
-                        });
-
-                        if (!resp.ok) {
-                            throw new Error(`伺服端回應錯誤 HTTP ${resp.status}`);
-                        }
-
-                        const result = await resp.json();
-                        if (result && (result.status === 'success' || result.success) && (result.url || result.data?.viewUrl || result.previewUrl || result.downloadUrl)) {
-                            driveLink = result.url || result.data?.viewUrl || result.previewUrl || result.downloadUrl;
-                        } else {
-                            throw new Error(result?.message || 'Drive API 回應異常');
-                        }
-                    }
-
-                    if (driveLink) {
-                        // 同步更新當前專案或所有關聯文檔中的 attachment 屬性
-                        const p = this.getCurrentProject();
-                        if (p?.docs) {
-                            for (const doc of p.docs) {
-                                if (doc?.attachments?.[attId]) {
-                                    doc.attachments[attId].driveUrl = driveLink;
-                                }
-                            }
-                        }
-
-                        meta.driveUrl = driveLink;
-
-                        const activeDoc = p?.docs?.find(d => d.id === this.state.activeDocId);
-                        if (activeDoc) {
-                            this.renderDocAttachmentsBar(activeDoc);
-                        }
-
-                        this.saveToLocal();
-                        this.debouncedSaveAndSync();
-                        this.showToast('🎉 上傳 Google Drive 成功！已建立永久雲端備份連結');
-                    } else {
-                        throw new Error('上傳未取得雲端連結');
-                    }
-                } catch (err) {
-                    console.error('[Media] Upload to Drive error:', err);
-                    const errMsg = err.message || '';
-                    this.showToast('上傳至 Google Drive 失敗: ' + errMsg, 'error');
-                } finally {
-                    if (btnEl) {
-                        btnEl.disabled = false;
-                        btnEl.innerText = '☁️';
-                        btnEl.classList.remove('animate-spin');
                     }
                 }
             },
@@ -721,7 +444,6 @@ export const image = {
                     const isVid = att.isVideo || att.type?.startsWith('video/') || id.startsWith('vid_');
                     const icon = isVid ? '🎥' : '🖼️';
                     const sizeLabel = att.size ? `${(att.size / (1024 * (isVid ? 1024 : 1))).toFixed(1)} ${isVid ? 'MB' : 'KB'}` : (att.data ? `${(att.data.length / 1024).toFixed(0)} KB` : '快取中');
-                    const driveBadge = att.driveUrl ? `<span class="text-[9px] bg-green-100 dark:bg-green-950 text-green-800 dark:text-green-300 px-1 py-0.5 rounded font-bold border border-green-300 dark:border-green-700" title="已備份至 Google Drive">☁️ Drive</span>` : '';
 
                     html += `
                         <div class="flex items-center gap-1.5 p-1 px-2 bg-white dark:bg-zinc-800 border-2 border-black dark:border-zinc-600 flat-box shadow-[2px_2px_0px_0px_#000] text-xs max-w-[280px]">
@@ -730,15 +452,9 @@ export const image = {
                                 <span class="font-bold truncate text-black dark:text-white text-[11px]" title="${this.escapeHtml(att.name || id)}">${this.escapeHtml(att.name || id)}</span>
                                 <div class="flex items-center gap-1">
                                     <span class="text-[9px] text-zinc-400 dark:text-zinc-500 font-mono">${sizeLabel}</span>
-                                    ${driveBadge}
                                 </div>
                             </div>
                             <div class="flex items-center gap-1 ml-1">
-                                ${!att.driveUrl ? `
-                                    <button id="uploadDriveBtn_${id}" type="button" onclick="app.uploadMediaToDrive('${id}')" class="p-1 text-[10px] bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-700 dark:hover:bg-zinc-600 border border-black dark:border-zinc-500 rounded text-black dark:text-white font-bold" title="一鍵上傳備份至 Google Drive">☁️</button>
-                                ` : `
-                                    <a href="${att.driveUrl}" target="_blank" rel="noopener noreferrer" class="p-1 text-[10px] bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/40 dark:hover:bg-blue-800/50 border border-blue-600 dark:border-blue-400 rounded text-blue-800 dark:text-blue-300 font-bold" title="開啟 Google Drive 連結">↗</a>
-                                `}
                                 <button type="button" onclick="app.deleteDocAttachment('${id}', event)" class="text-red-500 hover:text-red-700 font-black px-1" title="刪除附件">&times;</button>
                             </div>
                         </div>

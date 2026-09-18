@@ -1182,7 +1182,7 @@
                                 <span class="text-2xl">🩺</span>
                                 <div>
                                     <h4 class="font-bold text-sm text-emerald-950">系統連線與 API 全方位自我檢測</h4>
-                                    <p class="text-xs text-emerald-700">一鍵檢驗網路狀態、GAS 雲端資料庫、Google Drive 存取、Groq AI 核心及離線 IndexedDB 資料庫</p>
+                                    <p class="text-xs text-emerald-700">一鍵檢驗網路狀態、GAS 雲端資料庫、Groq AI 核心及離線 IndexedDB 資料庫</p>
                                 </div>
                             </div>
                             <button type="button" onclick="app.runFullSystemSelfDiagnostic()" id="btnRunFullDiagnostic" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-lg shadow-sm shrink-0 flex items-center gap-1.5 transition-all">
@@ -1229,19 +1229,7 @@
                             <span id="diagBadge_gas_post" class="px-2 py-0.5 text-[10px] font-bold bg-slate-100 text-slate-600 rounded font-mono shrink-0">待檢測</span>
                         </div>
 
-                        <!-- 4. Google Drive 雲端檔案儲存權限 -->
-                        <div class="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between gap-3 shadow-2xs">
-                            <div class="flex items-center gap-2.5">
-                                <span id="diagIcon_drive" class="text-lg">📁</span>
-                                <div>
-                                    <div class="text-xs font-bold text-slate-800">Google Drive 雲端儲存權限 (DriveApp Vault)</div>
-                                    <div id="diagDetail_drive" class="text-[11px] text-slate-500 font-mono">驗證您的 Google Drive 專屬儲存空間與多媒體讀寫權限</div>
-                                </div>
-                            </div>
-                            <span id="diagBadge_drive" class="px-2 py-0.5 text-[10px] font-bold bg-slate-100 text-slate-600 rounded font-mono shrink-0">待檢測</span>
-                        </div>
-
-                        <!-- 5. Groq AI 智慧核心 -->
+                        <!-- 4. Groq AI 智慧核心 -->
                         <div class="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between gap-3 shadow-2xs">
                             <div class="flex items-center gap-2.5">
                                 <span id="diagIcon_ai" class="text-lg">🤖</span>
