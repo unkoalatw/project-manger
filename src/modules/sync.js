@@ -215,6 +215,16 @@ export const sync = {
         }
     },
 
+    /**
+     * 手動儲存功能 (立即強制寫入本地快取並推送到雲端)
+     */
+    async manualSaveAndSync() {
+        this.saveToLocal();
+        this.playSound('click');
+        this.showToast('💾 正在手動儲存並同步至雲端...', 'info');
+        return await this.pushToCloud(true);
+    },
+
     pushBeaconSync() {
         // Firebase 即時連線具備自動離線緩存，無需依賴 GAS Beacon
     },

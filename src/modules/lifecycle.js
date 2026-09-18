@@ -233,7 +233,7 @@ export const lifecycle = {
 
                     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
                         e.preventDefault();
-                        this.pushToCloud(true);
+                        this.manualSaveAndSync();
                     }
                     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
                         e.preventDefault();

@@ -170,6 +170,12 @@
                     <span class="hidden sm:inline">AI 助理</span>
                 </button>
 
+                <!-- 手動儲存按鈕 (手動同步至雲端) -->
+                <button onclick="app.manualSaveAndSync()" class="p-1.5 px-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold text-xs rounded-lg flex items-center gap-1.5 transition-colors shrink-0 border border-emerald-200 shadow-xs" title="手動儲存並同步至雲端 (Ctrl+S)">
+                    <span>💾</span>
+                    <span class="font-bold">儲存</span>
+                </button>
+
                 <!-- 雲端同步整合狀態膠囊 (Cloud Pill) -->
                 <div id="syncStatusBadge" onclick="app.openSettingsModal('cloud')" class="cursor-pointer px-2.5 py-1.5 border border-slate-200 rounded-lg font-semibold text-xs flex items-center gap-2 bg-slate-50 hover:bg-slate-100 transition-all shrink-0 select-none group shadow-xs" title="點擊檢視雲端連線詳細資訊">
                     <span id="syncDot" class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
@@ -297,6 +303,9 @@
                         <button type="button" id="btnToggleAiDocAssistant" onclick="app.toggleAiDocAssistant()" class="px-2.5 py-1 bg-gradient-to-r from-purple-50 to-indigo-50 hover:from-purple-100 hover:to-indigo-100 text-purple-700 border border-purple-200 font-semibold text-xs rounded-md flex items-center gap-1.5 transition-all shadow-xs shrink-0" title="開啟 AI 文件助理側邊面板 (風格改寫、自動摘要、待辦提取、邏輯查核、問答)">
                             <span class="text-xs">🤖</span>
                             <span class="font-bold">AI 助理</span>
+                        </button>
+                        <button type="button" onclick="app.manualSaveAndSync()" class="px-2.5 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 font-semibold text-xs rounded-md flex items-center gap-1 transition-colors shadow-xs" title="手動儲存並同步至雲端 (Ctrl+S)">
+                            <span>💾</span> <span>儲存</span>
                         </button>
                         <button type="button" id="btnToggleFindReplace" onclick="app.toggleDocFindReplace()" class="px-2.5 py-1 bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 font-semibold text-xs rounded-md flex items-center gap-1 transition-colors shadow-xs" title="在文檔中尋找與取代 (Ctrl+F)">
                             <span>🔍</span> <span class="hidden sm:inline">尋找</span>
