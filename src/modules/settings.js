@@ -898,10 +898,10 @@ export const settings = {
                             } catch(pe) {}
                         }
 
-                        // 若 POST 探測皆未成功，才降級嘗試傳統 GET 讀取 (限制 10 秒超時)
+                        // 若 POST 探測皆未成功，才降級嘗試傳統 GET health 讀取 (限制 10 秒超時)
                         if (!isReadPassed) {
                             try {
-                                const fetchUrl = gasUrl + (gasUrl.includes('?') ? '&' : '?') + 't=' + Date.now() + tokenParam;
+                                const fetchUrl = gasUrl + (gasUrl.includes('?') ? '&' : '?') + 'action=health&t=' + Date.now();
                                 let res = await this.fetchWithTimeout(fetchUrl, { method: 'GET', redirect: 'follow', cache: 'no-store' }, 10000);
                                 if (res.ok) {
                                     const txt = await res.text();

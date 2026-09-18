@@ -79,8 +79,39 @@ export const snapshots = {
                 // 1. 還原前先自動備份當前版本
                 this.recordLocalHistorySnapshot(this.state.projects, '還原前自動安全快照');
 
-                // 2. 還原資料並寫入本地
-                this.state.projects = JSON.parse(JSON.stringify(targetSnap.data));
+                // 2. 還原資料並寫入本地 (深度合併防止快照中的瘦身 placeholder 覆蓋真實附件資料)
+                const currentProjects = this.state.projects || [];
+                const restoredProjects = JSON.parse(JSON.stringify(targetSnap.data));
+
+                restoredProjects.forEach(rp => {
+                    const existingP = currentProjects.find(cp => cp.id === rp.id);
+                    if (existingP && Array.isArray(rp.docs) && Array.isArray(existingP.docs)) {
+                        rp.docs.forEach(rd => {
+                            const existingDoc = existingP.docs.find(ed => ed.id === rd.id);
+                            if (existingDoc) {
+                                if (rd.attachments && existingDoc.attachments) {
+                                    Object.keys(rd.attachments).forEach(ak => {
+                                        const rAtt = rd.attachments[ak];
+                                        const eAtt = existingDoc.attachments[ak];
+                                        if (rAtt && (rAtt.data === '[Attachment]' || rAtt.data === '[IndexedDB/Cloud]') && eAtt && eAtt.data && !eAtt.data.startsWith('[')) {
+                                            rd.attachments[ak] = eAtt;
+                                        }
+                                    });
+                                }
+                                if (Array.isArray(rd.audioList) && Array.isArray(existingDoc.audioList)) {
+                                    rd.audioList.forEach((ra, raIdx) => {
+                                        const ea = existingDoc.audioList[raIdx] || existingDoc.audioList.find(x => x.id === ra.id);
+                                        if (ra && ra.data === '[VoiceMemo]' && ea && ea.data && !ea.data.startsWith('[')) {
+                                            ra.data = ea.data;
+                                        }
+                                    });
+                                }
+                            }
+                        });
+                    }
+                });
+
+                this.state.projects = restoredProjects;
                 this.saveToLocal();
                 this.ensureActivePointers();
                 this.renderAll();

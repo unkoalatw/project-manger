@@ -422,7 +422,39 @@ export const codeEditor = {
         const editor = document.getElementById('docEditor');
         if (!editor || !editor.value) return;
 
-        const lines = editor.value.split('\n');
+        const start = editor.selectionStart;
+        const end = editor.selectionEnd;
+        const fullText = editor.value;
+
+        // 若有選取範圍，僅格式化選取之程式碼；若無選取範圍，若處於 fenced code block 內則格式化該區塊，否則格式化全文
+        let targetText = '';
+        let isSelection = (start !== end);
+        let replaceStart = 0;
+        let replaceEnd = fullText.length;
+
+        if (isSelection) {
+            replaceStart = start;
+            replaceEnd = end;
+            targetText = fullText.substring(start, end);
+        } else {
+            // 檢查是否處於 ```...``` 內
+            const beforeText = fullText.substring(0, start);
+            const openTicks = (beforeText.match(/```/g) || []).length;
+            if (openTicks % 2 === 1) {
+                // 游標在 code block 內部
+                const blockStart = fullText.lastIndexOf('```', start - 1);
+                const firstLineEnd = fullText.indexOf('\n', blockStart) + 1;
+                let blockEnd = fullText.indexOf('```', start);
+                if (blockEnd === -1) blockEnd = fullText.length;
+                replaceStart = firstLineEnd;
+                replaceEnd = blockEnd;
+                targetText = fullText.substring(replaceStart, replaceEnd);
+            } else {
+                targetText = fullText;
+            }
+        }
+
+        const lines = targetText.split('\n');
         let indentLevel = 0;
         const formatted = lines.map(line => {
             let trimmed = line.trim();
@@ -436,7 +468,11 @@ export const codeEditor = {
             return res;
         });
 
-        editor.value = formatted.join('\n');
+        const formattedBlock = formatted.join('\n');
+        editor.value = fullText.substring(0, replaceStart) + formattedBlock + fullText.substring(replaceEnd);
+        editor.selectionStart = replaceStart;
+        editor.selectionEnd = replaceStart + formattedBlock.length;
+
         this.updateDocContent(editor.value);
         this.updateLineNumbers();
         this.updateIdeStatusBar();

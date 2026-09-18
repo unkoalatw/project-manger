@@ -151,7 +151,8 @@ export const sync = {
                             const normalizedCloud = data.map(p => this.normalizeProject(p)).filter(Boolean);
                             const mergedProjects = this.mergeProjects(normalizedCloud, this.state.projects);
 
-                            // 檢查本地是否含有雲端完全沒有的新建專案 (例如斷網時在本地新建的專案)
+                            // 檢查本地是否含有雲端未同步的變更 (包含本地專案、新增/修改之文檔與任務)
+                            const localHasPending = this.state.hasUnsavedChanges || (localStorage.getItem('flatSpecHasPendingChanges') === 'true');
                             const localOnlyProjects = this.state.projects.filter(lp => {
                                 if (normalizedCloud.some(cp => cp.id === lp.id)) return false;
                                 const isUntouchedDefault = (lp.title === '新專案' || lp.title === '未命名專案') &&
@@ -160,12 +161,12 @@ export const sync = {
                                     (!lp.wizard?.vision && !lp.wizard?.features && !lp.wizard?.tech);
                                 return !isUntouchedDefault;
                             });
-                            const hasNewLocalProjects = localOnlyProjects.length > 0;
+                            const hasLocalModifications = localHasPending || (localOnlyProjects.length > 0) || (JSON.stringify(mergedProjects) !== JSON.stringify(normalizedCloud));
 
                             this.state.projects = mergedProjects;
                             this.state.isCloudLoaded = true;
                             this.state.lastSyncTime = new Date();
-                            this.state.lastSyncedProjects = JSON.parse(JSON.stringify(this.state.projects));
+                            this.state.lastSyncedProjects = JSON.parse(JSON.stringify(normalizedCloud));
                             this.saveToLocal();
                             this.recordLocalHistorySnapshot(mergedProjects, '雲端同步快照');
                             this.ensureActivePointers();
@@ -178,8 +179,8 @@ export const sync = {
                             this.smartRenderAll();
                             this.updateMyPresence();
 
-                            if (hasNewLocalProjects) {
-                                console.log("[Sync] 偵測到本地包含雲端未收錄的新建專案，自動回推完整合併清單至雲端...");
+                            if (hasLocalModifications) {
+                                console.log("[Sync] 偵測到本地含有未同步至雲端的變更，自動回推最新合併清單...");
                                 this.state.hasUnsavedChanges = true;
                                 localStorage.setItem('flatSpecHasPendingChanges', 'true');
                                 this.debouncedSaveAndSync();
@@ -212,9 +213,6 @@ export const sync = {
                         console.warn("Pull from cloud Notice:", error.message);
                     }
                     let errMsg = error.message;
-                    if (errMsg?.includes('404')) {
-                        this.state.consecutive404Count = (this.state.consecutive404Count || 0) + 1;
-                    }
                     if (errMsg?.includes('Failed to fetch') || errMsg?.includes('NetworkError') || isAbort) {
                         errMsg = isAbort ? '雲端連線逾時' : '連線或 CORS 異常';
                     }
@@ -263,12 +261,12 @@ export const sync = {
                 this.updateSyncStatus('syncing', '正在寫入試算表...');
 
                 try {
-                    // 打包帶有 action, baseRevision, force 與 authToken 的安全同步封包
+                    // 打包帶有 action, baseRevision, force 與 authToken 的安全同步封包 (手動存檔 Ctrl+S 依然遵循 OCC 保護)
                     const payloadObj = {
                         action: 'sync',
                         authToken: this.state.authToken || '',
                         baseRevision: this.state.cloudRevision || 0,
-                        force: isForce || isManual,
+                        force: isForce === true,
                         projects: this.state.projects,
                         timestamp: new Date().toISOString()
                     };
@@ -337,9 +335,6 @@ export const sync = {
                 } catch (error) {
                     console.error("Push error:", error);
                     let errMsg = error.message;
-                    if (errMsg.includes('404')) {
-                        this.state.consecutive404Count = (this.state.consecutive404Count || 0) + 1;
-                    }
                     if (errMsg.includes('Failed to fetch') || errMsg.includes('NetworkError')) {
                         errMsg = 'CORS/連線異常 (請檢查部署權限設為 Anyone)';
                     }
@@ -358,16 +353,22 @@ export const sync = {
                 }
             },
 
-            sendBeaconOrKeepalivePush() {
-                if (!this.state.hasUnsavedChanges || !this.state.gasUrl) return;
+            // ================= 關閉頁面時的非同步守護推送 (Beacon / KeepAlive) =================
+            pushBeaconSync() {
+                if (!this.state.gasUrl || !this.state.hasUnsavedChanges || !this.state.isCloudLoaded) return;
                 try {
-                    const payload = JSON.stringify({
+                    const payloadObj = {
                         action: 'sync',
                         authToken: this.state.authToken || '',
                         baseRevision: this.state.cloudRevision || 0,
+                        force: false,
                         projects: this.state.projects,
                         timestamp: new Date().toISOString()
-                    });
+                    };
+                    const payload = JSON.stringify(payloadObj);
+                    // 瀏覽器 keepalive 限制為 64KB，超過時僅依靠 LocalStorage 保全，防止異常失敗
+                    if (payload.length > 60000) return;
+
                     fetch(this.state.gasUrl, {
                         method: 'POST',
                         body: payload,

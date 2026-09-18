@@ -51,6 +51,10 @@ html = html.replace(
     '<script src="./libs/tailwind.js"></script>'
 );
 html = html.replace(
+    '<script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>',
+    '<script src="./libs/purify.min.js"></script>'
+);
+html = html.replace(
     '<script src="https://cdn.jsdelivr.net/npm/marked@14.1.2/marked.min.js"></script>',
     '<script src="./libs/marked.min.js"></script>'
 );

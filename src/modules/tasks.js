@@ -61,7 +61,7 @@ export const tasks = {
                     let optHtml = '<option value="">👤 未指派成員</option>';
                     (p.members || []).forEach(m => {
                         const isSel = task.assignee === m.id || task.assignee === m.name;
-                        optHtml += `<option value="${this.escapeHtml(m.id)}" ${isSel ? 'selected' : ''}>${m.avatar} ${this.escapeHtml(m.name)} (${this.escapeHtml(m.role)})</option>`;
+                        optHtml += `<option value="${this.escapeHtml(m.id)}" ${isSel ? 'selected' : ''}>${this.escapeHtml(m.avatar || '👤')} ${this.escapeHtml(m.name)} (${this.escapeHtml(m.role || '成員')})</option>`;
                     });
                     assigneeSelect.innerHTML = optHtml;
                 }
@@ -156,7 +156,7 @@ export const tasks = {
                 if (newAssigneeSelect) {
                     let optHtml = '<option value="">👤 未指派</option>';
                     members.forEach(m => {
-                        optHtml += `<option value="${this.escapeHtml(m.id)}">${m.avatar} ${this.escapeHtml(m.name)}</option>`;
+                        optHtml += `<option value="${this.escapeHtml(m.id)}">${this.escapeHtml(m.avatar || '👤')} ${this.escapeHtml(m.name)}</option>`;
                     });
                     newAssigneeSelect.innerHTML = optHtml;
                 }
@@ -172,7 +172,7 @@ export const tasks = {
                         const isSel = this.taskMemberFilter === m.id;
                         barHtml += `
                             <button onclick="app.setTaskMemberFilter('${this.escapeHtml(m.id)}')" class="px-2.5 py-1 border-2 border-black font-bold text-xs shrink-0 flex items-center gap-1 transition-colors ${isSel ? 'bg-black text-white' : 'bg-white hover:bg-zinc-100'}">
-                                <span>${m.avatar}</span> <span>${this.escapeHtml(m.name)}</span> <span class="text-[10px] opacity-75">(${count})</span>
+                                <span>${this.escapeHtml(m.avatar || '👤')}</span> <span>${this.escapeHtml(m.name)}</span> <span class="text-[10px] opacity-75">(${count})</span>
                             </button>
                         `;
                     });
@@ -205,7 +205,7 @@ export const tasks = {
                     if (!assigneeId) return '';
                     const m = members.find(x => x.id === assigneeId || x.name === assigneeId);
                     if (!m) return `<span class="bg-zinc-100 text-zinc-700 border border-zinc-400 px-1 py-0.2 text-[9px] sm:text-[10px] font-bold shrink-0">👤<span class="hidden sm:inline ml-0.5">${this.escapeHtml(assigneeId)}</span></span>`;
-                    return `<span class="bg-violet-100 text-violet-900 border border-violet-400 px-1 py-0.2 text-[9px] sm:text-[10px] font-bold flex items-center gap-0.5 shrink-0" title="${this.escapeHtml(m.name)}"><span>${m.avatar}</span><span class="hidden sm:inline">${this.escapeHtml(m.name)}</span></span>`;
+                    return `<span class="bg-violet-100 text-violet-900 border border-violet-400 px-1 py-0.2 text-[9px] sm:text-[10px] font-bold flex items-center gap-0.5 shrink-0" title="${this.escapeHtml(m.name)}"><span>${this.escapeHtml(m.avatar || '👤')}</span><span class="hidden sm:inline">${this.escapeHtml(m.name)}</span></span>`;
                 };
 
                 // 清單模式渲染
@@ -525,7 +525,7 @@ export const tasks = {
                         listEl.innerHTML = members.map(m => `
                             <div class="p-2.5 bg-white border-2 border-black flex items-center justify-between flat-box">
                                 <div class="flex items-center gap-2.5">
-                                    <span class="text-xl p-1 bg-zinc-100 border border-black">${m.avatar || '👤'}</span>
+                                    <span class="text-xl p-1 bg-zinc-100 border border-black">${this.escapeHtml(m.avatar || '👤')}</span>
                                     <div>
                                         <div class="font-black text-sm text-zinc-900">${this.escapeHtml(m.name)}</div>
                                         <div class="text-[11px] font-bold text-zinc-500">${this.escapeHtml(m.role || '成員')}</div>

@@ -1147,7 +1147,8 @@ pie title 影片流量與曝光來源佔比 (%)
                 const doc = p?.docs?.find(d => d.id === this.state.activeDocId);
                 if (doc) {
                     doc.title = val;
-                    p.updatedAt = new Date().toISOString();
+                    doc.updatedAt = new Date().toISOString();
+                    p.updatedAt = doc.updatedAt;
                     this.renderSidebar();
                     this.renderDocLinksPanel(doc);
                     this.debouncedSaveAndSync();
@@ -1169,7 +1170,8 @@ pie title 影片流量與曝光來源佔比 (%)
                 const doc = p?.docs?.find(d => d.id === this.state.activeDocId);
                 if (doc) {
                     doc.content = val;
-                    p.updatedAt = new Date().toISOString();
+                    doc.updatedAt = new Date().toISOString();
+                    p.updatedAt = doc.updatedAt;
                     
                     const previewEl = document.getElementById('docPreview');
                     if (previewEl && this.state.docMode === 'preview') {
@@ -1241,12 +1243,15 @@ pie title 影片流量與曝光來源佔比 (%)
                 if (!this._docHistoryState._timers) this._docHistoryState._timers = {};
 
                 const docId = doc.id;
-                if (this._docHistoryState._timers[docId]) {
-                    clearTimeout(this._docHistoryState._timers[docId]);
+                const projectId = this.state.activeProjectId;
+                const timerKey = `${projectId || ''}_${docId}`;
+
+                if (this._docHistoryState._timers[timerKey]) {
+                    clearTimeout(this._docHistoryState._timers[timerKey]);
                 }
 
-                this._docHistoryState._timers[docId] = setTimeout(() => {
-                    const p = this.getCurrentProject();
+                this._docHistoryState._timers[timerKey] = setTimeout(() => {
+                    const p = this.getProject(projectId) || this.getCurrentProject();
                     const targetDoc = p?.docs?.find(d => d.id === docId);
                     if (targetDoc) {
                         this.recordDocSnapshot(targetDoc, '自動儲存', false);
@@ -1257,7 +1262,7 @@ pie title 影片流量與曝光來源佔比 (%)
                             this.pushToCloud(false);
                         }, 1000);
                     }
-                    delete this._docHistoryState._timers[docId];
+                    delete this._docHistoryState._timers[timerKey];
                 }, 3000);
             },
 

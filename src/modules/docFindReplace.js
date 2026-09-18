@@ -201,7 +201,8 @@ export const docFindReplace = {
 
                 const oldContent = doc.content || '';
                 const count = matches.length;
-                const newContent = oldContent.replace(regex, replaceVal);
+                // 使用函數形式替換以避免 $1, $& 等特殊符號被當作正則替換變數
+                const newContent = oldContent.replace(regex, () => replaceVal);
 
                 this.updateDocContent(newContent);
                 const editor = document.getElementById('docEditor');

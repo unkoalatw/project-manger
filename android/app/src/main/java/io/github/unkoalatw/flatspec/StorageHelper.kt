@@ -33,9 +33,10 @@ object StorageHelper {
 
     fun writeUriContent(context: Context, uri: Uri, content: String): Boolean {
         return try {
-            context.contentResolver.openOutputStream(uri)?.use { os: OutputStream ->
-                os.write(content.toByteArray(Charsets.UTF_8))
-                os.flush()
+            val os = context.contentResolver.openOutputStream(uri, "wt") ?: return false
+            os.use { outputStream: OutputStream ->
+                outputStream.write(content.toByteArray(Charsets.UTF_8))
+                outputStream.flush()
             }
             true
         } catch (e: Exception) {
@@ -46,9 +47,10 @@ object StorageHelper {
 
     fun readUriContent(context: Context, uri: Uri): String {
         return try {
-            context.contentResolver.openInputStream(uri)?.use { inputStream: InputStream ->
+            val isStream = context.contentResolver.openInputStream(uri) ?: return ""
+            isStream.use { inputStream: InputStream ->
                 inputStream.bufferedReader(Charsets.UTF_8).use { it.readText() }
-            } ?: ""
+            }
         } catch (e: Exception) {
             e.printStackTrace()
             ""

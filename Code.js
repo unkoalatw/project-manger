@@ -16,9 +16,16 @@ var DEFAULT_OAUTH_CLIENT_SECRET = '';
 var DEFAULT_YOUTUBE_API_KEY = '';
 
 /**
- * 🔒 身分驗證器：直通模式 (免設定任何金鑰，直接連線存取)
+ * 🔒 身分驗證器：若「指令碼屬性」配置了 FLATSPEC_AUTH_TOKEN 則嚴格校驗，否則直通
  */
 function verifyAuth(token) {
+  try {
+    var configuredToken = PropertiesService.getScriptProperties().getProperty('FLATSPEC_AUTH_TOKEN');
+    if (configuredToken && configuredToken.trim() !== '') {
+      var isValid = (token && token.toString().trim() === configuredToken.trim());
+      return { authorized: isValid, tokenRequired: true };
+    }
+  } catch(e) {}
   return { authorized: true, tokenRequired: false };
 }
 
@@ -274,7 +281,13 @@ function doPost(e) {
 
       // 2.4 支援帶有 baseRevision 與 action='sync' 的包裝專案同步寫入
       if (act === 'sync' || act === 'save' || act === 'push' || Array.isArray(parsedPayload.projects)) {
-        // 進入下方同步區塊
+        if (!Array.isArray(parsedPayload.projects) && !Array.isArray(parsedPayload)) {
+          return ContentService.createTextOutput(JSON.stringify({
+            status: 'error',
+            code: 400,
+            message: '同步資料格式錯誤：未提供有效的 projects 陣列，已拒絕覆寫資料庫。'
+          })).setMimeType(ContentService.MimeType.JSON);
+        }
       } else {
         // 未知 action 直接拒絕
         return ContentService.createTextOutput(JSON.stringify({
@@ -285,8 +298,16 @@ function doPost(e) {
     }
 
     // ================= 3. 專案資料同步寫入 (SSOT & 樂觀鎖 OCC) =================
-    var projectsData = Array.isArray(parsedPayload) ? parsedPayload : (parsedPayload.projects || []);
-    var baseRevision = (parsedPayload && typeof parsedPayload === 'object' && !Array.isArray(parsedPayload)) ? Number(parsedPayload.baseRevision) : null;
+    if (!Array.isArray(parsedPayload) && (!parsedPayload || !Array.isArray(parsedPayload.projects))) {
+      return ContentService.createTextOutput(JSON.stringify({
+        status: 'error',
+        code: 400,
+        message: '同步封包不完整：缺少 projects 陣列。'
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+
+    var projectsData = Array.isArray(parsedPayload) ? parsedPayload : parsedPayload.projects;
+    var baseRevision = (parsedPayload && typeof parsedPayload === 'object' && !Array.isArray(parsedPayload) && parsedPayload.baseRevision !== undefined) ? Number(parsedPayload.baseRevision) : null;
     var forceOverwrite = (parsedPayload && parsedPayload.force === true);
 
     var ss = getTargetSpreadsheet();
@@ -306,15 +327,15 @@ function doPost(e) {
       var dataSheet = getOrCreateDataSheet(ss);
       var currentRevision = getSheetRevision(dataSheet);
 
-      // 樂觀並行控制檢查 (Optimistic Concurrency Control)
-      if (baseRevision !== null && !isNaN(baseRevision) && baseRevision > 0 && !forceOverwrite) {
-        if (baseRevision !== currentRevision) {
+      // 樂觀並行控制檢查 (Optimistic Concurrency Control)：雲端有版次且本地版次不相符時強制返回 409
+      if (currentRevision > 0 && !forceOverwrite) {
+        if (baseRevision === null || isNaN(baseRevision) || baseRevision !== currentRevision) {
           return ContentService.createTextOutput(JSON.stringify({
             status: 'conflict',
             code: 409,
-            message: '雲端資料庫已由其他裝置更新 (雲端版本: ' + currentRevision + ', 本地基礎版本: ' + baseRevision + ')。請先拉取最新資料後再儲存。',
+            message: '雲端資料庫已由其他裝置更新 (雲端版本: ' + currentRevision + ', 本地基礎版本: ' + (baseRevision || 0) + ')。請先拉取最新資料後再儲存。',
             currentRevision: currentRevision,
-            baseRevision: baseRevision
+            baseRevision: baseRevision || 0
           })).setMimeType(ContentService.MimeType.JSON);
         }
       }
@@ -881,61 +902,6 @@ function formatVisualDashboard(ss, projects) {
   // 自動調整欄寬
   for (var col = 1; col <= headers.length; col++) {
     viewSheet.autoResizeColumn(col);
-  }
-}
-
-/**
- * ☁️ 處理影片與圖片上傳至 Google Drive (FlatSpec_Media_Vault)
- */
-function handleUploadMediaToDrive(payload) {
-  try {
-    if (!payload || !payload.base64Data) {
-      return ContentService.createTextOutput(JSON.stringify({
-        status: 'error',
-        message: '未提供多媒體 base64Data 資料'
-      })).setMimeType(ContentService.MimeType.JSON);
-    }
-
-    var folderName = 'FlatSpec_Media_Vault';
-    var folders = DriveApp.getFoldersByName(folderName);
-    var targetFolder;
-
-    if (folders.hasNext()) {
-      targetFolder = folders.next();
-    } else {
-      targetFolder = DriveApp.createFolder(folderName);
-      targetFolder.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-    }
-
-    var filename = payload.filename || ('media_' + Date.now() + '.mp4');
-    var mimeType = payload.mimeType || 'video/mp4';
-    var decodedBytes = Utilities.base64Decode(payload.base64Data);
-    var blob = Utilities.newBlob(decodedBytes, mimeType, filename);
-
-    var file = targetFolder.createFile(blob);
-    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-
-    var fileId = file.getId();
-    var viewUrl = 'https://drive.google.com/uc?export=view&id=' + fileId;
-    var embedUrl = 'https://drive.google.com/file/d/' + fileId + '/preview';
-
-    return ContentService.createTextOutput(JSON.stringify({
-      status: 'success',
-      data: {
-        fileId: fileId,
-        fileName: file.getName(),
-        mimeType: mimeType,
-        sizeBytes: file.getSize(),
-        viewUrl: viewUrl,
-        embedUrl: embedUrl,
-        folderName: folderName
-      }
-    })).setMimeType(ContentService.MimeType.JSON);
-  } catch (err) {
-    return ContentService.createTextOutput(JSON.stringify({
-      status: 'error',
-      message: '上傳至 Google Drive 失敗: ' + err.toString()
-    })).setMimeType(ContentService.MimeType.JSON);
   }
 }
 

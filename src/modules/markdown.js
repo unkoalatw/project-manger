@@ -750,17 +750,24 @@ export const markdown = {
                     html = html.split(tag).join(mb);
                 });
 
-                // 7. 安全過濾 (DOMPurify Sanitization)
+                // 7. 安全過濾 (DOMPurify Sanitization 與無依賴備用防護)
                 try {
-                    if (typeof DOMPurify !== 'undefined' && DOMPurify.sanitize) {
-                        html = DOMPurify.sanitize(html, {
+                    const purifier = (typeof DOMPurify !== 'undefined' && DOMPurify.sanitize) ? DOMPurify : (typeof window !== 'undefined' && window.DOMPurify ? window.DOMPurify : null);
+                    if (purifier && typeof purifier.sanitize === 'function') {
+                        html = purifier.sanitize(html, {
                             ADD_TAGS: ['iframe', 'summary', 'details', 'pre', 'code', 'math', 'annotation', 'semantics', 'mrow', 'mi', 'mo', 'mn', 'msup', 'msub', 'mfrac', 'mover', 'munder', 'msqrt', 'mtable', 'mtr', 'mtd', 'span', 'svg', 'path'],
                             ADD_ATTR: ['target', 'data-heading-id', 'data-heading-level', 'data-task-index', 'onclick', 'onchange', 'loading', 'align', 'allowfullscreen', 'frameborder', 'style'],
                             ALLOW_DATA_ATTR: true
                         });
+                    } else {
+                        // 輕量化安全過濾備用方案 (移除危險 script 標籤與 javascript: 協定)
+                        html = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+                                   .replace(/href=["']\s*javascript:[^"']*["']/gi, 'href="#"')
+                                   .replace(/src=["']\s*javascript:[^"']*["']/gi, 'src=""');
                     }
                 } catch (domErr) {
                     console.warn('[Markdown] DOMPurify sanitization notice:', domErr);
+                    html = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
                 }
 
                 return html;

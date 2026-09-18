@@ -53,8 +53,10 @@ export const storage = {
 
                     if (localStorage.getItem('flatSpecHasPendingChanges') === 'true') {
                         this.state.hasUnsavedChanges = true;
+                        this.state.lastSyncedProjects = [];
+                    } else {
+                        this.state.lastSyncedProjects = JSON.parse(JSON.stringify(this.state.projects));
                     }
-                    this.state.lastSyncedProjects = JSON.parse(JSON.stringify(this.state.projects));
                     try {
                         const savedExp = localStorage.getItem('flatSpecExpandedFolders');
                         if (savedExp) {
