@@ -12,5 +12,16 @@ export const CONFIG = {
     SPREADSHEET_URL: 'https://docs.google.com/spreadsheets/d/1WSViTq8yVVtOt8ubh01l1441-HzgUWcJiiBD4MZgmnU/edit',
 
     // 資料裁切基準時間
-    CUTOFF_TIME: new Date('2026-08-27T14:00:00+08:00').getTime()
+    CUTOFF_TIME: new Date('2026-08-27T14:00:00+08:00').getTime(),
+
+    // Firebase / Firestore 即時同步後端配置 (專案: Project Manager)
+    FIREBASE_CONFIG: {
+        projectId: 'databank-study',
+        appId: '1:127048581519:web:f1424f735cded5ef8e4bfa',
+        storageBucket: 'databank-study.firebasestorage.app',
+        apiKey: 'AIzaSyC7y4p2TZkA5OfOwTTNPQwM6qhrruXZ-H4',
+        authDomain: 'databank-study.firebaseapp.com',
+        messagingSenderId: '127048581519',
+        measurementId: 'G-QRP8WDYC6V'
+    }
 };

@@ -1,4 +1,4 @@
-﻿/**
+/**
  * FlatSpec Command Bus & Global Undo/Redo Engine
  * 統一封裝所有實體寫入指令，提供全域撤銷/重做
  */
@@ -66,3 +66,4 @@ class CommandBus {
 }
 
 export const commandBus = new CommandBus();
+
