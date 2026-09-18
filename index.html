@@ -29,6 +29,15 @@
     <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
     <!-- Mermaid.js 圖表流程圖即時視覺化渲染引擎 -->
     <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
+    <!-- Importmap 支援瀏覽器原生解析 Firebase 模組 (杜絕裸模組報錯) -->
+    <script type="importmap">
+    {
+      "imports": {
+        "firebase/app": "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js",
+        "firebase/firestore": "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"
+      }
+    }
+    </script>
     <!-- FlatSpec 核心模組化樣式表 -->
     <link rel="stylesheet" href="./src/styles/main.css">
 </head>
