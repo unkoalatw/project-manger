@@ -118,6 +118,33 @@ export class FirebaseStorageAdapter {
     }
 
     /**
+     * 雲端存儲精簡化：清除大於 100KB 的巨大 Base64 數據（多媒體已由 IndexedDB/本機存儲保管）
+     * 避免單個專案文檔超過 Firestore 1MB 上限
+     */
+    sanitizeProjectForCloud(proj) {
+        if (!proj) return null;
+        try {
+            const copy = JSON.parse(JSON.stringify(proj));
+            if (Array.isArray(copy.docs)) {
+                for (const doc of copy.docs) {
+                    if (doc.attachments && typeof doc.attachments === 'object') {
+                        for (const [attId, att] of Object.entries(doc.attachments)) {
+                            if (att && att.data && typeof att.data === 'string' && att.data.length > 100000) {
+                                // 移除過大的 Base64 內嵌資料，保留元數據以利離線快取/本機 IndexedDB 索引
+                                att.data = '';
+                                att.isExternal = true;
+                            }
+                        }
+                    }
+                }
+            }
+            return copy;
+        } catch(e) {
+            return proj;
+        }
+    }
+
+    /**
      * 將專案資料即時分散推播至 Firestore 集合 (突破 1MB 限制)
      */
     async pushProjects(projects, clientRevision = 0) {
@@ -143,13 +170,14 @@ export class FirebaseStorageAdapter {
                 updatedAt: serverTimestamp()
             }, { merge: true });
 
-            // 寫入每個獨立專案
+            // 寫入每個獨立專案（經雲端精簡處理，確保不超出 1MB）
             const currentProjIds = new Set();
             for (const proj of projects) {
                 if (!proj || !proj.id) continue;
                 currentProjIds.add(proj.id);
+                const sanitized = this.sanitizeProjectForCloud(proj);
                 const projRef = doc(this.db, 'projects', String(proj.id));
-                batch.set(projRef, proj, { merge: true });
+                batch.set(projRef, sanitized, { merge: true });
             }
 
             await batch.commit();
