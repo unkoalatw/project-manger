@@ -873,6 +873,7 @@ export const settings = {
                 const testPrompt = 'Respond with exact word: PONG';
 
                 // 5.1 優先檢查 GAS 雲端後端是否已配置 GROQ_API_KEY (ai_health 探測)
+                const gasUrl = localStorage.getItem('flatSpecGasEndpoint') || CONFIG.DEFAULT_GAS_ENDPOINT;
                 if (gasUrl) {
                     try {
                         const t0 = Date.now();

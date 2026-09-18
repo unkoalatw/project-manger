@@ -118,7 +118,7 @@ export class FirebaseStorageAdapter {
     }
 
     /**
-     * 雲端存儲精簡化：清除大於 100KB 的巨大 Base64 數據（多媒體已由 IndexedDB/本機存儲保管）
+     * 雲端存儲精簡化：清除巨大 Base64 數據與巨大內嵌字串（多媒體已由 IndexedDB/本機存儲保管）
      * 避免單個專案文檔超過 Firestore 1MB 上限
      */
     sanitizeProjectForCloud(proj) {
@@ -127,14 +127,20 @@ export class FirebaseStorageAdapter {
             const copy = JSON.parse(JSON.stringify(proj));
             if (Array.isArray(copy.docs)) {
                 for (const doc of copy.docs) {
+                    // 1. 清理 attachments 字典中的巨大 Base64
                     if (doc.attachments && typeof doc.attachments === 'object') {
                         for (const [attId, att] of Object.entries(doc.attachments)) {
-                            if (att && att.data && typeof att.data === 'string' && att.data.length > 100000) {
-                                // 移除過大的 Base64 內嵌資料，保留元數據以利離線快取/本機 IndexedDB 索引
+                            if (att && att.data && typeof att.data === 'string' && att.data.length > 50000) {
                                 att.data = '';
                                 att.isExternal = true;
                             }
                         }
+                    }
+                    // 2. 清理 doc.content 中直接貼上的超大 data:image 或 data:video 字串 (若超過 50KB)
+                    if (typeof doc.content === 'string' && doc.content.length > 300000) {
+                        doc.content = doc.content.replace(/data:(image|video)\/[a-zA-Z0-9.+_-]+;base64,[A-Za-z0-9+/=]{10000,}/g, (match) => {
+                            return 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><text y="50">Local Media</text></svg>';
+                        });
                     }
                 }
             }
