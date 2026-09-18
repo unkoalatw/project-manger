@@ -269,6 +269,60 @@ export class FirebaseStorageAdapter {
             console.log('[FirebaseAdapter] 🛑 Firestore 即時監聽已停止');
         }
     }
+
+    /**
+     * 更新跨裝置協作者在線心跳 (Heartbeat)
+     */
+    async updatePresenceHeartbeat(peerData) {
+        if (!this.isInitialized || !peerData || !peerData.deviceId) return;
+        try {
+            const presenceRef = doc(this.db, 'flatspec_presence', String(peerData.deviceId));
+            await setDoc(presenceRef, {
+                ...peerData,
+                lastActive: Date.now()
+            }, { merge: true });
+        } catch(e) {}
+    }
+
+    /**
+     * 監聽跨裝置協作者在線狀態
+     */
+    listenToPresence(onPresenceUpdate) {
+        if (!this.isInitialized) {
+            this.init().then(() => this.listenToPresence(onPresenceUpdate));
+            return () => {};
+        }
+        try {
+            const presenceCol = collection(this.db, 'flatspec_presence');
+            return onSnapshot(presenceCol, (snapshot) => {
+                const peers = [];
+                const now = Date.now();
+                snapshot.forEach(docSnap => {
+                    const data = docSnap.data();
+                    // 僅收錄 30 秒內有心跳的活躍用戶
+                    if (data && (now - (data.lastActive || 0)) < 30000) {
+                        peers.push(data);
+                    }
+                });
+                if (typeof onPresenceUpdate === 'function') {
+                    onPresenceUpdate(peers);
+                }
+            }, () => {});
+        } catch(e) {
+            return () => {};
+        }
+    }
+
+    /**
+     * 離線時清除自身在線標記
+     */
+    async removePresence(deviceId) {
+        if (!this.isInitialized || !deviceId) return;
+        try {
+            const presenceRef = doc(this.db, 'flatspec_presence', String(deviceId));
+            await deleteDoc(presenceRef);
+        } catch(e) {}
+    }
 }
 
 export const firebaseAdapter = new FirebaseStorageAdapter();

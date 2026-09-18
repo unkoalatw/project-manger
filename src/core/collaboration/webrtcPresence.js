@@ -76,7 +76,7 @@ export class WebRTCPresenceManager {
     }
 
     initChannels() {
-        // 1. 初始化 BroadcastChannel (跨分頁零延遲)
+        // 1. 初始化 BroadcastChannel (同機跨分頁零延遲同步)
         if (typeof window !== 'undefined' && 'BroadcastChannel' in window) {
             try {
                 this.broadcastChannel = new BroadcastChannel('flatspec_presence_p2p');
@@ -88,12 +88,35 @@ export class WebRTCPresenceManager {
             }
         }
 
-        // 定時清理離線超過 15 秒的協作者
+        // 2. 初始化 Firestore 跨裝置在線感知監聽
+        try {
+            firebaseAdapter.listenToPresence((cloudPeers) => {
+                let changed = false;
+                cloudPeers.forEach(peer => {
+                    if (peer.deviceId && peer.deviceId !== this.deviceId) {
+                        this.remotePeers.set(peer.deviceId, peer);
+                        changed = true;
+                    }
+                });
+                if (changed && typeof this.onPresenceChange === 'function') {
+                    this.onPresenceChange(this.getPresenceList());
+                }
+            });
+        } catch(e) {}
+
+        // 3. 視窗關閉前清除自身在線標記
+        if (typeof window !== 'undefined') {
+            window.addEventListener('beforeunload', () => {
+                firebaseAdapter.removePresence(this.deviceId);
+            });
+        }
+
+        // 定時清理離線超過 20 秒的協作者
         setInterval(() => {
             const now = Date.now();
             let changed = false;
             for (const [id, peer] of this.remotePeers.entries()) {
-                if (now - peer.lastActive > 15000) {
+                if (now - peer.lastActive > 20000) {
                     this.remotePeers.delete(id);
                     changed = true;
                 }
@@ -101,11 +124,11 @@ export class WebRTCPresenceManager {
             if (changed && typeof this.onPresenceChange === 'function') {
                 this.onPresenceChange(this.getPresenceList());
             }
-        }, 3000);
+        }, 4000);
     }
 
     /**
-     * 廣播本地游標與編輯狀態 (0 伺服器開銷)
+     * 廣播本地游標與編輯狀態 (跨分頁 + 跨裝置同步)
      */
     broadcastCursor(docId, line, col, selection = '') {
         const payload = {
@@ -118,23 +141,30 @@ export class WebRTCPresenceManager {
             line,
             col,
             selection,
-            timestamp: Date.now()
+            lastActive: Date.now()
         };
 
-        // 1. 透過 BroadcastChannel 發送給同機分頁
+        // 1. 透過 BroadcastChannel 發送給同機分頁 (毫秒級 0 成本)
         if (this.broadcastChannel) {
             try {
                 this.broadcastChannel.postMessage(payload);
             } catch (e) {}
         }
 
-        // 2. 透過 WebRTC DataChannel 發送給已連線的遠端 Peers
+        // 2. 透過 WebRTC DataChannel 發送給已連線 Peers
         for (const [targetId, conn] of this.peerConnections.entries()) {
             if (conn.dataChannel && conn.dataChannel.readyState === 'open') {
                 try {
                     conn.dataChannel.send(JSON.stringify(payload));
                 } catch (e) {}
             }
+        }
+
+        // 3. 節流寫入 Firestore 心跳 (每 3 秒最多 1 次，極低開銷且跨裝置可見)
+        const now = Date.now();
+        if (!this._lastCloudHeartbeat || (now - this._lastCloudHeartbeat > 3000)) {
+            this._lastCloudHeartbeat = now;
+            firebaseAdapter.updatePresenceHeartbeat(payload);
         }
     }
 

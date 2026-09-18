@@ -27,6 +27,9 @@ export const codeEditor = {
         webrtcPresence.onPresenceChange = () => {
             this.updateLineNumbers();
             this.updateIdeStatusBar();
+            if (typeof this.renderSidebar === 'function') {
+                this.renderSidebar();
+            }
         };
     },
 

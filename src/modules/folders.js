@@ -1,4 +1,6 @@
 // FlatSpec Module: folders
+import { webrtcPresence } from '../core/collaboration/webrtcPresence.js';
+
 export const folders = {
 // ================= 資料夾與文檔樹狀管理 (Folder Tree System) =================
             toggleFolder(folderId, event) {
@@ -133,6 +135,20 @@ export const folders = {
             // 渲染單篇文檔節點
             renderSidebarDocItem(doc, isSearching, canMoveUp, canMoveDown) {
                 const isActive = doc.id === this.state.activeDocId;
+                const peersInThisDoc = webrtcPresence.getPeersInDoc(doc.id);
+                let peerBadgeHtml = '';
+                if (peersInThisDoc.length > 0) {
+                    peerBadgeHtml = `
+                        <div class="flex items-center -space-x-1 shrink-0 ml-1">
+                            ${peersInThisDoc.map(p => `
+                                <span class="w-4 h-4 rounded-full flex items-center justify-center text-[9px] text-white font-bold shadow-xs border border-white" style="background-color: ${p.userColor || '#3b82f6'};" title="${p.userName} (${p.deviceType === 'mobile' ? '手機' : '電腦'}) 正在編輯">
+                                    ${p.deviceType === 'mobile' ? '📱' : '💻'}
+                                </span>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+
                 return `
                     <div class="group relative flex items-center justify-between p-1.5 sm:p-2 cursor-pointer text-xs sm:text-sm font-bold border ${isActive ? 'bg-blue-50/70 border-blue-200 text-blue-700 font-semibold shadow-xs rounded-lg' : 'border-transparent hover:bg-slate-100 text-slate-700 rounded-lg'} transition-all select-none"
                         draggable="${!isSearching}"
@@ -148,6 +164,7 @@ export const folders = {
                             <span class="text-zinc-400 group-hover:text-black cursor-grab active:cursor-grabbing text-xs px-0.5 tracking-tighter shrink-0" title="${isSearching ? '搜尋時無法拖曳' : '拖曳以自訂排列順序或移入資料夾'}">⋮⋮</span>
                             <span class="shrink-0">📄</span>
                             <span class="truncate">${this.escapeHtml(doc.title || '未命名')}</span>
+                            ${peerBadgeHtml}
                         </div>
 
                         <div class="opacity-0 group-hover:opacity-100 flex items-center gap-0.5 shrink-0 transition-opacity ml-1 bg-zinc-100 border border-zinc-300 px-1 py-0.5">
