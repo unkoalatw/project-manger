@@ -104,18 +104,44 @@ export const storage = {
                 }
             },
 
-            saveToLocal() {
+            _saveToLocalTimer: null,
+            _idbPersistTimer: null,
+            _historySnapshotTimer: null,
+
+            debouncedSaveToLocal(delayMs = 250) {
+                if (this._saveToLocalTimer) clearTimeout(this._saveToLocalTimer);
+                this._saveToLocalTimer = setTimeout(() => {
+                    this.saveToLocal();
+                }, delayMs);
+            },
+
+            debouncedPersistToIndexedDB(delayMs = 800) {
+                if (this._idbPersistTimer) clearTimeout(this._idbPersistTimer);
+                this._idbPersistTimer = setTimeout(() => {
+                    try {
+                        this.persistToIndexedDB(this.state.projects);
+                    } catch (idbErr) {
+                        console.warn('[Storage] Background IndexedDB sync skipped:', idbErr);
+                    }
+                }, delayMs);
+            },
+
+            debouncedLocalHistorySnapshot(delayMs = 2000) {
+                if (this._historySnapshotTimer) clearTimeout(this._historySnapshotTimer);
+                this._historySnapshotTimer = setTimeout(() => {
+                    this.recordLocalHistorySnapshot(this.state.projects, '本地自動存檔');
+                }, delayMs);
+            },
+
+            saveToLocal(skipHeavyTasks = false) {
                 try {
                     localStorage.setItem('flatSpecData', JSON.stringify(this.state.projects));
                     localStorage.setItem('flatSpecGasUrl', this.state.gasUrl);
                     this.state.lastLocalSaveTime = new Date();
-                    this.recordLocalHistorySnapshot(this.state.projects, '本地自動存檔');
 
-                    // 🚀 非同步雙寫至 IndexedDB 實體庫與分離附件庫 (Zero-blocking)
-                    try {
-                        this.persistToIndexedDB(this.state.projects);
-                    } catch (idbErr) {
-                        console.warn('[Storage] IndexedDB sync skipped:', idbErr);
+                    if (!skipHeavyTasks) {
+                        this.debouncedLocalHistorySnapshot(2000);
+                        this.debouncedPersistToIndexedDB(800);
                     }
                 } catch (e) {
                     console.warn("LocalStorage 配額吃緊，自動啟動瘦身保存機制...", e.message);
@@ -318,13 +344,12 @@ export const storage = {
             // ================= 資料變更觸發器 =================
             debouncedSaveAndSync() {
                 this.setUserTypingState();
-                
-                // 1. 0ms 本地快取立即寫入
-                this.saveToLocal();
                 this.state.hasUnsavedChanges = true;
                 localStorage.setItem('flatSpecHasPendingChanges', 'true');
                 this.updateSyncStatus('saved');
-                this.renderDashboard();
+
+                // 1. 防抖 250ms 本地快取寫入 (避免打字時大量全量序列化造成卡頓)
+                this.debouncedSaveToLocal(250);
 
                 // 2. 防抖 800ms 推送至雲端試算表
                 if (this.state.syncTimeout) clearTimeout(this.state.syncTimeout);

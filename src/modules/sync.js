@@ -81,59 +81,39 @@ export const sync = {
                 try {
                     let rawPayload = null;
                     
-                    // 1. 優先嘗試以 POST action: 'pull' 直連讀取 (避開 Google GET 302 重導向 404 與快取問題)
+                    // 1. 嚴格使用 POST action: 'pull' 直連讀取 (避開 Google GET 302 重導向 404 與快取問題)
+                    const postRes = await this.fetchWithTimeout(this.state.gasUrl, {
+                        method: 'POST',
+                        body: JSON.stringify({ action: 'pull', token: this.state.authToken || '' }),
+                        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+                        redirect: 'follow',
+                        cache: 'no-store'
+                    }, 25000);
+
+                    if (postRes.status === 404) {
+                        this.state.consecutive404Count = (this.state.consecutive404Count || 0) + 1;
+                        throw new Error('HTTP 404 (端點不存在或已失效，請至設定確認 GAS 部署網址)');
+                    }
+                    if (!postRes.ok) {
+                        throw new Error(`HTTP ${postRes.status}`);
+                    }
+
+                    const postText = await postRes.text();
+                    let parsedPost;
                     try {
-                        const postRes = await this.fetchWithTimeout(this.state.gasUrl, {
-                            method: 'POST',
-                            body: JSON.stringify({ action: 'pull', token: this.state.authToken || '' }),
-                            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                            redirect: 'follow',
-                            cache: 'no-store'
-                        }, 25000);
-
-                        if (postRes.ok) {
-                            const postText = await postRes.text();
-                            const parsedPost = JSON.parse(postText);
-                            if (parsedPost && (parsedPost.status === 'success' || Array.isArray(parsedPost))) {
-                                rawPayload = parsedPost;
-                            } else if (parsedPost && (parsedPost.code === 401 || (parsedPost.status === 'error' && parsedPost.message && parsedPost.message.includes('未授權')))) {
-                                throw new Error('未授權存取 (Auth Token 錯誤或未設定)，請至「設定 ➔ 雲端同步」填入正確金鑰。');
-                            }
+                        parsedPost = JSON.parse(postText);
+                    } catch (parseErr) {
+                        if (postText.includes('<!DOCTYPE') || postText.includes('<html')) {
+                            throw new Error('CORS 存取被拒 (偵測到 Google 登入重定向，請確認 Web App 存取權限設為 Anyone)');
                         }
-                    } catch (postErr) {
-                        if (postErr.message?.includes('未授權')) throw postErr;
-                        // 若 POST 直連失敗，嘗試以 GET 作為最後備援
+                        throw new Error('雲端回應非合法 JSON');
                     }
 
-                    // 2. 若 POST pull 未成功取得合法專案資料，Fallback 至 GET 讀取 (使用獨立的超時控制器)
-                    if (!rawPayload) {
-                        try {
-                            const tokenParam = this.state.authToken ? `&token=${encodeURIComponent(this.state.authToken)}` : '';
-                            const fetchUrl = this.state.gasUrl + (this.state.gasUrl.includes('?') ? '&' : '?') + 't=' + Date.now() + tokenParam;
-                            const response = await this.fetchWithTimeout(fetchUrl, { 
-                                method: 'GET',
-                                redirect: 'follow',
-                                cache: 'no-store'
-                            }, 15000);
-
-                            if (response.ok) {
-                                const textData = await response.text();
-                                try {
-                                    rawPayload = JSON.parse(textData);
-                                } catch (jsonErr) {
-                                    if (textData.includes('<!DOCTYPE') || textData.includes('<html')) {
-                                        throw new Error('CORS 存取被拒 (偵測到 Google 登入重定向，請確認 Web App 存取權限設為 Anyone_Anonymous)');
-                                    }
-                                }
-                            }
-                        } catch(getErr) {
-                            // 靜默降級，若皆無資料由下方判定
-                        }
+                    if (parsedPost && (parsedPost.code === 401 || (parsedPost.status === 'error' && parsedPost.message && parsedPost.message.includes('未授權')))) {
+                        throw new Error('未授權存取 (Auth Token 錯誤或未設定)，請至「設定 ➔ 雲端同步」填入正確金鑰。');
                     }
 
-                    if (!rawPayload) {
-                        throw new Error('無法從雲端取得專案資料 (POST 與 GET 通道均未回應有效資料)');
-                    }
+                    rawPayload = parsedPost;
                     
                     let data = rawPayload;
                     if (data && typeof data === 'object' && !Array.isArray(data)) {
@@ -405,11 +385,11 @@ export const sync = {
                 let isGetOk = false;
                 let isPostOk = false;
 
-                // 1. 測試 GET
+                // 1. 測試 GET (透過輕量 action=health 端點驗證，避開全量 GET 重導向 404 與逾時)
                 try {
                     const startTime = Date.now();
                     const tokenParam = this.state.authToken ? `&token=${encodeURIComponent(this.state.authToken)}` : '';
-                    const fetchUrl = inputUrl + (inputUrl.includes('?') ? '&' : '?') + 't=' + Date.now() + tokenParam;
+                    const fetchUrl = inputUrl + (inputUrl.includes('?') ? '&' : '?') + 'action=health&t=' + Date.now() + tokenParam;
                     const getRes = await fetch(fetchUrl, { method: 'GET', redirect: 'follow', cache: 'no-store' });
                     const getLat = Date.now() - startTime;
                     if (getRes.ok) {
@@ -421,16 +401,15 @@ export const sync = {
                                 const parsed = JSON.parse(txt);
                                 if (parsed.code === 401 || (parsed.status === 'error' && parsed.message && parsed.message.includes('未授權'))) {
                                     logs.push(`⚠️ GET 授權失敗: 後端要求 Auth Token 但未提供或不符，請於設定中配置正確金鑰。`);
-                                } else if (Array.isArray(parsed) || (parsed && Array.isArray(parsed.data))) {
+                                } else if (parsed.status === 'success' || parsed.service === CONFIG.EXPECTED_BACKEND_SERVICE) {
                                     isGetOk = true;
-                                    const count = Array.isArray(parsed) ? parsed.length : parsed.data.length;
-                                    logs.push(`✅ GET 讀取成功 (${getLat}ms): 成功取得雲端資料庫 ${count} 個專案 (版本: ${parsed.revision || 0})`);
-                                } else if (parsed && typeof parsed === 'object') {
-                                    if (parsed.message) {
-                                        logs.push(`⚠️ GET 警告 (${getLat}ms): 端點回應「${parsed.message}」`);
-                                    } else {
-                                        logs.push(`⚠️ GET 警告 (${getLat}ms): 雲端回傳格式非專案陣列`);
+                                    let verNote = parsed.version ? ` (版本: ${parsed.version})` : '';
+                                    if (parsed.version && parsed.version !== CONFIG.EXPECTED_BACKEND_VERSION) {
+                                        verNote += ` ⚠️ 與前端建議版本 ${CONFIG.EXPECTED_BACKEND_VERSION} 不符`;
                                     }
+                                    logs.push(`✅ GET 健康檢查成功 (${getLat}ms): ${parsed.service || 'FlatSpec Backend'}${verNote}`);
+                                } else {
+                                    logs.push(`⚠️ GET 回應非預期格式: ${txt.slice(0, 100)}`);
                                 }
                             } catch(e) {
                                 logs.push(`❌ GET 解析失敗: 非合法 JSON 回應`);
@@ -462,9 +441,13 @@ export const sync = {
                             const parsed = JSON.parse(txt);
                             if (parsed.code === 401) {
                                 logs.push(`⚠️ POST 授權失敗: 後端金鑰驗證不符`);
-                            } else if (parsed.status === 'success' && (parsed.service === 'FlatSpec Backend' || parsed.version)) {
+                            } else if (parsed.status === 'success' && (parsed.service === CONFIG.EXPECTED_BACKEND_SERVICE || parsed.version)) {
                                 isPostOk = true;
-                                logs.push(`✅ POST 通訊成功 (${postLat}ms): 試算表後端雙向通道正常 (版本: ${parsed.version || '2.6.0'})`);
+                                let verNote = parsed.version ? ` (版本: ${parsed.version})` : '';
+                                if (parsed.version && parsed.version !== CONFIG.EXPECTED_BACKEND_VERSION) {
+                                    verNote += ` ⚠️ 與前端建議版本 ${CONFIG.EXPECTED_BACKEND_VERSION} 不符`;
+                                }
+                                logs.push(`✅ POST 通訊成功 (${postLat}ms): 試算表後端雙向通道正常${verNote}`);
                             } else {
                                 logs.push(`❌ POST 協議不符: 端點回應非預期之 FlatSpec 協定 (回應: ${JSON.stringify(parsed)})`);
                             }
