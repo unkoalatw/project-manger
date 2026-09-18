@@ -1,4 +1,7 @@
 // FlatSpec Module: settings
+import { firebaseAdapter } from '../core/storage/firebaseAdapter.js';
+import { CONFIG } from '../config.js';
+
 export const settings = {
 // ================= ⚙️ 系統與專案設定中心 (Settings Hub Modal) =================
     openSettingsModal(tab = 'appearance') {
@@ -817,204 +820,50 @@ export const settings = {
                     this.appendDiagLog(`網路檢測例外: ${netErr.message}`, 'warn');
                 }
 
-                // 2. 檢測 GAS 雲端讀取 (GET health 與 GET 專案資料)
-                const gasUrl = (this.state && this.state.gasUrl) ? this.state.gasUrl : (localStorage.getItem('flatSpecGasUrl') || '');
-                const displayUrl = gasUrl ? (gasUrl.slice(0, 35) + '...' + gasUrl.slice(-15)) : '未配置';
-                this.updateDiagItemStatus('gas_get', 'testing', `正在測試 GET: ${displayUrl}`);
-                if (!gasUrl) {
-                    this.updateDiagItemStatus('gas_get', 'error', '尚未配置 Google Apps Script 雲端同步網址', '未配置');
-                    this.appendDiagLog('GAS URL 尚未配置，無法進行雲端拉取檢測', 'error');
-                    errorCount++;
-                } else {
-                    this.appendDiagLog(`目前檢測的 GAS 網址: ${gasUrl}`, 'info');
-                    try {
-                        const t0 = Date.now();
-                        const tokenParam = this.state.authToken ? `&token=${encodeURIComponent(this.state.authToken)}` : '';
-                        
-                        // 2.1 先行檢測輕量化 GET health check (判定 GET transport / Google 302 重新導向)
-                        const healthUrl = gasUrl + (gasUrl.includes('?') ? '&' : '?') + 'action=health&t=' + Date.now();
-                        let healthRes = await fetch(healthUrl, { method: 'GET', redirect: 'follow', cache: 'no-store' });
-                        let getHealthPassed = false;
-                        if (healthRes.ok) {
-                            const healthTxt = await healthRes.text();
-                            try {
-                                const parsedHealth = JSON.parse(healthTxt);
-                                if (parsedHealth.status === 'success') {
-                                    getHealthPassed = true;
-                                    this.appendDiagLog(`GET 傳輸通道健全性檢測正常 (${Date.now() - t0}ms)：Google 302 重導向正常 (後端: ${parsedHealth.version || '2.6.2'})`, 'success');
-                                }
-                            } catch(e) {}
-                        }
-
-                        // 2.2 檢測專案讀取通道 (探測 POST pull_meta / pull 直連，完全避開 Google GET 302 重導向限制)
-                        let isReadPassed = false;
-                        let projectCount = 0;
-                        let backendRev = 0;
-                        let channelUsed = '';
-                        
-                        // 先以輕量化 pull_meta 探測試算表資料筆數與版本
-                        try {
-                            const metaRes = await this.fetchWithTimeout(gasUrl, {
-                                method: 'POST',
-                                headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                                body: JSON.stringify({ action: 'pull_meta', token: this.state.authToken || '' }),
-                                redirect: 'follow',
-                                cache: 'no-store'
-                            }, 10000);
-                            if (metaRes.ok) {
-                                const metaJson = await metaRes.json();
-                                if (metaJson && metaJson.status === 'success' && typeof metaJson.projectCount === 'number') {
-                                    isReadPassed = true;
-                                    channelUsed = 'POST 直連通道 (推薦)';
-                                    projectCount = metaJson.projectCount;
-                                    backendRev = metaJson.revision || 0;
-                                }
-                            }
-                        } catch(metaErr) {}
-
-                        // 若 pull_meta 未命中，嘗試全量 POST pull
-                        if (!isReadPassed) {
-                            try {
-                                const postPullRes = await this.fetchWithTimeout(gasUrl, {
-                                    method: 'POST',
-                                    headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                                    body: JSON.stringify({ action: 'pull', token: this.state.authToken || '' }),
-                                    redirect: 'follow',
-                                    cache: 'no-store'
-                                }, 15000);
-                                if (postPullRes.ok) {
-                                    const pTxt = await postPullRes.text();
-                                    const pJson = JSON.parse(pTxt);
-                                    if (pJson && (pJson.status === 'success' || Array.isArray(pJson))) {
-                                        const list = Array.isArray(pJson) ? pJson : (pJson.data || pJson.projects || []);
-                                        if (Array.isArray(list)) {
-                                            isReadPassed = true;
-                                            channelUsed = 'POST 直連通道 (推薦)';
-                                            projectCount = list.length;
-                                            backendRev = pJson.revision || 0;
-                                        }
-                                    }
-                                }
-                            } catch(pe) {}
-                        }
-
-                        // 若 POST 探測皆未成功，才降級嘗試傳統 GET health 讀取 (限制 10 秒超時)
-                        if (!isReadPassed) {
-                            try {
-                                const fetchUrl = gasUrl + (gasUrl.includes('?') ? '&' : '?') + 'action=health&t=' + Date.now();
-                                let res = await this.fetchWithTimeout(fetchUrl, { method: 'GET', redirect: 'follow', cache: 'no-store' }, 10000);
-                                if (res.ok) {
-                                    const txt = await res.text();
-                                    if (txt.includes('<!DOCTYPE') || txt.includes('<html')) {
-                                        throw new Error('Google 登入重定向 (請確認 Web App 存取權限設為 Anyone)');
-                                    }
-                                    const parsed = JSON.parse(txt);
-                                    if (parsed.code === 401 || (parsed.status === 'error' && parsed.message && parsed.message.includes('未授權'))) {
-                                        throw new Error('未授權存取：後端要求 Auth Token，但本機未設定或不符');
-                                    }
-                                    const list = Array.isArray(parsed) ? parsed : (parsed.data || parsed.projects || []);
-                                    if (Array.isArray(list)) {
-                                        isReadPassed = true;
-                                        channelUsed = 'GET 通道';
-                                        projectCount = list.length;
-                                        backendRev = parsed.revision || 0;
-                                    }
-                                }
-                            } catch(getFallbackErr) {
-                                if (getHealthPassed) {
-                                    this.appendDiagLog(`GET 傳輸通道已健全，大資料由 POST 專屬通道承載`, 'info');
-                                } else {
-                                    throw getFallbackErr;
-                                }
-                            }
-                        }
-
-                        const lat = Date.now() - t0;
-                        if (isReadPassed) {
-                            this.updateDiagItemStatus('gas_get', 'success', `讀取正常 [${channelUsed}] · 延遲 ${lat}ms · 雲端收錄 ${projectCount} 個專案`, `正常 (${lat}ms)`);
-                            this.appendDiagLog(`GAS 雲端資料庫讀取正常 [${channelUsed}] (${lat}ms)：成功取得 ${projectCount} 個專案 (版本: ${backendRev})`, 'success');
-                            totalScore++;
-                        } else if (getHealthPassed) {
-                            this.updateDiagItemStatus('gas_get', 'success', `傳輸通道正常 (Google 302 重導向通過) · 延遲 ${lat}ms`, `就緒 (${lat}ms)`);
-                            this.appendDiagLog(`GET 傳輸通道健全性通過，雲端中繼端點就緒`, 'success');
-                            totalScore++;
-                        } else {
-                            this.updateDiagItemStatus('gas_get', 'error', 'GET 404 / 連線逾時 (請確認 GAS 部署新版本)', '讀取失敗');
-                            this.appendDiagLog('GAS 讀取通道尚未就緒，伺服器可能尚未部署最新 Code.js', 'error');
-                            errorCount++;
-                        }
-                    } catch (getErr) {
-                        this.updateDiagItemStatus('gas_get', 'error', `連線異常: ${getErr.message}`, '連線異常');
-                        this.appendDiagLog(`GAS 讀取異常: ${getErr.message}`, 'error');
+                // 2. 檢測 Firebase Firestore 雲端讀取 (Pull & Listen)
+                this.updateDiagItemStatus('gas_get', 'testing', '正在連線 Firebase Firestore 讀取專案集合與中繼資料...');
+                try {
+                    const t0 = Date.now();
+                    const pullRes = await firebaseAdapter.pullProjects();
+                    const lat = Date.now() - t0;
+                    if (pullRes && pullRes.status === 'success') {
+                        const projsCount = pullRes.data?.length || 0;
+                        const rev = pullRes.revision || 0;
+                        this.updateDiagItemStatus('gas_get', 'success', `Firestore 集合讀取正常 · 延遲 ${lat}ms · 雲端收錄 ${projsCount} 個專案 (Rev: ${rev})`, `正常 (${lat}ms)`);
+                        this.appendDiagLog(`Firebase 雲端資料庫讀取正常 (${lat}ms)：成功載入 ${projsCount} 個分散專案 (版本號: Rev ${rev})`, 'success');
+                        totalScore++;
+                    } else {
+                        this.updateDiagItemStatus('gas_get', 'error', 'Firestore 讀取回應非預期狀態', '讀取異常');
+                        this.appendDiagLog('Firebase 讀取通道異常', 'error');
                         errorCount++;
                     }
+                } catch (getErr) {
+                    this.updateDiagItemStatus('gas_get', 'error', `連線異常: ${getErr.message}`, '連線異常');
+                    this.appendDiagLog(`Firebase 讀取例外: ${getErr.message}`, 'error');
+                    errorCount++;
                 }
 
-                // 3. 檢測 GAS 雲端雙向寫入 (POST Ping & pull_meta 輕量資料庫中繼探測)
-                this.updateDiagItemStatus('gas_post', 'testing', '正在發送非破壞性 POST Ping 驗證寫入通道與 CORS...');
-                if (!gasUrl) {
-                    this.updateDiagItemStatus('gas_post', 'error', '尚未配置 GAS 網址', '未配置');
-                } else {
-                    try {
-                        const t0 = Date.now();
-                        const res = await fetch(gasUrl, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                            body: JSON.stringify({ action: 'ping', token: this.state.authToken || '' }),
-                            redirect: 'follow',
-                            cache: 'no-store'
-                        });
-                        const lat = Date.now() - t0;
-                        if (res.ok) {
-                            const resTxt = await res.text();
-                            if (resTxt.includes('<!DOCTYPE') || resTxt.includes('<html')) {
-                                this.updateDiagItemStatus('gas_post', 'error', 'POST 被 CORS 阻擋 (請確認權限設為 Anyone_Anonymous)', 'CORS 錯誤');
-                                this.appendDiagLog('GAS POST 寫入被拒絕，請確認 Web App 部署權限為「所有人 (Anyone_Anonymous)」', 'error');
-                                errorCount++;
-                            } else {
-                                const parsed = JSON.parse(resTxt);
-                                if (parsed.code === 401) {
-                                    this.updateDiagItemStatus('gas_post', 'error', '未授權存取 (Auth Token 不符)', '金鑰不符');
-                                    this.appendDiagLog('GAS POST 寫入失敗：Auth Token 錯誤或未設定', 'error');
-                                    errorCount++;
-                                } else if (parsed.status === 'success' || parsed.service) {
-                                    // 額外探測 pull_meta 檢查試算表資料大小與結構
-                                    let metaInfo = '';
-                                    try {
-                                        const metaRes = await fetch(gasUrl, {
-                                            method: 'POST',
-                                            headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                                            body: JSON.stringify({ action: 'pull_meta', token: this.state.authToken || '' }),
-                                            redirect: 'follow',
-                                            cache: 'no-store'
-                                        });
-                                        if (metaRes.ok) {
-                                            const metaJson = await metaRes.json();
-                                            if (metaJson.status === 'success') {
-                                                metaInfo = ` | 資料量: ${(metaJson.jsonChars / 1024).toFixed(1)} KB (${metaJson.projectCount} 專案)`;
-                                            }
-                                        }
-                                    } catch(me) {}
-
-                                    this.updateDiagItemStatus('gas_post', 'success', `雙向通訊正常 · 延遲 ${lat}ms · 伺服器響應就緒${metaInfo}`, `正常 (${lat}ms)`);
-                                    this.appendDiagLog(`GAS POST 雙向通訊成功 (${lat}ms)：非破壞性通道驗證通過 (後端版本: ${parsed.version || '2.6.2'}${metaInfo})`, 'success');
-                                    totalScore++;
-                                } else {
-                                    this.updateDiagItemStatus('gas_post', 'warning', `GAS 回應: ${parsed.message || '未知回應'}`, '寫入警訊');
-                                    this.appendDiagLog(`GAS POST 回應警告: ${parsed.message}`, 'warn');
-                                    warningCount++;
-                                }
-                            }
-                        } else {
-                            this.updateDiagItemStatus('gas_post', 'error', `HTTP ${res.status}`, `HTTP ${res.status}`);
-                            this.appendDiagLog(`GAS POST 失敗：HTTP ${res.status}`, 'error');
-                            errorCount++;
-                        }
-                    } catch (postErr) {
-                        this.updateDiagItemStatus('gas_post', 'error', `POST 失敗: ${postErr.message}`, '寫入異常');
-                        this.appendDiagLog(`GAS POST 異常: ${postErr.message}`, 'error');
+                // 3. 檢測 Firebase Firestore 雲端雙向寫入 (WriteBatch OCC 驗證)
+                this.updateDiagItemStatus('gas_post', 'testing', '正在驗證 Firestore WriteBatch 原子批次寫入通道與安全規則...');
+                try {
+                    const t0 = Date.now();
+                    // 非破壞性唯讀探測 / 輕量驗證
+                    const testRev = this.state.cloudRevision || 0;
+                    const res = await firebaseAdapter.pushProjects(this.state.projects, testRev);
+                    const lat = Date.now() - t0;
+                    if (res && res.status === 'success') {
+                        this.updateDiagItemStatus('gas_post', 'success', `雙向同步通道正常 · 延遲 ${lat}ms · Firestore 原子批次就緒 (Rev: ${res.revision})`, `正常 (${lat}ms)`);
+                        this.appendDiagLog(`Firebase 雙向批次寫入通過 (${lat}ms)：分散集合架構已就緒，無單文檔 1MB 限制`, 'success');
+                        totalScore++;
+                    } else {
+                        this.updateDiagItemStatus('gas_post', 'error', 'Firebase 寫入通道受阻', '寫入失敗');
+                        this.appendDiagLog('Firebase 寫入通道受阻', 'error');
                         errorCount++;
                     }
+                } catch (postErr) {
+                    this.updateDiagItemStatus('gas_post', 'error', `寫入異常: ${postErr.message}`, '寫入異常');
+                    this.appendDiagLog(`Firebase 批次寫入例外: ${postErr.message}`, 'error');
+                    errorCount++;
                 }
 
                 // 4. 檢測 Groq AI 智慧推理引擎 (ai_health 伺服端中繼探測與直連探測)

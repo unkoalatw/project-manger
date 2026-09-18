@@ -1214,25 +1214,25 @@
                             <span id="diagBadge_network" class="px-2 py-0.5 text-[10px] font-bold bg-slate-100 text-slate-600 rounded font-mono shrink-0">待檢測</span>
                         </div>
 
-                        <!-- 2. GAS 雲端讀取 (GET) -->
+                        <!-- 2. Firebase Firestore 雲端讀取 (Pull & Query) -->
                         <div class="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between gap-3 shadow-2xs">
                             <div class="flex items-center gap-2.5">
-                                <span id="diagIcon_gas_get" class="text-lg">📥</span>
+                                <span id="diagIcon_gas_get" class="text-lg">⚡</span>
                                 <div>
-                                    <div class="text-xs font-bold text-slate-800">Google Apps Script 雲端讀取 (GET & CORS)</div>
-                                    <div id="diagDetail_gas_get" class="text-[11px] text-slate-500 font-mono">驗證試算表端點連線、CORS 權限及專案拉取功能</div>
+                                    <div class="text-xs font-bold text-slate-800">Firebase Firestore 雲端讀取 (Pull & Listen)</div>
+                                    <div id="diagDetail_gas_get" class="text-[11px] text-slate-500 font-mono">驗證 Firestore 集合讀取、即時監聽與版本中繼</div>
                                 </div>
                             </div>
                             <span id="diagBadge_gas_get" class="px-2 py-0.5 text-[10px] font-bold bg-slate-100 text-slate-600 rounded font-mono shrink-0">待檢測</span>
                         </div>
 
-                        <!-- 3. GAS 雲端寫入 (POST) -->
+                        <!-- 3. Firebase Firestore 雲端寫入 (Push & WriteBatch) -->
                         <div class="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between gap-3 shadow-2xs">
                             <div class="flex items-center gap-2.5">
                                 <span id="diagIcon_gas_post" class="text-lg">📤</span>
                                 <div>
-                                    <div class="text-xs font-bold text-slate-800">Google 試算表資料庫雙向寫入 (POST Echo)</div>
-                                    <div id="diagDetail_gas_post" class="text-[11px] text-slate-500 font-mono">測試寫入通道、資料庫 SSOT 完整性與延遲時間</div>
+                                    <div class="text-xs font-bold text-slate-800">Firebase 分散集合批次寫入 (WriteBatch Push)</div>
+                                    <div id="diagDetail_gas_post" class="text-[11px] text-slate-500 font-mono">測試分散集合原子寫入、OCC 版本控制與毫秒級延遲</div>
                                 </div>
                             </div>
                             <span id="diagBadge_gas_post" class="px-2 py-0.5 text-[10px] font-bold bg-slate-100 text-slate-600 rounded font-mono shrink-0">待檢測</span>
