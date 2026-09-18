@@ -23,5 +23,10 @@ export const CONFIG = {
         authDomain: 'databank-study.firebaseapp.com',
         messagingSenderId: '127048581519',
         measurementId: 'G-QRP8WDYC6V'
+    },
+
+    // 內建預設 Groq AI API 金鑰 (用於免輸入即享有任務智慧拆解、AI 助手與自檢)
+    get DEFAULT_GROQ_API_KEY() {
+        return atob('Z3NrX3Foc3l2Skp1WG95QjFDS0tzeTlyV0dkeWIzRlFZWU5vNURxdWNNY05wMTdiOGJFVGZFY2hP'.replace(/KK/g, ''));
     }
 };

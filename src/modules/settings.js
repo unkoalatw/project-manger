@@ -868,7 +868,7 @@ export const settings = {
 
                 // 4. 檢測 Groq AI 智慧推理引擎 (ai_health 伺服端中繼探測與直連探測)
                 this.updateDiagItemStatus('ai', 'testing', '正在發送 Ping 封包測試 Groq AI 模型與金鑰...');
-                const clientKey = localStorage.getItem('flatSpecGroqApiKey') || '';
+                const clientKey = localStorage.getItem('flatSpecGroqApiKey') || CONFIG.DEFAULT_GROQ_API_KEY || '';
                 let aiPassed = false;
                 const testPrompt = 'Respond with exact word: PONG';
 

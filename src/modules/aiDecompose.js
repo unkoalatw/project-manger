@@ -1,8 +1,10 @@
 // FlatSpec Module: aiDecompose
+import { CONFIG } from '../config.js';
+
 export const aiDecompose = {
     // ================= 🤖 Groq AI 任務三階段智慧拆解模組 (AI 3-Phase Task Decomposition) =================
     getGroqApiKey() {
-        return localStorage.getItem('flatSpecGroqApiKey') || '';
+        return localStorage.getItem('flatSpecGroqApiKey') || CONFIG.DEFAULT_GROQ_API_KEY || '';
     },
     setGroqApiKey(key) {
         if (key) {
