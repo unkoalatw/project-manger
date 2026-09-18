@@ -359,20 +359,20 @@ export const storage = {
                 }
             },
 
-            // ================= 資料變更觸發器 =================
+            // ================= 資料變更觸發器 (本地即時存檔 + 雲端 30 秒節流同步) =================
             debouncedSaveAndSync() {
                 this.setUserTypingState();
                 this.state.hasUnsavedChanges = true;
                 localStorage.setItem('flatSpecHasPendingChanges', 'true');
                 this.updateSyncStatus('saved');
 
-                // 1. 防抖 250ms 本地快取寫入 (避免打字時大量全量序列化造成卡頓)
+                // 1. 防抖 250ms 本地快取寫入 (極速保存，保證中途斷電或當機不掉資料)
                 this.debouncedSaveToLocal(250);
 
-                // 2. 防抖 800ms 推送至雲端試算表
+                // 2. 雲端推播限制：一律最多 30 秒同步一次 (大幅節省 Firestore 寫入開銷)
                 if (this.state.syncTimeout) clearTimeout(this.state.syncTimeout);
                 this.state.syncTimeout = setTimeout(() => {
                     this.pushToCloud(false);
-                }, 800);
+                }, 30000);
             }
 };

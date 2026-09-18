@@ -1260,7 +1260,7 @@ pie title 影片流量與曝光來源佔比 (%)
                         if (this.state.syncTimeout) clearTimeout(this.state.syncTimeout);
                         this.state.syncTimeout = setTimeout(() => {
                             this.pushToCloud(false);
-                        }, 1000);
+                        }, 30000);
                     }
                     delete this._docHistoryState._timers[timerKey];
                 }, 3000);
