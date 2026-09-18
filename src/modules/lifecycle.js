@@ -136,11 +136,24 @@ export const lifecycle = {
                     }
                 }, true);
 
-                // 1. 註冊 PWA Service Worker (支援 100% 離線本地運作與快取)
+                // 1. 註冊 PWA Service Worker (支援 100% 離線本地運作與快取，並主動檢測新版本)
                 if ('serviceWorker' in navigator) {
                     navigator.serviceWorker.register('./sw.js')
-                        .then(reg => console.log('[PWA] Service Worker 註冊成功:', reg.scope))
+                        .then(reg => {
+                            console.log('[PWA] Service Worker 註冊成功:', reg.scope);
+                            // 每次載入時檢查遠端是否有新版 sw.js
+                            reg.update().catch(() => {});
+                        })
                         .catch(err => console.warn('[PWA] Service Worker 註冊略過:', err));
+
+                    let refreshing = false;
+                    navigator.serviceWorker.addEventListener('controllerchange', () => {
+                        if (!refreshing) {
+                            refreshing = true;
+                            console.log('[PWA] 偵測到新版快取發布，自動更新頁面...');
+                            window.location.reload();
+                        }
+                    });
                 }
 
                 // 2. 離線與上線感知監聽
