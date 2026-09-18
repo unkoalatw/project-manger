@@ -106,15 +106,10 @@ export const lifecycle = {
                     // 2. 綁定事件監聽
                     this.bindEvents();
 
-                    // 3. 核心：在背景非阻塞 (Non-blocking) 從雲端拉取 Single Source of Truth (SSOT)
-                    if (this.state.gasUrl) {
-                        this.pullFromCloud(false).catch(err => {
-                            console.warn("[Lifecycle] 初始雲端同步背景拉取提示:", err);
-                        });
-                    }
-
-                    // 4. 啟動背景自動輪詢 (每 15 秒檢查一次跨裝置更新)
-                    this.startAutoPull();
+                    // 3. 核心：在背景非阻塞 (Non-blocking) 從 Firebase 拉取 Single Source of Truth (SSOT)
+                    this.pullFromCloud(false).catch(err => {
+                        console.warn("[Lifecycle] 初始 Firebase 雲端同步背景拉取提示:", err);
+                    });
 
                 } catch (error) {
                     console.error("Initialization error:", error);
