@@ -1,5 +1,5 @@
 // FlatSpec Drive - Service Worker (Offline First Support)
-const CACHE_NAME = 'flatspec-cache-v35';
+const CACHE_NAME = 'flatspec-cache-v36';
 const PRECACHE_ASSETS = [
   './',
   './index.html',

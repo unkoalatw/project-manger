@@ -1,5 +1,6 @@
 /**
  * FlatSpec Core Storage Adapter: Firebase / Firestore Native Engine
+ * 支援多集合分散存儲 (Collections per Project)，徹底打破 Firestore 1MB 單文檔上限！
  * 提供毫秒級即時雙向監聽 (onSnapshot) 與樂觀同步更新
  */
 import { initializeApp, getApps, getApp } from 'firebase/app';
@@ -8,8 +9,12 @@ import {
     doc, 
     getDoc, 
     setDoc, 
+    deleteDoc,
+    collection,
+    getDocs,
     onSnapshot, 
-    serverTimestamp 
+    serverTimestamp,
+    writeBatch
 } from 'firebase/firestore';
 import { CONFIG } from '../../config.js';
 
@@ -50,7 +55,7 @@ export class FirebaseStorageAdapter {
     }
 
     /**
-     * 從 Firestore 讀取所有專案資料
+     * 從 Firestore 讀取所有專案 (自動相容集合模式與單文檔模式)
      */
     async pullProjects() {
         if (!this.isInitialized) {
@@ -58,26 +63,54 @@ export class FirebaseStorageAdapter {
             if (!ok) throw new Error('Firebase 尚未初始化完成');
         }
         try {
-            const docRef = doc(this.db, 'flatspec_sync', 'project_data');
-            const snap = await getDoc(docRef);
-            if (snap.exists()) {
-                const cloudData = snap.data();
-                const revision = cloudData.revision || 0;
-                const projects = Array.isArray(cloudData.projects) ? cloudData.projects : [];
+            // 1. 先讀取 metadata (revision 與專案索引)
+            const metaRef = doc(this.db, 'flatspec_sync', 'metadata');
+            const metaSnap = await getDoc(metaRef);
+            let revision = 0;
+            let lastModified = new Date().toISOString();
+            if (metaSnap.exists()) {
+                const meta = metaSnap.data();
+                revision = meta.revision || 0;
+                lastModified = meta.lastModified || lastModified;
+            }
+
+            // 2. 從 `projects` 集合中讀取所有獨立專案文檔 (每個專案獨立 1MB，總容量無上限)
+            const projectsCol = collection(this.db, 'projects');
+            const projsSnap = await getDocs(projectsCol);
+            
+            if (!projsSnap.empty) {
+                const projects = [];
+                projsSnap.forEach(docSnap => {
+                    const data = docSnap.data();
+                    if (data) projects.push(data);
+                });
                 return {
                     status: 'success',
                     data: projects,
                     revision: revision,
-                    lastModified: cloudData.lastModified || new Date().toISOString()
-                };
-            } else {
-                return {
-                    status: 'success',
-                    data: [],
-                    revision: 0,
-                    lastModified: new Date().toISOString()
+                    lastModified: lastModified
                 };
             }
+
+            // 3. 向下相容檢查舊版單文檔 project_data
+            const legacyRef = doc(this.db, 'flatspec_sync', 'project_data');
+            const legacySnap = await getDoc(legacyRef);
+            if (legacySnap.exists()) {
+                const cloudData = legacySnap.data();
+                return {
+                    status: 'success',
+                    data: Array.isArray(cloudData.projects) ? cloudData.projects : [],
+                    revision: cloudData.revision || 0,
+                    lastModified: cloudData.lastModified || new Date().toISOString()
+                };
+            }
+
+            return {
+                status: 'success',
+                data: [],
+                revision: 0,
+                lastModified: new Date().toISOString()
+            };
         } catch (err) {
             console.error('[FirebaseAdapter] ❌ 讀取專案資料失敗:', err);
             throw err;
@@ -85,23 +118,53 @@ export class FirebaseStorageAdapter {
     }
 
     /**
-     * 將專案資料即時推播至 Firestore
+     * 將專案資料即時分散推播至 Firestore 集合 (突破 1MB 限制)
      */
     async pushProjects(projects, clientRevision = 0) {
         if (!this.isInitialized) {
             const ok = await this.init();
             if (!ok) throw new Error('Firebase 尚未初始化完成');
         }
+        if (!Array.isArray(projects)) return { status: 'success', revision: clientRevision };
+
         try {
-            const docRef = doc(this.db, 'flatspec_sync', 'project_data');
             const nextRevision = (clientRevision || 0) + 1;
-            const payload = {
-                projects: projects,
+            const nowIso = new Date().toISOString();
+
+            // 1. 使用 Firestore WriteBatch 分散批次寫入各專案
+            const batch = writeBatch(this.db);
+
+            // 寫入 metadata
+            const metaRef = doc(this.db, 'flatspec_sync', 'metadata');
+            batch.set(metaRef, {
                 revision: nextRevision,
-                lastModified: new Date().toISOString(),
+                projectCount: projects.length,
+                lastModified: nowIso,
                 updatedAt: serverTimestamp()
-            };
-            await setDoc(docRef, payload, { merge: true });
+            }, { merge: true });
+
+            // 寫入每個獨立專案
+            const currentProjIds = new Set();
+            for (const proj of projects) {
+                if (!proj || !proj.id) continue;
+                currentProjIds.add(proj.id);
+                const projRef = doc(this.db, 'projects', String(proj.id));
+                batch.set(projRef, proj, { merge: true });
+            }
+
+            await batch.commit();
+
+            // 2. 清理已在本地被刪除的遠端專案文檔
+            try {
+                const projectsCol = collection(this.db, 'projects');
+                const existingRemote = await getDocs(projectsCol);
+                existingRemote.forEach(remoteDoc => {
+                    if (!currentProjIds.has(remoteDoc.id)) {
+                        deleteDoc(doc(this.db, 'projects', remoteDoc.id)).catch(() => {});
+                    }
+                });
+            } catch(cleanErr) {}
+
             this.lastRemoteRevision = nextRevision;
             return {
                 status: 'success',
@@ -114,7 +177,7 @@ export class FirebaseStorageAdapter {
     }
 
     /**
-     * 啟動 Firestore 即時監聽
+     * 啟動 Firestore 即時監聽 (監聽 metadata 與 projects 集合)
      */
     listenToProjects(onDataChange, onError) {
         if (!this.isInitialized) {
@@ -124,24 +187,42 @@ export class FirebaseStorageAdapter {
         if (this.unsubscribeSnapshot) {
             this.unsubscribeSnapshot();
         }
-        const docRef = doc(this.db, 'flatspec_sync', 'project_data');
-        this.unsubscribeSnapshot = onSnapshot(docRef, (docSnap) => {
-            if (docSnap.exists()) {
-                const cloudData = docSnap.data();
-                if (typeof onDataChange === 'function') {
-                    onDataChange({
-                        projects: Array.isArray(cloudData.projects) ? cloudData.projects : [],
-                        revision: cloudData.revision || 0,
-                        lastModified: cloudData.lastModified || '',
-                        fromCache: docSnap.metadata.hasPendingWrites
+
+        // 監聽 metadata 異動 (毫秒級反應)
+        const metaRef = doc(this.db, 'flatspec_sync', 'metadata');
+        this.unsubscribeSnapshot = onSnapshot(metaRef, async (metaSnap) => {
+            if (metaSnap.exists()) {
+                const meta = metaSnap.data();
+                const revision = meta.revision || 0;
+                
+                // 拉取最新分散專案集合
+                try {
+                    const projectsCol = collection(this.db, 'projects');
+                    const projsSnap = await getDocs(projectsCol);
+                    const projs = [];
+                    projsSnap.forEach(d => {
+                        const data = d.data();
+                        if (data) projs.push(data);
                     });
+
+                    if (typeof onDataChange === 'function') {
+                        onDataChange({
+                            projects: projs,
+                            revision: revision,
+                            lastModified: meta.lastModified || '',
+                            fromCache: metaSnap.metadata.hasPendingWrites
+                        });
+                    }
+                } catch(fetchErr) {
+                    console.warn('[FirebaseAdapter] 即時拉取專案清單失敗:', fetchErr);
                 }
             }
         }, (err) => {
             console.error('[FirebaseAdapter] ⚠️ Firestore 監聽中斷:', err);
             if (typeof onError === 'function') onError(err);
         });
-        console.log('[FirebaseAdapter] ⚡ Firestore 毫秒級即時監聽已就緒');
+
+        console.log('[FirebaseAdapter] ⚡ Firestore 分散集合毫秒級即時監聽已就緒');
     }
 
     /**
