@@ -944,6 +944,26 @@
                         </div>
                     </div>
 
+                    <!-- 🎥 影片與多媒體儲存空間儀表 (IndexedDB 混合快取) -->
+                    <div class="p-4 bg-slate-50 border border-slate-200 space-y-3">
+                        <div class="flex items-center justify-between">
+                            <h4 class="font-black text-sm uppercase flex items-center gap-1.5">
+                                <span>🎥</span> 影片與多媒體儲存空間 (快取與配額)
+                            </h4>
+                            <span id="mediaStoragePercentage" class="text-[11px] font-mono font-bold bg-white px-2 py-0.5 border border-slate-300">0%</span>
+                        </div>
+                        <p class="text-xs text-zinc-600 font-medium leading-relaxed">
+                            支援跨裝置混合快取（本機 IndexedDB + Firebase Storage 串流）。當裝置容量接近上限時自動轉為本機影片模式。
+                        </p>
+                        <div class="w-full bg-slate-200 h-2.5 rounded-full overflow-hidden">
+                            <div id="mediaStorageProgressBar" class="bg-indigo-600 h-full transition-all duration-500" style="width: 2%;"></div>
+                        </div>
+                        <div class="flex items-center justify-between text-xs font-mono text-zinc-600">
+                            <span id="mediaStorageUsed">已用: 計算中...</span>
+                            <span id="mediaStorageTotal">上限: 計算中...</span>
+                        </div>
+                    </div>
+
                     <!-- 瀏覽器 LocalStorage 診斷與手動強制寫入 -->
                     <div class="p-4 bg-amber-50 border border-amber-200 space-y-3 text-amber-950">
                         <div class="flex items-center justify-between">

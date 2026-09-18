@@ -34,6 +34,7 @@ import { docDatabase } from './modules/docDatabase.js';
 import { docWidgets } from './modules/docWidgets.js';
 import { memorySearch } from './modules/memorySearch.js';
 import { codeEditor } from './modules/codeEditor.js';
+import { webrtcPresence } from './core/collaboration/webrtcPresence.js';
 
 // FlatSpec Core Architecture Modules
 import { platform } from './core/platform/platformAdapter.js';

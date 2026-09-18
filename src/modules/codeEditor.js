@@ -8,6 +8,8 @@
 // 6. Shift+Alt+Down / Shift+Alt+Up 快速複製當前行 (Duplicate Line)
 // 7. IDE 狀態列 (IDE Status Bar: 行號、列號、編碼、長度、快捷鍵提示)
 
+import { webrtcPresence } from '../core/collaboration/webrtcPresence.js';
+
 export const codeEditor = {
     _codeEditorInitialized: false,
 
@@ -20,6 +22,12 @@ export const codeEditor = {
         this.bindIdeKeybindings(editor);
         this.updateLineNumbers();
         this.updateIdeStatusBar();
+
+        // 綁定 WebRTC P2P 協作在線感知回調
+        webrtcPresence.onPresenceChange = () => {
+            this.updateLineNumbers();
+            this.updateIdeStatusBar();
+        };
     },
 
     setupCodeEditorWrapper(editor) {
@@ -125,9 +133,24 @@ export const codeEditor = {
         if (!editor || !gutter) return;
 
         const linesCount = (editor.value || '').split('\n').length;
+        const currentDocId = this.state.activeDocId;
+        const remotePeersInDoc = webrtcPresence.getPeersInDoc(currentDocId);
+
         let nums = '';
         for (let i = 1; i <= linesCount; i++) {
-            nums += `${i}<br>`;
+            // 檢查此行是否有遠端協作者
+            const peerOnThisLine = remotePeersInDoc.find(p => p.line === i);
+            if (peerOnThisLine) {
+                const icon = peerOnThisLine.deviceType === 'mobile' ? '📱' : '💻';
+                nums += `<div class="relative flex items-center justify-end group cursor-pointer" style="color: ${peerOnThisLine.userColor}; font-weight: bold;">
+                    <span class="absolute left-0 inline-flex items-center px-1 rounded text-[9px] text-white shadow-sm transition-all" style="background: ${peerOnThisLine.userColor};" title="${peerOnThisLine.userName}">
+                        ${icon}
+                    </span>
+                    <span>${i}</span>
+                </div>`;
+            } else {
+                nums += `<div>${i}</div>`;
+            }
         }
         gutter.innerHTML = nums;
         gutter.scrollTop = editor.scrollTop;
@@ -151,8 +174,22 @@ export const codeEditor = {
         const lines = beforeCursor.split('\n');
         const currentLine = lines.length;
         const currentCol = lines[lines.length - 1].length + 1;
+        const selectedText = start !== end ? val.substring(start, end) : '';
 
-        if (posEl) posEl.innerText = `第 ${currentLine} 行, 第 ${currentCol} 列`;
+        // 廣播給 P2P 協作者 (0 伺服器開銷)
+        if (this.state.activeDocId) {
+            webrtcPresence.broadcastCursor(this.state.activeDocId, currentLine, currentCol, selectedText);
+        }
+
+        // 檢查在線協作者提示
+        const peers = webrtcPresence.getPeersInDoc(this.state.activeDocId);
+        let presenceStatusStr = '';
+        if (peers.length > 0) {
+            const peerNames = peers.map(p => `${p.deviceType === 'mobile' ? '📱' : '💻'} ${p.userName} (第 ${p.line} 行)`).join(', ');
+            presenceStatusStr = ` | <span class="text-amber-400 font-semibold animate-pulse">👥 正在協作: ${peerNames}</span>`;
+        }
+
+        if (posEl) posEl.innerHTML = `第 ${currentLine} 行, 第 ${currentCol} 列${presenceStatusStr}`;
 
         if (selEl) {
             const selLen = Math.abs(end - start);
