@@ -1156,12 +1156,20 @@ pie title 影片流量與曝光來源佔比 (%)
             },
 
             _docAuxTimer: null,
+            _docPreviewTimer: null,
             debouncedRenderDocAuxiliary(doc) {
                 if (this._docAuxTimer) clearTimeout(this._docAuxTimer);
                 this._docAuxTimer = setTimeout(() => {
                     this.renderDocLinksPanel(doc);
                     this.renderDocToc();
-                }, 300);
+                }, 800);
+            },
+
+            debouncedUpdateDocPreview(val, previewEl) {
+                if (this._docPreviewTimer) clearTimeout(this._docPreviewTimer);
+                this._docPreviewTimer = setTimeout(() => {
+                    this.updateDocPreview(val, previewEl);
+                }, 350);
             },
 
             updateDocContent(val) {
@@ -1175,7 +1183,7 @@ pie title 影片流量與曝光來源佔比 (%)
                     
                     const previewEl = document.getElementById('docPreview');
                     if (previewEl && this.state.docMode === 'preview') {
-                        this.updateDocPreview(val, previewEl);
+                        this.debouncedUpdateDocPreview(val, previewEl);
                     }
                     this.debouncedRenderDocAuxiliary(doc);
                     this.recordDocSnapshotDebounced(doc);
