@@ -964,20 +964,51 @@ export const markdown = {
                 let currentIdx = 0;
                 let found = false;
 
-                // 2. 精確匹配：行首清單任務 (- [ ]、* [ ]、+ [ ]、> - [ ]) 或 Markdown 表格/換行內的待辦項 (| [ ]、<br> [ ])
-                // 嚴格保留所有前綴、縮排與清單標記 (如 '  - ')，只替換 [ ] / [x]
-                const taskRegex = /(^|[|\n\r]|<br\s*\/?>)([ \t]*(?:>+[ \t]*)?(?:[-*+]\s+)?)\[([ xX])\](?=[ \t\r\n|]|<br\s*\/?>|$)/gi;
+                // 2. 精確逐行與表格儲存格匹配：
+                // 與 Marked / 表格渲染順序嚴格 1:1 對齊
+                const lines = text.split('\n');
+                for (let i = 0; i < lines.length; i++) {
+                    let line = lines[i];
 
-                let replacedText = text.replace(taskRegex, (match, prefix, indentAndBullet, state) => {
-                    if (currentIdx === taskIndex) {
-                        found = true;
-                        currentIdx++;
-                        const leader = indentAndBullet || '';
-                        return `${prefix}${leader}[${newChecked ? 'x' : ' '}]`;
+                    // 判斷是否為表格行 (以 | 開頭或包含多個 |)
+                    const isTableRow = /^\s*\|/.test(line) && line.includes('|');
+                    if (isTableRow) {
+                        // 排除表格分隔行 (如 |---|---|)
+                        if (/^\s*\|(?:\s*:?-+:?\s*\|)+\s*$/.test(line)) {
+                            continue;
+                        }
+
+                        // 表格單元格內部的 Checkbox 替換：
+                        // 支援單元格開頭、文字中間、<br> 分隔後的任意 [ ] 或 [x]
+                        const tableCellCheckboxRegex = /(?:^|\s|<br\s*\/?>|&lt;br\s*\/?&gt;)(?:[-*+]\s+)?\[([ xX])\](?=(?:\s+[\s\S]*?)?(?:<br\s*\/?>|&lt;br\s*\/?&gt;|\||$))/gi;
+                        
+                        // 使用逐字匹配進行精確索引定位
+                        line = line.replace(/(?:^|\s|<br\s*\/?>|&lt;br\s*\/?&gt;)(?:[-*+]\s+)?\[([ xX])\]/gi, (match, state) => {
+                            if (currentIdx === taskIndex) {
+                                found = true;
+                                currentIdx++;
+                                return match.replace(/\[[ xX]\]$/, `[${newChecked ? 'x' : ' '}]`);
+                            }
+                            currentIdx++;
+                            return match;
+                        });
+                        lines[i] = line;
+                    } else {
+                        // 一般清單行或引用清單行 (如 - [ ]、* [ ]、+ [ ]、> - [ ])
+                        const listTaskRegex = /^([ \t]*(?:>+[ \t]*)?[-*+]\s+)\[([ xX])\](?=[ \t]|$)/i;
+                        if (listTaskRegex.test(line)) {
+                            if (currentIdx === taskIndex) {
+                                found = true;
+                                lines[i] = line.replace(listTaskRegex, (m, prefix, state) => {
+                                    return `${prefix}[${newChecked ? 'x' : ' '}]`;
+                                });
+                            }
+                            currentIdx++;
+                        }
                     }
-                    currentIdx++;
-                    return match;
-                });
+                }
+
+                let replacedText = lines.join('\n');
 
                 // 3. 還原程式碼區塊與行內代碼
                 inlineCodes.forEach((ic, idx) => {
