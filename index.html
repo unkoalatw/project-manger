@@ -274,183 +274,201 @@
             <!-- 視圖 0: 專案首頁 (VDO Executive Intelligence & Throughput Portal) -->
             <div id="viewHome" class="hidden p-4 md:p-8 max-w-7xl mx-auto space-y-6">
                 <!-- Top Execution Intelligence Ribbon -->
-                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-surface p-5 sm:p-6 rounded-xl border border-slate-200 shadow-sm">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-surface p-5 sm:p-6 rounded-xl border border-slate-200 dark:border-zinc-800 shadow-sm">
                     <div class="flex flex-col">
                         <div class="flex items-center gap-2">
-                            <span class="text-[10px] font-bold uppercase tracking-wider text-primary font-mono">SPRINT VELOCITY ANALYTICS</span>
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-primary font-mono">EXECUTIVE INTELLIGENCE</span>
                             <span class="text-on-surface-variant font-caption-xs">•</span>
-                            <span class="text-xs text-on-surface-variant font-semibold">Cycle 24.2 Active</span>
+                            <span class="text-xs text-on-surface-variant font-semibold">Active Workspaces Portal</span>
                         </div>
-                        <h1 class="font-headline font-bold text-xl sm:text-2xl text-on-surface mt-1">Execution Intelligence & Throughput</h1>
+                        <h1 class="font-headline font-bold text-xl sm:text-2xl text-on-surface mt-1">Project Command Center</h1>
                     </div>
                     <div class="flex items-center gap-2 flex-wrap">
-                        <button class="px-3.5 py-2 rounded-lg bg-surface-dim hover:bg-surface-container-high text-on-surface font-bold text-xs transition-all flex items-center gap-1.5 border border-slate-200" type="button">
-                            <svg class="w-3.5 h-3.5 text-on-surface-variant shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
-                            <span>最近 14 天</span>
-                        </button>
-                        <button onclick="app.exportMasterMarkdown()" class="px-3.5 py-2 rounded-lg bg-surface-dim hover:bg-surface-container-high text-on-surface font-bold text-xs transition-all flex items-center gap-1.5 border border-slate-200" type="button">
+                        <div class="relative">
+                            <select id="homeTimeRangeSelect" onchange="app.setHomeTimeRange(this.value)" class="px-3 py-2 rounded-lg bg-surface-dim hover:bg-surface-container-high text-on-surface font-bold text-xs transition-all border border-slate-200 dark:border-zinc-700 cursor-pointer appearance-none pr-7">
+                                <option value="7">Last 7 Days</option>
+                                <option value="14" selected>Last 14 Days</option>
+                                <option value="30">Last 30 Days</option>
+                                <option value="ALL">All Time</option>
+                            </select>
+                            <span class="absolute right-2 top-2.5 pointer-events-none text-on-surface-variant">▾</span>
+                        </div>
+                        <button onclick="app.exportGlobalReport ? app.exportGlobalReport() : app.exportMasterMarkdown()" class="px-3.5 py-2 rounded-lg bg-surface-dim hover:bg-surface-container-high text-on-surface font-bold text-xs transition-all flex items-center gap-1.5 border border-slate-200 dark:border-zinc-700" type="button" title="Export Executive Summary">
                             <svg class="w-3.5 h-3.5 text-on-surface-variant shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-                            <span>匯出全域報告</span>
+                            <span>Export Report</span>
                         </button>
                         <button onclick="app.openNewProjectModal()" class="px-4 py-2 bg-primary-container text-on-primary font-bold text-xs rounded-lg flex items-center gap-1.5 shadow-sm hover:opacity-90 transition-opacity">
                             <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                            <span>建立新專案</span>
+                            <span>New Project</span>
                         </button>
                     </div>
                 </div>
 
-                <!-- 2x2 Bento Intelligence Grid -->
-                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                    <!-- Bento 1: Core Achievement Rate (Col 1-5) -->
-                    <div class="lg:col-span-5 bg-surface border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col justify-between">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-2.5">
-                                <div class="w-7 h-7 rounded-lg bg-emerald-50 text-status-done-text flex items-center justify-center">
-                                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                </div>
-                                <span class="font-headline font-bold text-sm text-on-surface">Core Achievement Rate</span>
-                            </div>
-                            <span class="px-2 py-0.5 rounded-full bg-status-done-bg text-status-done-text text-[11px] font-bold font-mono">▲ +4.2% vs 上個週期</span>
-                        </div>
-
-                        <div class="my-5">
-                            <div class="flex items-baseline gap-2">
-                                <span class="text-4xl sm:text-5xl font-headline font-extrabold text-on-surface tracking-tight" id="homeAchievementRate">88.4%</span>
-                                <span class="text-xs font-semibold text-on-surface-variant font-mono">Target 85%</span>
-                            </div>
-                            <!-- Progress bar with Target marker -->
-                            <div class="relative w-full bg-surface-dim h-2.5 rounded-full mt-3 overflow-hidden">
-                                <div id="homeAchievementProgressFill" class="bg-primary h-full rounded-full transition-all duration-700" style="width: 88.4%;"></div>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100 text-xs">
-                            <div>
-                                <span class="text-[10px] uppercase font-mono font-bold text-on-surface-variant block">剩餘時間</span>
-                                <div class="text-sm font-bold text-on-surface mt-0.5" id="homeTimeRemainingText">4 天</div>
-                                <span class="text-[11px] text-primary font-medium">衝刺週期本週結束</span>
+                <!-- 1. 專案庫工作台 (Project Workspace Catalog - Prominent Top Position) -->
+                <div class="space-y-4">
+                    <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-surface p-4 rounded-xl border border-slate-200 dark:border-zinc-800 shadow-sm">
+                        <div class="flex items-center gap-2.5">
+                            <div class="w-8 h-8 rounded-lg bg-black text-white flex items-center justify-center shrink-0 shadow-xs">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
                             </div>
                             <div>
-                                <span class="text-[10px] uppercase font-mono font-bold text-on-surface-variant block">完成任務</span>
-                                <div class="text-sm font-bold text-on-surface mt-0.5" id="homeCompletedTasksStats">142 / 160</div>
-                                <span class="text-[11px] text-on-surface-variant font-medium" id="homeRemainingTasksBadge">18 項剩餘</span>
+                                <h3 class="font-headline font-bold text-base text-on-surface">Project Workspaces</h3>
+                                <p class="text-xs text-on-surface-variant">Select or search workspaces to access documents & sprint tasks</p>
                             </div>
-                        </div>
-                    </div>
-
-                    <!-- Bento 2: Cumulative Flow Diagram (CFD) (Col 6-12) -->
-                    <div class="lg:col-span-7 bg-surface border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col justify-between">
-                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
-                            <div>
-                                <span class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-mono block">CUMULATIVE FLOW DIAGRAM (CFD)</span>
-                                <h3 class="font-headline font-bold text-base text-on-surface">Velocity & Backlog Accumulation</h3>
-                            </div>
-                            <div class="flex items-center gap-1 bg-surface-dim p-0.5 rounded-lg border border-slate-200/80 text-xs font-semibold">
-                                <button class="px-2.5 py-1 rounded-md bg-surface text-on-surface font-bold shadow-2xs">Todos</button>
-                                <button class="px-2.5 py-1 rounded-md text-on-surface-variant hover:text-on-surface">Doing</button>
-                                <button class="px-2.5 py-1 rounded-md text-on-surface-variant hover:text-on-surface">Done</button>
-                            </div>
-                        </div>
-
-                        <!-- CFD Bar Chart Container -->
-                        <div id="homeCfdBarChart" class="my-1">
-                            <!-- 動態注入 Mon-Sun 柱狀圖 -->
-                        </div>
-
-                        <div class="flex items-center justify-between pt-3 border-t border-slate-100 text-xs text-on-surface-variant">
-                            <div class="flex items-center gap-4">
-                                <div class="flex items-center gap-1.5">
-                                    <div class="w-3 h-3 rounded-xs bg-primary"></div>
-                                    <span>已交付 (Resolved)</span>
-                                </div>
-                                <div class="flex items-center gap-1.5">
-                                    <div class="w-3 h-3 rounded-xs bg-primary-fixed"></div>
-                                    <span>推進中 (In Progress)</span>
-                                </div>
-                            </div>
-                            <span class="font-mono text-xs font-bold text-on-surface">平均產出: 14.2 任務/日</span>
-                        </div>
-                    </div>
-
-                    <!-- Bento 3: Team Collaboration Heatmap (Col 1-6) -->
-                    <div class="lg:col-span-6 bg-surface border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col justify-between">
-                        <div class="flex items-center justify-between mb-3">
-                            <div>
-                                <span class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-mono block">ACTIVITY MATRIX</span>
-                                <h3 class="font-headline font-bold text-sm text-on-surface">Team Collaboration Heatmap</h3>
-                            </div>
-                            <div class="flex items-center gap-1 text-[11px] text-on-surface-variant font-mono">
-                                <span>Less</span>
-                                <div class="w-2.5 h-2.5 rounded-xs bg-slate-100"></div>
-                                <div class="w-2.5 h-2.5 rounded-xs bg-primary-fixed"></div>
-                                <div class="w-2.5 h-2.5 rounded-xs bg-primary/60"></div>
-                                <div class="w-2.5 h-2.5 rounded-xs bg-primary"></div>
-                                <span>More</span>
-                            </div>
-                        </div>
-
-                        <!-- Heatmap Grid -->
-                        <div id="homeActivityHeatmap" class="my-2">
-                            <!-- 動態注入熱力矩陣 -->
-                        </div>
-
-                        <div class="flex items-center justify-between pt-3 border-t border-slate-100 text-xs text-on-surface-variant">
-                            <span>高峰協作時段: <strong class="text-on-surface">10:00 AM – 4:00 PM</strong></span>
-                            <button onclick="app.switchView('Execution')" class="text-primary font-bold hover:underline">檢視完整日誌 →</button>
-                        </div>
-                    </div>
-
-                    <!-- Bento 4: Review Speed Leaderboard (Col 7-12) -->
-                    <div class="lg:col-span-6 bg-surface border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col justify-between">
-                        <div class="flex items-center justify-between mb-3">
-                            <div>
-                                <span class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-mono block">PERFORMANCE</span>
-                                <h3 class="font-headline font-bold text-sm text-on-surface">Review Speed Leaderboard</h3>
-                            </div>
-                            <span class="text-primary">
-                                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
-                            </span>
-                        </div>
-
-                        <!-- Leaderboard List -->
-                        <div id="homeLeaderboardList" class="space-y-2 my-1">
-                            <!-- 動態注入排行 -->
-                        </div>
-
-                        <div class="flex items-center justify-between pt-3 border-t border-slate-100 text-xs text-on-surface-variant">
-                            <span>團隊平均延遲: <strong class="text-on-surface font-mono">2.3 hours</strong></span>
-                            <button onclick="app.openSettingsModal('project')" class="text-primary font-bold hover:underline">管理所有成員 →</button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 專案庫與工作台 (Project Workspace Catalog Grid) -->
-                <div class="space-y-4 pt-2">
-                    <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-surface p-4 rounded-xl border border-slate-200 shadow-sm">
-                        <div class="flex items-center gap-2">
-                            <span class="text-primary">
-                                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
-                            </span>
-                            <h3 class="font-headline font-bold text-base text-on-surface">專案庫工作台 (Project Catalog)</h3>
                         </div>
                         
                         <div class="flex items-center gap-2 flex-wrap">
-                            <div class="relative min-w-[200px] flex-1 sm:flex-initial">
-                                <input id="homeProjectSearch" type="text" oninput="app.renderHomeView()" placeholder="搜尋專案名稱、標籤..." class="w-full p-2 pl-8 text-xs bg-surface-dim border border-slate-200 rounded-lg text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:bg-surface focus:ring-1 focus:ring-primary" />
+                            <div class="relative min-w-[220px] flex-1 sm:flex-initial">
+                                <input id="homeProjectSearch" type="text" oninput="app.renderHomeView()" placeholder="Search workspaces, tags..." class="w-full p-2 pl-8 text-xs bg-surface-dim border border-slate-200 dark:border-zinc-700 rounded-lg text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:bg-surface focus:ring-1 focus:ring-primary" />
                                 <span class="absolute left-2.5 top-2.5 text-xs pointer-events-none text-slate-400">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                                 </span>
                             </div>
-                            <select id="homeCategoryFilter" onchange="app.renderHomeView()" class="p-2 text-xs font-semibold bg-surface-dim border border-slate-200 rounded-lg text-on-surface cursor-pointer">
-                                <option value="ALL">所有分類</option>
+                            <select id="homeCategoryFilter" onchange="app.renderHomeView()" class="p-2 text-xs font-semibold bg-surface-dim border border-slate-200 dark:border-zinc-700 rounded-lg text-on-surface cursor-pointer">
+                                <option value="ALL">All Categories</option>
                             </select>
-                            <span id="homeProjectCountBadge" class="text-xs font-mono font-bold bg-surface-dim text-on-surface-variant rounded-lg px-2.5 py-2 border border-slate-200">0 個專案</span>
+                            <span id="homeProjectCountBadge" class="text-xs font-mono font-bold bg-surface-dim text-on-surface-variant rounded-lg px-2.5 py-2 border border-slate-200 dark:border-zinc-700">0 Workspaces</span>
                         </div>
                     </div>
 
                     <!-- 專案卡片網格 -->
                     <div id="homeProjectsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
                         <!-- 動態注入專案卡片 -->
+                    </div>
+                </div>
+
+                <!-- 2. Executive Intelligence & Throughput Analytics (2x2 Bento Grid) -->
+                <div class="space-y-3 pt-2">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-primary font-mono">THROUGHPUT & VELOCITY</span>
+                            <span class="text-on-surface-variant font-caption-xs">•</span>
+                            <h2 class="font-headline font-bold text-base text-on-surface">Global Cross-Project Analytics</h2>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                        <!-- Bento 1: Core Achievement Rate (Col 1-5) -->
+                        <div class="lg:col-span-5 bg-surface border border-slate-200 dark:border-zinc-800 rounded-xl p-6 shadow-sm flex flex-col justify-between">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-2.5">
+                                    <div class="w-7 h-7 rounded-lg bg-emerald-50 text-status-done-text flex items-center justify-center">
+                                        <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    </div>
+                                    <span class="font-headline font-bold text-sm text-on-surface">Core Achievement Rate</span>
+                                </div>
+                                <span class="px-2 py-0.5 rounded-full bg-status-done-bg text-status-done-text text-[11px] font-bold font-mono">▲ +4.2% vs prev</span>
+                            </div>
+
+                            <div class="my-5">
+                                <div class="flex items-baseline gap-2">
+                                    <span class="text-4xl sm:text-5xl font-headline font-extrabold text-on-surface tracking-tight" id="homeAchievementRate">88.4%</span>
+                                    <span class="text-xs font-semibold text-on-surface-variant font-mono">Target: 85%</span>
+                                </div>
+                                <!-- Progress bar with Target marker -->
+                                <div class="relative w-full bg-surface-dim h-2.5 rounded-full mt-3 overflow-hidden">
+                                    <div id="homeAchievementProgressFill" class="bg-primary h-full rounded-full transition-all duration-700" style="width: 88.4%;"></div>
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100 dark:border-zinc-800 text-xs">
+                                <div>
+                                    <span class="text-[10px] uppercase font-mono font-bold text-on-surface-variant block">Time Remaining</span>
+                                    <div class="text-sm font-bold text-on-surface mt-0.5" id="homeTimeRemainingText">4 Days</div>
+                                    <span class="text-[11px] text-primary font-medium">Sprint cycle ending</span>
+                                </div>
+                                <div>
+                                    <span class="text-[10px] uppercase font-mono font-bold text-on-surface-variant block">Tasks Progress</span>
+                                    <div class="text-sm font-bold text-on-surface mt-0.5" id="homeCompletedTasksStats">142 / 160</div>
+                                    <span class="text-[11px] text-on-surface-variant font-medium" id="homeRemainingTasksBadge">18 Remaining</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Bento 2: Cumulative Flow Diagram (CFD) (Col 6-12) -->
+                        <div class="lg:col-span-7 bg-surface border border-slate-200 dark:border-zinc-800 rounded-xl p-6 shadow-sm flex flex-col justify-between">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                                <div>
+                                    <span class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-mono block">CUMULATIVE FLOW DIAGRAM (CFD)</span>
+                                    <h3 class="font-headline font-bold text-base text-on-surface">Velocity & Task Accumulation</h3>
+                                </div>
+                                <div class="flex items-center gap-1 bg-surface-dim p-0.5 rounded-lg border border-slate-200 dark:border-zinc-700 text-xs font-semibold" id="homeCfdFilterGroup">
+                                    <button onclick="app.setHomeCfdFilter('ALL')" id="cfdBtnAll" class="px-2.5 py-1 rounded-md bg-surface text-on-surface font-bold shadow-2xs">All</button>
+                                    <button onclick="app.setHomeCfdFilter('DOING')" id="cfdBtnDoing" class="px-2.5 py-1 rounded-md text-on-surface-variant hover:text-on-surface">In Progress</button>
+                                    <button onclick="app.setHomeCfdFilter('DONE')" id="cfdBtnDone" class="px-2.5 py-1 rounded-md text-on-surface-variant hover:text-on-surface">Resolved</button>
+                                </div>
+                            </div>
+
+                            <!-- CFD Bar Chart Container -->
+                            <div id="homeCfdBarChart" class="my-1">
+                                <!-- 動態注入 Mon-Sun 柱狀圖 -->
+                            </div>
+
+                            <div class="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-zinc-800 text-xs text-on-surface-variant">
+                                <div class="flex items-center gap-4">
+                                    <div class="flex items-center gap-1.5">
+                                        <div class="w-3 h-3 rounded-xs bg-primary"></div>
+                                        <span>Resolved</span>
+                                    </div>
+                                    <div class="flex items-center gap-1.5">
+                                        <div class="w-3 h-3 rounded-xs bg-primary-fixed"></div>
+                                        <span>In Progress</span>
+                                    </div>
+                                </div>
+                                <span class="font-mono text-xs font-bold text-on-surface" id="homeCfdAvgText">Avg Velocity: 14.2 tasks/day</span>
+                            </div>
+                        </div>
+
+                        <!-- Bento 3: Team Collaboration Heatmap (Col 1-6) -->
+                        <div class="lg:col-span-6 bg-surface border border-slate-200 dark:border-zinc-800 rounded-xl p-6 shadow-sm flex flex-col justify-between">
+                            <div class="flex items-center justify-between mb-3">
+                                <div>
+                                    <span class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-mono block">ACTIVITY MATRIX</span>
+                                    <h3 class="font-headline font-bold text-sm text-on-surface">Team Activity Heatmap</h3>
+                                </div>
+                                <div class="flex items-center gap-1 text-[11px] text-on-surface-variant font-mono">
+                                    <span>Less</span>
+                                    <div class="w-2.5 h-2.5 rounded-xs bg-slate-100 dark:bg-zinc-800"></div>
+                                    <div class="w-2.5 h-2.5 rounded-xs bg-primary-fixed"></div>
+                                    <div class="w-2.5 h-2.5 rounded-xs bg-primary/60"></div>
+                                    <div class="w-2.5 h-2.5 rounded-xs bg-primary"></div>
+                                    <span>More</span>
+                                </div>
+                            </div>
+
+                            <!-- Heatmap Grid -->
+                            <div id="homeActivityHeatmap" class="my-2">
+                                <!-- 動態注入熱力矩陣 -->
+                            </div>
+
+                            <div class="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-zinc-800 text-xs text-on-surface-variant">
+                                <span>Peak Hours: <strong class="text-on-surface font-mono">10:00 AM – 4:00 PM</strong></span>
+                                <button onclick="app.switchView('Execution')" class="text-primary font-bold hover:underline">View Tasks Board →</button>
+                            </div>
+                        </div>
+
+                        <!-- Bento 4: Review Speed Leaderboard (Col 7-12) -->
+                        <div class="lg:col-span-6 bg-surface border border-slate-200 dark:border-zinc-800 rounded-xl p-6 shadow-sm flex flex-col justify-between">
+                            <div class="flex items-center justify-between mb-3">
+                                <div>
+                                    <span class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-mono block">PERFORMANCE</span>
+                                    <h3 class="font-headline font-bold text-sm text-on-surface">Delivery & Velocity Leaderboard</h3>
+                                </div>
+                                <span class="text-primary">
+                                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+                                </span>
+                            </div>
+
+                            <!-- Leaderboard List -->
+                            <div id="homeLeaderboardList" class="space-y-2 my-1">
+                                <!-- 動態注入排行 -->
+                            </div>
+
+                            <div class="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-zinc-800 text-xs text-on-surface-variant">
+                                <span>Team Avg Turnaround: <strong class="text-on-surface font-mono">2.3 hours</strong></span>
+                                <button onclick="app.openSettingsModal('project')" class="text-primary font-bold hover:underline">Manage Team →</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
