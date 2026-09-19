@@ -14,8 +14,8 @@ export const views = {
         }
         this.renderHomeView();
         if (typeof this.showToast === 'function') {
-            const label = days === 'ALL' ? 'All Time' : `Last ${days} Days`;
-            this.showToast(`Updated analytics range to ${label}`, 'info');
+            const label = days === 'ALL' ? '全部時間' : `近 ${days} 天`;
+            this.showToast(`已更新分析週期為 ${label}`, 'info');
         }
     },
 
@@ -69,16 +69,16 @@ export const views = {
         });
 
         const overallPct = totalAllTasks > 0 ? ((totalDoneTasks / totalAllTasks) * 100).toFixed(1) : '0.0';
-        const nowStr = new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' });
+        const nowStr = new Date().toLocaleString('zh-TW', { hour12: false });
 
-        let md = `# Visual Document Origin (VDO) — Executive Global Summary\n\n`;
-        md += `**Generated At**: ${nowStr}  \n`;
-        md += `**Total Workspaces**: ${projects.length} (${visibleProjects.length} active, ${projects.length - visibleProjects.length} hidden)  \n`;
-        md += `**Global Core Achievement Rate**: ${overallPct}% (${totalDoneTasks}/${totalAllTasks} tasks completed)  \n`;
-        md += `**Total Documents Authored**: ${totalDocs}  \n\n`;
+        let md = `# Visual Document Origin (VDO) — 全域專案戰略執行總結報告\n\n`;
+        md += `**匯出時間**：${nowStr}  \n`;
+        md += `**專案工作空間總數**：${projects.length} 個 (${visibleProjects.length} 個活躍中，${projects.length - visibleProjects.length} 個已隱藏)  \n`;
+        md += `**全域核心達成率**：${overallPct}% (已完成 ${totalDoneTasks} / ${totalAllTasks} 項任務)  \n`;
+        md += `**累積編寫文檔數**：${totalDocs} 篇  \n\n`;
         md += `---\n\n`;
-        md += `## 📊 Cross-Project Workspace Breakdown\n\n`;
-        md += `| Workspace Name | Category | Progress | Documents | Resolved / Total Tasks | Status |\n`;
+        md += `## 📊 跨專案工作空間進度一覽\n\n`;
+        md += `| 專案名稱 | 分類標籤 | 達成進度 | 文件數量 | 已解決 / 總任務 | 狀態權限 |\n`;
         md += `| :--- | :--- | :---: | :---: | :---: | :---: |\n`;
 
         projects.forEach(p => {
@@ -86,31 +86,31 @@ export const views = {
             const docs = p.docs || [];
             const done = tasks.filter(t => t.status === 'DONE').length;
             const pct = tasks.length === 0 ? '0%' : `${Math.round((done / tasks.length) * 100)}%`;
-            const lockStr = p.password ? '🔒 Protected' : '🌐 Open';
-            const hiddenStr = p.hidden ? ' (Hidden)' : '';
-            md += `| **${p.title || 'Untitled'}** | ${p.category || 'Default'} | ${pct} | ${docs.length} docs | ${done} / ${tasks.length} | ${lockStr}${hiddenStr} |\n`;
+            const lockStr = p.password ? '🔒 密碼保護' : '🌐 公開存取';
+            const hiddenStr = p.hidden ? ' (已隱藏)' : '';
+            md += `| **${p.title || '未命名專案'}** | ${p.category || '預設'} | ${pct} | ${docs.length} 篇 | ${done} / ${tasks.length} | ${lockStr}${hiddenStr} |\n`;
         });
 
         md += `\n---\n\n`;
-        md += `## 🚀 Sprint Throughput Metrics\n\n`;
-        md += `- **In Progress Tasks**: ${totalDoingTasks}\n`;
-        md += `- **Pending / To-Do Tasks**: ${totalTodoTasks}\n`;
-        md += `- **Resolved Tasks**: ${totalDoneTasks}\n`;
-        md += `- **Active Time Range Filter**: ${this.homeTimeRange || '14'} days\n\n`;
-        md += `*Exported from Visual Document Origin (VDO) Intelligence Platform.*\n`;
+        md += `## 🚀 當前衝刺週期交付流動指標\n\n`;
+        md += `- **進行中任務 (In Progress)**: ${totalDoingTasks} 項\n`;
+        md += `- **待處理任務 (To Do)**: ${totalTodoTasks} 項\n`;
+        md += `- **已結案交付 (Resolved)**: ${totalDoneTasks} 項\n`;
+        md += `- **當前統計週期**: ${this.homeTimeRange === 'ALL' ? '全部時間' : `近 ${this.homeTimeRange} 天`}\n\n`;
+        md += `*由 Visual Document Origin (VDO) 智慧決策中台自動產生。*\n`;
 
         const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `VDO_Global_Executive_Summary_${new Date().toISOString().slice(0, 10)}.md`;
+        a.download = `VDO_全域專案戰略執行總結報告_${new Date().toISOString().slice(0, 10)}.md`;
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
 
         if (typeof this.showToast === 'function') {
-            this.showToast('Executive global report exported successfully', 'success');
+            this.showToast('全域專案戰略執行報告匯出成功', 'success');
         }
     },
 
@@ -136,7 +136,7 @@ export const views = {
                 else if (t.status === 'DOING' || t.status === 'IN_PROGRESS') totalDoingTasks++;
                 else totalTodoTasks++;
 
-                const assignee = t.assignee || 'Core Team';
+                const assignee = t.assignee || '核心成員';
                 if (!allMembersMap.has(assignee)) {
                     allMembersMap.set(assignee, { name: assignee, reviewed: 0, done: 0, open: 0 });
                 }
@@ -159,15 +159,15 @@ export const views = {
 
         const achRemainingText = document.getElementById('homeTimeRemainingText');
         if (achRemainingText) {
-            const daysMap = { '7': '2 Days (Sprint ending)', '14': '4 Days (Sprint cycle)', '30': '12 Days (Quarter cycle)', 'ALL': 'Continuous Delivery' };
-            achRemainingText.innerText = daysMap[this.homeTimeRange] || '4 Days (Sprint cycle)';
+            const daysMap = { '7': '2 天 (衝刺結算)', '14': '4 天 (衝刺週期)', '30': '12 天 (季度循環)', 'ALL': '持續交付模式' };
+            achRemainingText.innerText = daysMap[this.homeTimeRange] || '4 天 (本週衝刺結束)';
         }
 
         const achCompletedStats = document.getElementById('homeCompletedTasksStats');
         if (achCompletedStats) achCompletedStats.innerText = `${totalDoneTasks} / ${totalAllTasks || 160}`;
 
         const achRemainingBadge = document.getElementById('homeRemainingTasksBadge');
-        if (achRemainingBadge) achRemainingBadge.innerText = `${remainingTasks} Remaining`;
+        if (achRemainingBadge) achRemainingBadge.innerText = `剩餘 ${remainingTasks} 項`;
 
         // 渲染 累積流向圖 (CFD Bar Chart)
         this.renderHomeCfd(totalTodoTasks, totalDoingTasks, totalDoneTasks);
@@ -191,12 +191,12 @@ export const views = {
             });
             const cats = Array.from(categories).sort();
             const hiddenCount = (this.state.projects || []).filter(p => p.hidden).length;
-            let optsHtml = `<option value="ALL" ${selectedCategory === 'ALL' ? 'selected' : ''}>All Categories</option>`;
+            let optsHtml = `<option value="ALL" ${selectedCategory === 'ALL' ? 'selected' : ''}>所有專案分類</option>`;
             cats.forEach(cat => {
                 optsHtml += `<option value="${this.escapeHtml(cat)}" ${cat === selectedCategory ? 'selected' : ''}>📁 ${this.escapeHtml(cat)}</option>`;
             });
             if (hiddenCount > 0) {
-                optsHtml += `<option value="__HIDDEN__" ${selectedCategory === '__HIDDEN__' ? 'selected' : ''}>👁️‍🗨️ Hidden Workspaces (${hiddenCount})</option>`;
+                optsHtml += `<option value="__HIDDEN__" ${selectedCategory === '__HIDDEN__' ? 'selected' : ''}>👁️‍🗨️ 已隱藏專案 (${hiddenCount})</option>`;
             }
             filterEl.innerHTML = optsHtml;
             if (selectedCategory !== 'ALL' && (cats.includes(selectedCategory) || selectedCategory === '__HIDDEN__')) {
@@ -222,15 +222,15 @@ export const views = {
         });
 
         if (countBadge) {
-            countBadge.innerText = `${displayProjects.length} ${displayProjects.length === 1 ? 'Workspace' : 'Workspaces'}`;
+            countBadge.innerText = `${displayProjects.length} 個專案`;
         }
 
         if (displayProjects.length === 0) {
             gridEl.innerHTML = `
                 <div class="col-span-full p-12 bg-surface dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-xl text-center space-y-3">
                     <div class="flex justify-center text-slate-400 dark:text-zinc-500 mb-2">${icons.search('w-10 h-10')}</div>
-                    <h3 class="text-base font-headline font-bold text-on-surface">No Matching Workspaces Found</h3>
-                    <p class="text-xs text-on-surface-variant font-medium">Clear your search filters, or click "+ New Project" above to create one!</p>
+                    <h3 class="text-base font-headline font-bold text-on-surface">未找到符合條件的專案</h3>
+                    <p class="text-xs text-on-surface-variant font-medium">您可以清除搜尋關鍵字，或點擊上方「＋ 建立新專案」開始！</p>
                 </div>
             `;
             return;
@@ -246,9 +246,9 @@ export const views = {
             const isCurrent = p.id === this.state.activeProjectId;
             const hasPassword = !!p.password;
             const isUnlocked = hasPassword && this.state.unlockedProjects.has(p.id);
-            const safeTitle = this.escapeHtml(p.title || 'Untitled Workspace');
-            const safeCategory = this.escapeHtml(p.category || 'General');
-            const updatedStr = p.updatedAt ? new Date(p.updatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Just now';
+            const safeTitle = this.escapeHtml(p.title || '未命名專案');
+            const safeCategory = this.escapeHtml(p.category || '預設分類');
+            const updatedStr = p.updatedAt ? new Date(p.updatedAt).toLocaleDateString() : '剛剛';
             const isHidden = !!p.hidden;
 
             return `
@@ -263,20 +263,20 @@ export const views = {
                                 </span>
                                 ${isHidden ? `
                                     <span class="text-[10px] font-bold px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900 text-amber-800 dark:text-amber-200 rounded border border-amber-300 dark:border-amber-700">
-                                        Hidden
+                                        已隱藏
                                     </span>
                                 ` : ''}
                             </div>
                             <div class="flex items-center gap-1">
                                 ${hasPassword ? `
-                                    <span class="text-xs px-2 py-0.5 font-bold rounded-full inline-flex items-center gap-1 ${isUnlocked ? 'bg-status-done-bg text-status-done-text' : 'bg-status-review-bg text-status-review-text'}" title="${isUnlocked ? 'Unlocked in current session' : 'Password protected'}">
+                                    <span class="text-xs px-2 py-0.5 font-bold rounded-full inline-flex items-center gap-1 ${isUnlocked ? 'bg-status-done-bg text-status-done-text' : 'bg-status-review-bg text-status-review-text'}" title="${isUnlocked ? '已在此工作階段解鎖' : '受密碼保護'}">
                                         ${isUnlocked ? icons.unlock('w-3 h-3') : icons.lock('w-3 h-3')}
-                                        <span>${isUnlocked ? 'Unlocked' : 'Protected'}</span>
+                                        <span>${isUnlocked ? '已解鎖' : '需密碼'}</span>
                                     </span>
                                 ` : ''}
                                 ${isCurrent ? `
                                     <span class="text-[10px] font-bold bg-primary-container text-on-primary px-2 py-0.5 rounded-full uppercase">
-                                        Active
+                                        當前使用
                                     </span>
                                 ` : ''}
                             </div>
@@ -286,14 +286,14 @@ export const views = {
                         </h3>
                         <p class="text-xs text-on-surface-variant font-normal flex items-center gap-1">
                             ${icons.clock('w-3 h-3')}
-                            <span>Last updated: ${updatedStr}</span>
+                            <span>最後更新：${updatedStr}</span>
                         </p>
                     </div>
 
                     <!-- 卡片中間指標 -->
                     <div class="p-5 space-y-3 bg-surface-dim/40 dark:bg-zinc-800/40">
                         <div class="flex items-center justify-between text-xs font-bold font-mono">
-                            <span class="text-on-surface-variant font-sans">Progress</span>
+                            <span class="text-on-surface-variant font-sans">專案進度</span>
                             <span class="${pct === 100 ? 'text-status-done-text' : 'text-on-surface'} font-bold">${pct}%</span>
                         </div>
                         <div class="w-full bg-surface-container-high dark:bg-zinc-700 h-2 rounded-full overflow-hidden">
@@ -303,13 +303,13 @@ export const views = {
                         <div class="grid grid-cols-2 gap-2 pt-1 text-center font-mono">
                             <div class="p-2.5 bg-surface dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-lg shadow-2xs flex flex-col items-center justify-center">
                                 <div class="text-[10px] text-on-surface-variant font-bold font-sans flex items-center gap-1">
-                                    ${icons.docs('w-3 h-3')} <span>Documents</span>
+                                    ${icons.docs('w-3 h-3')} <span>文檔數量</span>
                                 </div>
-                                <div class="text-sm font-bold text-on-surface mt-0.5">${docs.length} files</div>
+                                <div class="text-sm font-bold text-on-surface mt-0.5">${docs.length} 篇</div>
                             </div>
                             <div class="p-2.5 bg-surface dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-lg shadow-2xs flex flex-col items-center justify-center">
                                 <div class="text-[10px] text-on-surface-variant font-bold font-sans flex items-center gap-1">
-                                    ${icons.tasks('w-3 h-3')} <span>Tasks</span>
+                                    ${icons.tasks('w-3 h-3')} <span>任務清單</span>
                                 </div>
                                 <div class="text-sm font-bold text-on-surface mt-0.5">${doneTasks}/${totalTasks}</div>
                             </div>
@@ -319,7 +319,7 @@ export const views = {
                     <!-- 卡片底部動作列 -->
                     <div class="p-3.5 bg-surface dark:bg-zinc-900 border-t border-slate-100 dark:border-zinc-800 flex items-center justify-between">
                         <span class="text-xs font-bold text-on-surface-variant group-hover:text-primary transition-colors">
-                            ${hasPassword && !isUnlocked ? 'Unlock Workspace ➔' : 'Open Workspace ➔'}
+                            ${hasPassword && !isUnlocked ? '輸入密碼進入編輯 ➔' : '開啟視覺文檔工作台 ➔'}
                         </span>
                         <span class="text-on-surface-variant group-hover:text-primary group-hover:translate-x-1 transition-all">
                             ${icons.arrowRight('w-4 h-4')}
@@ -335,7 +335,7 @@ export const views = {
         const container = document.getElementById('homeCfdBarChart');
         if (!container) return;
 
-        const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        const days = ['週一', '週二', '週三', '週四', '週五', '週六', '週日'];
         let resolvedHeights = [45, 60, 55, 78, 92, 65, 40];
         let doingHeights = [30, 40, 35, 45, 50, 30, 20];
 
@@ -362,11 +362,11 @@ export const views = {
                             <!-- In Progress Bar (Top) -->
                             <div class="w-full bg-primary-fixed dark:bg-blue-600 rounded-t-sm transition-all duration-500 ${isDoneOnly ? 'opacity-15' : 'opacity-100'}" 
                                  style="height: ${isDoneOnly ? '4%' : doingHeights[idx] + '%'};" 
-                                 title="${d}: ${doingHeights[idx]}% In Progress"></div>
+                                 title="${d}：${doingHeights[idx]}% 進行中"></div>
                             <!-- Resolved Bar (Bottom) -->
                             <div class="w-full bg-primary dark:bg-blue-400 rounded-sm transition-all duration-500 ${isDoingOnly ? 'opacity-15' : 'opacity-100'}" 
                                  style="height: ${isDoingOnly ? '4%' : resolvedHeights[idx] + '%'};" 
-                                 title="${d}: ${resolvedHeights[idx]}% Resolved"></div>
+                                 title="${d}：${resolvedHeights[idx]}% 已完成"></div>
                         </div>
                         <span class="text-[11px] font-mono text-on-surface-variant mt-1">${d}</span>
                     </div>
@@ -377,7 +377,7 @@ export const views = {
         const avgText = document.getElementById('homeCfdAvgText');
         if (avgText) {
             const calculatedAvg = Math.max(8.5, (((done + doing) || 98) / 7)).toFixed(1);
-            avgText.innerText = `Avg Velocity: ${calculatedAvg} tasks/day`;
+            avgText.innerText = `平均交付速率：${calculatedAvg} 項任務/天`;
         }
     },
 
@@ -386,7 +386,7 @@ export const views = {
         const container = document.getElementById('homeActivityHeatmap');
         if (!container) return;
 
-        const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+        const days = ['週一', '週二', '週三', '週四', '週五', '週六', '週日'];
         const colorClasses = [
             'bg-slate-100 dark:bg-zinc-800',
             'bg-primary-fixed dark:bg-blue-900',
@@ -412,7 +412,7 @@ export const views = {
                         <span class="text-[11px] font-mono text-on-surface-variant mb-1">${d}</span>
                         ${[0, 1, 2].map(rowIdx => {
                             const level = intensityMap[colIdx][rowIdx];
-                            return `<div class="w-full h-7 rounded-md ${colorClasses[level]} transition-colors hover:ring-2 hover:ring-primary/40 cursor-default" title="${d} Slot ${rowIdx + 1} Activity: Level ${level}"></div>`;
+                            return `<div class="w-full h-7 rounded-md ${colorClasses[level]} transition-colors hover:ring-2 hover:ring-primary/40 cursor-default" title="${d} 時段 ${rowIdx + 1} 活躍強度: 等級 ${level}"></div>`;
                         }).join('')}
                     </div>
                 `).join('')}
@@ -428,14 +428,14 @@ export const views = {
         let membersList = Array.from(allMembersMap.values());
         if (membersList.length === 0) {
             membersList = [
-                { name: 'Alex K.', reviewed: 18, latency: '1.4 hrs' },
-                { name: 'Sarah L.', reviewed: 24, latency: '2.1 hrs' },
-                { name: 'David M.', reviewed: 12, latency: '3.5 hrs' }
+                { name: 'Alex K.', reviewed: 18, latency: '1.4 小時' },
+                { name: 'Sarah L.', reviewed: 24, latency: '2.1 小時' },
+                { name: 'David M.', reviewed: 12, latency: '3.5 小時' }
             ];
         } else {
             membersList = membersList.slice(0, 3).map((m, idx) => ({
                 ...m,
-                latency: idx === 0 ? '1.4 hrs' : (idx === 1 ? '2.1 hrs' : '3.5 hrs')
+                latency: idx === 0 ? '1.4 小時' : (idx === 1 ? '2.1 小時' : '3.5 小時')
             }));
         }
 
@@ -456,12 +456,12 @@ export const views = {
                     </div>
                     <div class="flex flex-col">
                         <span class="font-bold text-xs text-on-surface">${this.escapeHtml(m.name)}</span>
-                        <span class="text-[10px] text-on-surface-variant font-mono">${m.reviewed || 15} tasks/PRs resolved</span>
+                        <span class="text-[10px] text-on-surface-variant font-mono">${m.reviewed || 15} 項任務/PRs 已審核交付</span>
                     </div>
                 </div>
                 <div class="text-right">
-                    <div class="font-bold font-mono text-xs text-on-surface">${m.latency || '1.8 hrs'}</div>
-                    <div class="text-[10px] text-on-surface-variant">Avg Turnaround</div>
+                    <div class="font-bold font-mono text-xs text-on-surface">${m.latency || '1.8 小時'}</div>
+                    <div class="text-[10px] text-on-surface-variant">平均延遲</div>
                 </div>
             </div>
         `).join('');

@@ -277,29 +277,29 @@
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-surface p-5 sm:p-6 rounded-xl border border-slate-200 dark:border-zinc-800 shadow-sm">
                     <div class="flex flex-col">
                         <div class="flex items-center gap-2">
-                            <span class="text-[10px] font-bold uppercase tracking-wider text-primary font-mono">EXECUTIVE INTELLIGENCE</span>
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-primary font-mono">決策與執行中台</span>
                             <span class="text-on-surface-variant font-caption-xs">•</span>
-                            <span class="text-xs text-on-surface-variant font-semibold">Active Workspaces Portal</span>
+                            <span class="text-xs text-on-surface-variant font-semibold">專案工作空間入口</span>
                         </div>
-                        <h1 class="font-headline font-bold text-xl sm:text-2xl text-on-surface mt-1">Project Command Center</h1>
+                        <h1 class="font-headline font-bold text-xl sm:text-2xl text-on-surface mt-1">專案戰略指揮中心</h1>
                     </div>
                     <div class="flex items-center gap-2 flex-wrap">
                         <div class="relative">
                             <select id="homeTimeRangeSelect" onchange="app.setHomeTimeRange(this.value)" class="px-3 py-2 rounded-lg bg-surface-dim hover:bg-surface-container-high text-on-surface font-bold text-xs transition-all border border-slate-200 dark:border-zinc-700 cursor-pointer appearance-none pr-7">
-                                <option value="7">Last 7 Days</option>
-                                <option value="14" selected>Last 14 Days</option>
-                                <option value="30">Last 30 Days</option>
-                                <option value="ALL">All Time</option>
+                                <option value="7">近 7 天</option>
+                                <option value="14" selected>近 14 天</option>
+                                <option value="30">近 30 天</option>
+                                <option value="ALL">全部時間</option>
                             </select>
                             <span class="absolute right-2 top-2.5 pointer-events-none text-on-surface-variant">▾</span>
                         </div>
-                        <button onclick="app.exportGlobalReport ? app.exportGlobalReport() : app.exportMasterMarkdown()" class="px-3.5 py-2 rounded-lg bg-surface-dim hover:bg-surface-container-high text-on-surface font-bold text-xs transition-all flex items-center gap-1.5 border border-slate-200 dark:border-zinc-700" type="button" title="Export Executive Summary">
+                        <button onclick="app.exportGlobalReport ? app.exportGlobalReport() : app.exportMasterMarkdown()" class="px-3.5 py-2 rounded-lg bg-surface-dim hover:bg-surface-container-high text-on-surface font-bold text-xs transition-all flex items-center gap-1.5 border border-slate-200 dark:border-zinc-700" type="button" title="匯出全域專案執行報告">
                             <svg class="w-3.5 h-3.5 text-on-surface-variant shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-                            <span>Export Report</span>
+                            <span>匯出報告</span>
                         </button>
                         <button onclick="app.openNewProjectModal()" class="px-4 py-2 bg-primary-container text-on-primary font-bold text-xs rounded-lg flex items-center gap-1.5 shadow-sm hover:opacity-90 transition-opacity">
                             <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
-                            <span>New Project</span>
+                            <span>建立新專案</span>
                         </button>
                     </div>
                 </div>
@@ -312,22 +312,22 @@
                                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
                             </div>
                             <div>
-                                <h3 class="font-headline font-bold text-base text-on-surface">Project Workspaces</h3>
-                                <p class="text-xs text-on-surface-variant">Select or search workspaces to access documents & sprint tasks</p>
+                                <h3 class="font-headline font-bold text-base text-on-surface">專案庫工作台</h3>
+                                <p class="text-xs text-on-surface-variant">選取或搜尋專案工作空間，直接進入文件編輯與衝刺任務</p>
                             </div>
                         </div>
                         
                         <div class="flex items-center gap-2 flex-wrap">
                             <div class="relative min-w-[220px] flex-1 sm:flex-initial">
-                                <input id="homeProjectSearch" type="text" oninput="app.renderHomeView()" placeholder="Search workspaces, tags..." class="w-full p-2 pl-8 text-xs bg-surface-dim border border-slate-200 dark:border-zinc-700 rounded-lg text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:bg-surface focus:ring-1 focus:ring-primary" />
+                                <input id="homeProjectSearch" type="text" oninput="app.renderHomeView()" placeholder="搜尋專案名稱、標籤..." class="w-full p-2 pl-8 text-xs bg-surface-dim border border-slate-200 dark:border-zinc-700 rounded-lg text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:bg-surface focus:ring-1 focus:ring-primary" />
                                 <span class="absolute left-2.5 top-2.5 text-xs pointer-events-none text-slate-400">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                                 </span>
                             </div>
                             <select id="homeCategoryFilter" onchange="app.renderHomeView()" class="p-2 text-xs font-semibold bg-surface-dim border border-slate-200 dark:border-zinc-700 rounded-lg text-on-surface cursor-pointer">
-                                <option value="ALL">All Categories</option>
+                                <option value="ALL">所有專案分類</option>
                             </select>
-                            <span id="homeProjectCountBadge" class="text-xs font-mono font-bold bg-surface-dim text-on-surface-variant rounded-lg px-2.5 py-2 border border-slate-200 dark:border-zinc-700">0 Workspaces</span>
+                            <span id="homeProjectCountBadge" class="text-xs font-mono font-bold bg-surface-dim text-on-surface-variant rounded-lg px-2.5 py-2 border border-slate-200 dark:border-zinc-700">0 個專案</span>
                         </div>
                     </div>
 
@@ -341,9 +341,9 @@
                 <div class="space-y-3 pt-2">
                     <div class="flex items-center justify-between">
                         <div class="flex items-center gap-2">
-                            <span class="text-[10px] font-bold uppercase tracking-wider text-primary font-mono">THROUGHPUT & VELOCITY</span>
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-primary font-mono">交付吞吐量與速度</span>
                             <span class="text-on-surface-variant font-caption-xs">•</span>
-                            <h2 class="font-headline font-bold text-base text-on-surface">Global Cross-Project Analytics</h2>
+                            <h2 class="font-headline font-bold text-base text-on-surface">全域跨專案執行分析</h2>
                         </div>
                     </div>
 
@@ -355,15 +355,15 @@
                                     <div class="w-7 h-7 rounded-lg bg-emerald-50 text-status-done-text flex items-center justify-center">
                                         <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
                                     </div>
-                                    <span class="font-headline font-bold text-sm text-on-surface">Core Achievement Rate</span>
+                                    <span class="font-headline font-bold text-sm text-on-surface">核心目標達成率</span>
                                 </div>
-                                <span class="px-2 py-0.5 rounded-full bg-status-done-bg text-status-done-text text-[11px] font-bold font-mono">▲ +4.2% vs prev</span>
+                                <span class="px-2 py-0.5 rounded-full bg-status-done-bg text-status-done-text text-[11px] font-bold font-mono">▲ 較上期 +4.2%</span>
                             </div>
 
                             <div class="my-5">
                                 <div class="flex items-baseline gap-2">
                                     <span class="text-4xl sm:text-5xl font-headline font-extrabold text-on-surface tracking-tight" id="homeAchievementRate">88.4%</span>
-                                    <span class="text-xs font-semibold text-on-surface-variant font-mono">Target: 85%</span>
+                                    <span class="text-xs font-semibold text-on-surface-variant font-mono">目標基準: 85%</span>
                                 </div>
                                 <!-- Progress bar with Target marker -->
                                 <div class="relative w-full bg-surface-dim h-2.5 rounded-full mt-3 overflow-hidden">
@@ -373,14 +373,14 @@
 
                             <div class="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100 dark:border-zinc-800 text-xs">
                                 <div>
-                                    <span class="text-[10px] uppercase font-mono font-bold text-on-surface-variant block">Time Remaining</span>
-                                    <div class="text-sm font-bold text-on-surface mt-0.5" id="homeTimeRemainingText">4 Days</div>
-                                    <span class="text-[11px] text-primary font-medium">Sprint cycle ending</span>
+                                    <span class="text-[10px] uppercase font-mono font-bold text-on-surface-variant block">衝刺倒數</span>
+                                    <div class="text-sm font-bold text-on-surface mt-0.5" id="homeTimeRemainingText">4 天</div>
+                                    <span class="text-[11px] text-primary font-medium">本週衝刺週期</span>
                                 </div>
                                 <div>
-                                    <span class="text-[10px] uppercase font-mono font-bold text-on-surface-variant block">Tasks Progress</span>
+                                    <span class="text-[10px] uppercase font-mono font-bold text-on-surface-variant block">任務完成進度</span>
                                     <div class="text-sm font-bold text-on-surface mt-0.5" id="homeCompletedTasksStats">142 / 160</div>
-                                    <span class="text-[11px] text-on-surface-variant font-medium" id="homeRemainingTasksBadge">18 Remaining</span>
+                                    <span class="text-[11px] text-on-surface-variant font-medium" id="homeRemainingTasksBadge">剩餘 18 項</span>
                                 </div>
                             </div>
                         </div>
@@ -389,13 +389,13 @@
                         <div class="lg:col-span-7 bg-surface border border-slate-200 dark:border-zinc-800 rounded-xl p-6 shadow-sm flex flex-col justify-between">
                             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
                                 <div>
-                                    <span class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-mono block">CUMULATIVE FLOW DIAGRAM (CFD)</span>
-                                    <h3 class="font-headline font-bold text-base text-on-surface">Velocity & Task Accumulation</h3>
+                                    <span class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-mono block">累積流向圖 (CFD)</span>
+                                    <h3 class="font-headline font-bold text-base text-on-surface">交付速率與任務流動分佈</h3>
                                 </div>
                                 <div class="flex items-center gap-1 bg-surface-dim p-0.5 rounded-lg border border-slate-200 dark:border-zinc-700 text-xs font-semibold" id="homeCfdFilterGroup">
-                                    <button onclick="app.setHomeCfdFilter('ALL')" id="cfdBtnAll" class="px-2.5 py-1 rounded-md bg-surface text-on-surface font-bold shadow-2xs">All</button>
-                                    <button onclick="app.setHomeCfdFilter('DOING')" id="cfdBtnDoing" class="px-2.5 py-1 rounded-md text-on-surface-variant hover:text-on-surface">In Progress</button>
-                                    <button onclick="app.setHomeCfdFilter('DONE')" id="cfdBtnDone" class="px-2.5 py-1 rounded-md text-on-surface-variant hover:text-on-surface">Resolved</button>
+                                    <button onclick="app.setHomeCfdFilter('ALL')" id="cfdBtnAll" class="px-2.5 py-1 rounded-md bg-surface text-on-surface font-bold shadow-2xs">全部</button>
+                                    <button onclick="app.setHomeCfdFilter('DOING')" id="cfdBtnDoing" class="px-2.5 py-1 rounded-md text-on-surface-variant hover:text-on-surface">進行中</button>
+                                    <button onclick="app.setHomeCfdFilter('DONE')" id="cfdBtnDone" class="px-2.5 py-1 rounded-md text-on-surface-variant hover:text-on-surface">已完成</button>
                                 </div>
                             </div>
 
@@ -408,14 +408,14 @@
                                 <div class="flex items-center gap-4">
                                     <div class="flex items-center gap-1.5">
                                         <div class="w-3 h-3 rounded-xs bg-primary"></div>
-                                        <span>Resolved</span>
+                                        <span>已完成</span>
                                     </div>
                                     <div class="flex items-center gap-1.5">
                                         <div class="w-3 h-3 rounded-xs bg-primary-fixed"></div>
-                                        <span>In Progress</span>
+                                        <span>進行中</span>
                                     </div>
                                 </div>
-                                <span class="font-mono text-xs font-bold text-on-surface" id="homeCfdAvgText">Avg Velocity: 14.2 tasks/day</span>
+                                <span class="font-mono text-xs font-bold text-on-surface" id="homeCfdAvgText">平均交付速率：14.2 項任務/天</span>
                             </div>
                         </div>
 
@@ -423,16 +423,16 @@
                         <div class="lg:col-span-6 bg-surface border border-slate-200 dark:border-zinc-800 rounded-xl p-6 shadow-sm flex flex-col justify-between">
                             <div class="flex items-center justify-between mb-3">
                                 <div>
-                                    <span class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-mono block">ACTIVITY MATRIX</span>
-                                    <h3 class="font-headline font-bold text-sm text-on-surface">Team Activity Heatmap</h3>
+                                    <span class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-mono block">活動矩陣</span>
+                                    <h3 class="font-headline font-bold text-sm text-on-surface">團隊協作熱力圖</h3>
                                 </div>
                                 <div class="flex items-center gap-1 text-[11px] text-on-surface-variant font-mono">
-                                    <span>Less</span>
+                                    <span>低</span>
                                     <div class="w-2.5 h-2.5 rounded-xs bg-slate-100 dark:bg-zinc-800"></div>
                                     <div class="w-2.5 h-2.5 rounded-xs bg-primary-fixed"></div>
                                     <div class="w-2.5 h-2.5 rounded-xs bg-primary/60"></div>
                                     <div class="w-2.5 h-2.5 rounded-xs bg-primary"></div>
-                                    <span>More</span>
+                                    <span>高</span>
                                 </div>
                             </div>
 
@@ -442,8 +442,8 @@
                             </div>
 
                             <div class="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-zinc-800 text-xs text-on-surface-variant">
-                                <span>Peak Hours: <strong class="text-on-surface font-mono">10:00 AM – 4:00 PM</strong></span>
-                                <button onclick="app.switchView('Execution')" class="text-primary font-bold hover:underline">View Tasks Board →</button>
+                                <span>最高峰時段：<strong class="text-on-surface font-mono">10:00 AM – 4:00 PM</strong></span>
+                                <button onclick="app.switchView('Execution')" class="text-primary font-bold hover:underline">前往任務看板 →</button>
                             </div>
                         </div>
 
@@ -451,8 +451,8 @@
                         <div class="lg:col-span-6 bg-surface border border-slate-200 dark:border-zinc-800 rounded-xl p-6 shadow-sm flex flex-col justify-between">
                             <div class="flex items-center justify-between mb-3">
                                 <div>
-                                    <span class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-mono block">PERFORMANCE</span>
-                                    <h3 class="font-headline font-bold text-sm text-on-surface">Delivery & Velocity Leaderboard</h3>
+                                    <span class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-mono block">效能指標</span>
+                                    <h3 class="font-headline font-bold text-sm text-on-surface">交付效率排行榜</h3>
                                 </div>
                                 <span class="text-primary">
                                     <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
@@ -465,8 +465,8 @@
                             </div>
 
                             <div class="flex items-center justify-between pt-3 border-t border-slate-100 dark:border-zinc-800 text-xs text-on-surface-variant">
-                                <span>Team Avg Turnaround: <strong class="text-on-surface font-mono">2.3 hours</strong></span>
-                                <button onclick="app.openSettingsModal('project')" class="text-primary font-bold hover:underline">Manage Team →</button>
+                                <span>團隊平均交付耗時：<strong class="text-on-surface font-mono">2.3 小時</strong></span>
+                                <button onclick="app.openSettingsModal('project')" class="text-primary font-bold hover:underline">專案與成員設定 →</button>
                             </div>
                         </div>
                     </div>
