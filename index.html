@@ -6,13 +6,13 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
-    <title>FlatSpec Drive - 專案設計與執行系統</title>
+    <title>Visual Document Origin (VDO) - 專案設計與執行系統</title>
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#000000">
+    <meta name="theme-color" content="#004ac6">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="FlatSpec">
+    <meta name="apple-mobile-web-app-title" content="VDO">
     <link rel="apple-touch-icon" href="icon-192.png">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <script src="https://cdn.tailwindcss.com"></script>
@@ -34,6 +34,7 @@
               'on-primary': '#ffffff',
               'primary-fixed': '#dbe1ff',
               'primary-fixed-dim': '#b4c5ff',
+              'on-primary-fixed': '#00174b',
               'ai-accent': '#8B5CF6',
               'status-todo-bg': '#F8FAFC',
               'status-todo-border': '#94A3B8',
@@ -91,10 +92,10 @@
       }
     }
     </script>
-    <!-- FlatSpec 核心模組化樣式表 -->
+    <!-- VDO 核心模組化樣式表 -->
     <link rel="stylesheet" href="./src/styles/main.css">
 </head>
-<body class="text-zinc-900 h-screen w-screen flex flex-col md:flex-row overflow-hidden selection:bg-zinc-900 selection:text-white">
+<body class="text-zinc-900 h-screen w-screen flex flex-col md:flex-row overflow-hidden selection:bg-primary selection:text-white">
 
     <!-- Mobile Backdrop -->
     <div id="mobileBackdrop" class="fixed inset-0 bg-black/50 z-40 hidden md:hidden" onclick="app.toggleSidebar()"></div>
@@ -102,13 +103,13 @@
     <aside id="sidebar" class="bg-slate-50/80 border-r border-slate-200 w-72 flex-shrink-0 flex flex-col fixed md:relative z-50 h-full transform -translate-x-full md:translate-x-0 transition-transform duration-300 select-none">
         <!-- 側邊欄頭部 -->
         <div class="h-14 px-4 border-b border-slate-200 bg-surface flex items-center justify-between shrink-0">
-            <div class="flex items-center gap-2.5 cursor-pointer" onclick="app.switchView('Home')" title="返回專案首頁">
-                <div class="w-7 h-7 rounded-lg bg-primary-container flex items-center justify-center text-white font-black text-sm shadow-xs">
-                    <span>⚡</span>
+            <div class="flex items-center gap-2.5 cursor-pointer" onclick="app.switchView('Home')" title="返回 VDO 專案首頁">
+                <div class="w-7 h-7 rounded-lg bg-primary-container flex items-center justify-center text-white shadow-xs">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none"><path d="M7 8l5 8 5-8" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="7" r="1.5" fill="#ffffff"/></svg>
                 </div>
                 <div class="flex flex-col">
-                    <span class="font-headline font-bold text-sm text-on-surface leading-tight tracking-tight">FlatSpec</span>
-                    <span class="text-[9px] font-mono text-on-surface-variant uppercase tracking-widest leading-none mt-0.5">Execution Core</span>
+                    <span class="font-headline font-bold text-sm text-on-surface leading-tight tracking-tight">VDO Studio</span>
+                    <span class="text-[9px] font-mono text-on-surface-variant uppercase tracking-widest leading-none mt-0.5">Visual Document Origin</span>
                 </div>
             </div>
             <div class="flex items-center gap-1">
@@ -127,11 +128,11 @@
                         <!-- 動態載入 -->
                     </select>
                 </div>
-                <button onclick="app.openNewProjectModal()" class="p-1.5 px-2.5 bg-primary-container text-white rounded-lg font-bold text-xs hover:opacity-90 transition-opacity shrink-0 shadow-xs" title="新建專案">
-                    <span>＋</span>
+                <button onclick="app.openNewProjectModal()" class="p-1.5 px-2 bg-primary-container text-white rounded-lg font-bold text-xs hover:opacity-90 transition-opacity shrink-0 shadow-xs" title="新建專案">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
                 </button>
                 <button onclick="app.openSettingsModal('project')" class="p-1.5 px-2 bg-surface hover:bg-surface-dim text-on-surface-variant hover:text-on-surface rounded-lg font-semibold text-xs shrink-0 border border-slate-200 transition-colors" title="專案設定與成員">
-                    <span>⚙️</span>
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3" stroke-width="2"/></svg>
                 </button>
             </div>
         </div>
@@ -139,21 +140,36 @@
         <!-- 專案核心視圖導覽 (Overview / Tasks / KPI / Documents / Wizard) -->
         <div class="p-2 border-b border-slate-200 bg-surface-dim/50 space-y-1" id="sidebarPrimaryNav">
             <button id="sideNavHome" onclick="app.switchView('Home')" class="w-full text-left px-3 py-2 rounded-lg text-xs font-bold text-on-surface-variant hover:bg-surface-dim hover:text-on-surface flex items-center justify-between transition-colors">
-                <span class="flex items-center gap-2"><span>🏠</span> <span class="font-headline">專案首頁</span></span>
+                <span class="flex items-center gap-2.5">
+                    <svg class="w-4 h-4 shrink-0 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+                    <span class="font-headline">專案首頁</span>
+                </span>
             </button>
             <button id="sideNavDashboard" onclick="app.switchView('Dashboard')" class="w-full text-left px-3 py-2 rounded-lg text-xs font-bold text-on-surface-variant hover:bg-surface-dim hover:text-on-surface flex items-center justify-between transition-colors">
-                <span class="flex items-center gap-2"><span>📊</span> <span class="font-headline">專案總覽</span></span>
+                <span class="flex items-center gap-2.5">
+                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+                    <span class="font-headline">專案總覽</span>
+                </span>
             </button>
             <button id="sideNavExecution" onclick="app.switchView('Execution')" class="w-full text-left px-3 py-2 rounded-lg text-xs font-bold text-on-surface-variant hover:bg-surface-dim hover:text-on-surface flex items-center justify-between transition-colors">
-                <span class="flex items-center gap-2"><span>☑️</span> <span class="font-headline">執行任務</span></span>
+                <span class="flex items-center gap-2.5">
+                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+                    <span class="font-headline">執行任務</span>
+                </span>
                 <span id="sideNavTaskCount" class="text-[10px] font-mono font-bold px-2 py-0.5 bg-surface-container-high text-on-surface rounded-full shadow-xs">0</span>
             </button>
             <button id="sideNavKpi" onclick="app.switchView('Kpi')" class="w-full text-left px-3 py-2 rounded-lg text-xs font-bold text-on-surface-variant hover:bg-surface-dim hover:text-on-surface flex items-center justify-between transition-colors">
-                <span class="flex items-center gap-2"><span>🎯</span> <span class="font-headline">KPI 管理</span></span>
+                <span class="flex items-center gap-2.5">
+                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke-width="2"></circle><circle cx="12" cy="12" r="5" stroke-width="2"></circle><circle cx="12" cy="12" r="1.5" fill="currentColor"></circle></svg>
+                    <span class="font-headline">KPI 管理</span>
+                </span>
                 <span class="text-[9px] font-mono font-bold px-1.5 py-0.2 bg-primary-fixed text-on-primary-fixed rounded-full">KPI</span>
             </button>
             <button id="sideNavDocs" onclick="app.switchView('Docs')" class="w-full text-left px-3 py-2 rounded-lg text-xs font-bold text-on-surface-variant hover:bg-surface-dim hover:text-on-surface flex items-center justify-between transition-colors">
-                <span class="flex items-center gap-2"><span>📄</span> <span class="font-headline">文件庫</span></span>
+                <span class="flex items-center gap-2.5">
+                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+                    <span class="font-headline">文件庫</span>
+                </span>
                 <span id="sideNavDocCount" class="text-[10px] font-mono font-bold px-2 py-0.5 bg-surface-container-high text-on-surface rounded-full shadow-xs">0</span>
             </button>
         </div>
@@ -162,7 +178,9 @@
         <div class="p-2.5 border-b border-slate-200 bg-surface">
             <div class="relative">
                 <input id="searchInput" type="text" oninput="app.renderSidebar()" placeholder="過濾文檔標題..." class="w-full p-1.5 pl-7 text-xs bg-surface-dim border border-slate-200 rounded-lg text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:bg-surface focus:ring-1 focus:ring-primary transition-all" />
-                <span class="absolute left-2 top-2 text-xs pointer-events-none text-slate-400">🔍</span>
+                <span class="absolute left-2 top-2 text-xs pointer-events-none text-slate-400">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                </span>
             </div>
         </div>
 
@@ -174,23 +192,24 @@
         <!-- 側邊欄底部 (極簡設定與工具收納) -->
         <div class="p-2.5 border-t border-slate-200 bg-surface flex items-center justify-between">
             <button onclick="app.openSettingsModal('appearance')" class="flex-1 text-left px-2.5 py-1.5 hover:bg-surface-dim rounded-lg text-on-surface-variant hover:text-on-surface font-semibold text-xs flex items-center gap-2 transition-colors" title="開啟系統設定中心">
-                <span>⚙️</span>
-                <span>系統與工作區設定</span>
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3" stroke-width="2"/></svg>
+                <span>系統設定</span>
             </button>
-            <button onclick="app.exportMasterMarkdown()" class="p-1.5 px-2 hover:bg-surface-dim rounded-lg text-on-surface-variant hover:text-on-surface text-xs font-bold transition-colors shrink-0" title="匯出專案 Markdown 規格書">
-                <span>📦 匯出</span>
+            <button onclick="app.exportMasterMarkdown()" class="p-1.5 px-2 hover:bg-surface-dim rounded-lg text-on-surface-variant hover:text-on-surface text-xs font-bold transition-colors shrink-0 inline-flex items-center gap-1" title="匯出專案 Markdown 規格書">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                <span>匯出</span>
             </button>
         </div>
     </aside>
 
-    <!-- 側邊欄拖曳手柄 (僅在桌機版顯示，支援流暢拖曳調整寬度與連點兩下重設) -->
+    <!-- 側邊欄拖曳手柄 -->
     <div id="sidebarResizer" class="hidden md:flex items-center justify-center w-1 hover:w-1.5 bg-transparent hover:bg-slate-300 active:bg-slate-400 cursor-col-resize select-none shrink-0 z-40 transition-colors group relative" title="按住拖曳可調整側邊欄寬度 (連點兩下重設寬度)">
         <div class="w-0.5 h-6 bg-slate-300 group-hover:bg-slate-600 rounded-full transition-colors pointer-events-none"></div>
     </div>
 
     <main class="flex-1 flex flex-col min-w-0 bg-surface relative pb-16 md:pb-0 h-full overflow-hidden">
         
-        <!-- 頂部導覽列 (Header - 現代極簡麵包屑導航與狀態整合) -->
+        <!-- 頂部導覽列 (Header) -->
         <header class="h-14 border-b border-slate-200 bg-surface/90 backdrop-blur flex items-center justify-between px-3 sm:px-5 shrink-0 shadow-xs z-10 gap-2">
             <!-- 左側：側邊欄開關與當前位置麵包屑 -->
             <div class="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
@@ -200,9 +219,9 @@
 
                 <!-- 麵包屑導航 (Breadcrumb) -->
                 <div class="flex items-center gap-1.5 min-w-0 text-xs text-on-surface-variant font-medium">
-                    <button onclick="app.switchView('Home')" class="hover:text-on-surface transition-colors shrink-0 flex items-center gap-1 font-bold text-on-surface" title="返回首頁">
-                        <span>⚡</span>
-                        <span class="hidden sm:inline font-headline">FlatSpec</span>
+                    <button onclick="app.switchView('Home')" class="hover:text-on-surface transition-colors shrink-0 flex items-center gap-1.5 font-bold text-on-surface" title="返回 VDO 首頁">
+                        <svg class="w-3.5 h-3.5 text-primary" viewBox="0 0 24 24" fill="none"><path d="M7 8l5 8 5-8" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="7" r="1.5" fill="currentColor"/></svg>
+                        <span class="hidden sm:inline font-headline">VDO</span>
                     </button>
                     <span class="text-slate-300 shrink-0">/</span>
                     <button onclick="app.openSettingsModal('project')" class="font-bold text-on-surface hover:text-primary transition-colors truncate max-w-[140px] sm:max-w-[200px]" id="headerProjectName">
@@ -219,20 +238,20 @@
             <div class="flex items-center gap-2 shrink-0">
                 <!-- 全域全文搜尋按鈕 (Ctrl+K) -->
                 <button onclick="app.openSearchModal()" class="p-1.5 px-2.5 bg-surface-dim hover:bg-surface-container-high text-on-surface font-semibold text-xs rounded-lg flex items-center gap-1.5 transition-colors shrink-0 border border-slate-200/80" title="快速全域搜尋 (Ctrl+K)">
-                    <span class="text-xs">🔍</span>
+                    <svg class="w-3.5 h-3.5 text-on-surface-variant" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
                     <span class="hidden md:inline text-on-surface font-medium">搜尋</span>
                     <kbd class="hidden lg:inline bg-surface border border-slate-200 rounded px-1.5 py-0.5 text-[10px] font-mono text-on-surface-variant">⌘K</kbd>
                 </button>
 
                 <!-- AI 助理抽屜觸發按鈕 -->
                 <button onclick="app.toggleAiDocDrawer ? app.toggleAiDocDrawer() : app.openAiTaskDecomposeModal()" class="p-1.5 px-2.5 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 font-bold text-xs rounded-lg flex items-center gap-1.5 shadow-xs transition-colors shrink-0" title="開啟 AI 專案與文檔助理">
-                    <span class="text-xs">✨</span>
+                    <svg class="w-3.5 h-3.5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/></svg>
                     <span class="hidden sm:inline">AI 助理</span>
                 </button>
 
                 <!-- 手動儲存按鈕 (手動同步至雲端) -->
                 <button onclick="app.manualSaveAndSync()" class="p-1.5 px-2.5 bg-status-done-bg hover:bg-emerald-100 text-status-done-text font-bold text-xs rounded-lg flex items-center gap-1.5 transition-colors shrink-0 border border-status-done-border/30 shadow-xs" title="手動儲存並同步至雲端 (Ctrl+S)">
-                    <span>💾</span>
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
                     <span class="font-bold">儲存</span>
                 </button>
 
@@ -244,50 +263,194 @@
 
                 <!-- 系統設定按鈕 -->
                 <button onclick="app.openSettingsModal()" class="p-1.5 px-2 bg-surface hover:bg-surface-dim text-on-surface-variant hover:text-on-surface font-semibold text-xs rounded-lg flex items-center gap-1 transition-colors shrink-0 border border-slate-200" title="開啟系統與專案設定">
-                    <span>⚙️</span>
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><circle cx="12" cy="12" r="3" stroke-width="2"/></svg>
                 </button>
             </div>
         </header>
 
         <div class="flex-1 overflow-y-auto relative no-scrollbar bg-slate-50/50">
             
-            <!-- 視圖 0: 專案首頁 (Home Portal) -->
-            <div id="viewHome" class="hidden p-4 md:p-8 max-w-6xl mx-auto space-y-6">
-                <!-- 首頁 Banner -->
-                <div class="bg-slate-900 text-white p-6 md:p-8 rounded-xl border border-slate-800 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                    <div>
-                        <div class="flex items-center gap-2 mb-1.5">
-                            <span class="text-2xl md:text-3xl">📁</span>
-                            <h2 class="text-2xl md:text-3xl font-bold tracking-tight">FlatSpec 專案工作台</h2>
+            <!-- 視圖 0: 專案首頁 (VDO Executive Intelligence & Throughput Portal) -->
+            <div id="viewHome" class="hidden p-4 md:p-8 max-w-7xl mx-auto space-y-6">
+                <!-- Top Execution Intelligence Ribbon -->
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-surface p-5 sm:p-6 rounded-xl border border-slate-200 shadow-sm">
+                    <div class="flex flex-col">
+                        <div class="flex items-center gap-2">
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-primary font-mono">SPRINT VELOCITY ANALYTICS</span>
+                            <span class="text-on-surface-variant font-caption-xs">•</span>
+                            <span class="text-xs text-on-surface-variant font-semibold">Cycle 24.2 Active</span>
                         </div>
-                        <p class="text-xs md:text-sm text-slate-300 font-normal">
-                            選擇專案直接進入文檔編輯器，支援密碼隱私保護與雲端即時同步。
-                        </p>
+                        <h1 class="font-headline font-bold text-xl sm:text-2xl text-on-surface mt-1">Execution Intelligence & Throughput</h1>
                     </div>
-                    <div class="flex items-center gap-2 w-full md:w-auto">
-                        <button onclick="app.openNewProjectModal()" class="w-full md:w-auto bg-white hover:bg-slate-100 text-slate-900 font-bold px-4 py-2.5 text-xs md:text-sm rounded-lg flex items-center justify-center gap-1.5 shadow-sm transition-colors">
-                            <span>＋</span> <span>建立新專案</span>
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <button class="px-3.5 py-2 rounded-lg bg-surface-dim hover:bg-surface-container-high text-on-surface font-bold text-xs transition-all flex items-center gap-1.5 border border-slate-200" type="button">
+                            <svg class="w-3.5 h-3.5 text-on-surface-variant shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                            <span>最近 14 天</span>
+                        </button>
+                        <button onclick="app.exportMasterMarkdown()" class="px-3.5 py-2 rounded-lg bg-surface-dim hover:bg-surface-container-high text-on-surface font-bold text-xs transition-all flex items-center gap-1.5 border border-slate-200" type="button">
+                            <svg class="w-3.5 h-3.5 text-on-surface-variant shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                            <span>匯出全域報告</span>
+                        </button>
+                        <button onclick="app.openNewProjectModal()" class="px-4 py-2 bg-primary-container text-on-primary font-bold text-xs rounded-lg flex items-center gap-1.5 shadow-sm hover:opacity-90 transition-opacity">
+                            <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+                            <span>建立新專案</span>
                         </button>
                     </div>
                 </div>
 
-                <!-- 搜尋與統計欄 -->
-                <div class="bg-white border border-slate-200 rounded-xl p-3.5 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
-                    <div class="relative flex-1">
-                        <input id="homeProjectSearch" type="text" oninput="app.renderHomeView()" placeholder="搜尋專案名稱、分類標籤..." class="flat-input w-full p-2 pl-8 text-xs md:text-sm bg-slate-50 border border-slate-200" />
-                        <span class="absolute left-2.5 top-2.5 text-xs pointer-events-none text-slate-400">🔍</span>
+                <!-- 2x2 Bento Intelligence Grid -->
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                    <!-- Bento 1: Core Achievement Rate (Col 1-5) -->
+                    <div class="lg:col-span-5 bg-surface border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col justify-between">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-7 h-7 rounded-lg bg-emerald-50 text-status-done-text flex items-center justify-center">
+                                    <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                </div>
+                                <span class="font-headline font-bold text-sm text-on-surface">Core Achievement Rate</span>
+                            </div>
+                            <span class="px-2 py-0.5 rounded-full bg-status-done-bg text-status-done-text text-[11px] font-bold font-mono">▲ +4.2% vs 上個週期</span>
+                        </div>
+
+                        <div class="my-5">
+                            <div class="flex items-baseline gap-2">
+                                <span class="text-4xl sm:text-5xl font-headline font-extrabold text-on-surface tracking-tight" id="homeAchievementRate">88.4%</span>
+                                <span class="text-xs font-semibold text-on-surface-variant font-mono">Target 85%</span>
+                            </div>
+                            <!-- Progress bar with Target marker -->
+                            <div class="relative w-full bg-surface-dim h-2.5 rounded-full mt-3 overflow-hidden">
+                                <div id="homeAchievementProgressFill" class="bg-primary h-full rounded-full transition-all duration-700" style="width: 88.4%;"></div>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100 text-xs">
+                            <div>
+                                <span class="text-[10px] uppercase font-mono font-bold text-on-surface-variant block">剩餘時間</span>
+                                <div class="text-sm font-bold text-on-surface mt-0.5" id="homeTimeRemainingText">4 天</div>
+                                <span class="text-[11px] text-primary font-medium">衝刺週期本週結束</span>
+                            </div>
+                            <div>
+                                <span class="text-[10px] uppercase font-mono font-bold text-on-surface-variant block">完成任務</span>
+                                <div class="text-sm font-bold text-on-surface mt-0.5" id="homeCompletedTasksStats">142 / 160</div>
+                                <span class="text-[11px] text-on-surface-variant font-medium" id="homeRemainingTasksBadge">18 項剩餘</span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="flex items-center gap-2 shrink-0">
-                        <select id="homeCategoryFilter" onchange="app.renderHomeView()" class="flat-input p-2 text-xs font-semibold bg-slate-50 border border-slate-200 cursor-pointer">
-                            <option value="ALL">🌟 所有分類</option>
-                        </select>
-                        <span id="homeProjectCountBadge" class="text-xs font-mono font-bold bg-slate-100 text-slate-700 rounded-md px-2.5 py-2">0 個專案</span>
+
+                    <!-- Bento 2: Cumulative Flow Diagram (CFD) (Col 6-12) -->
+                    <div class="lg:col-span-7 bg-surface border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col justify-between">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-2">
+                            <div>
+                                <span class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-mono block">CUMULATIVE FLOW DIAGRAM (CFD)</span>
+                                <h3 class="font-headline font-bold text-base text-on-surface">Velocity & Backlog Accumulation</h3>
+                            </div>
+                            <div class="flex items-center gap-1 bg-surface-dim p-0.5 rounded-lg border border-slate-200/80 text-xs font-semibold">
+                                <button class="px-2.5 py-1 rounded-md bg-surface text-on-surface font-bold shadow-2xs">Todos</button>
+                                <button class="px-2.5 py-1 rounded-md text-on-surface-variant hover:text-on-surface">Doing</button>
+                                <button class="px-2.5 py-1 rounded-md text-on-surface-variant hover:text-on-surface">Done</button>
+                            </div>
+                        </div>
+
+                        <!-- CFD Bar Chart Container -->
+                        <div id="homeCfdBarChart" class="my-1">
+                            <!-- 動態注入 Mon-Sun 柱狀圖 -->
+                        </div>
+
+                        <div class="flex items-center justify-between pt-3 border-t border-slate-100 text-xs text-on-surface-variant">
+                            <div class="flex items-center gap-4">
+                                <div class="flex items-center gap-1.5">
+                                    <div class="w-3 h-3 rounded-xs bg-primary"></div>
+                                    <span>已交付 (Resolved)</span>
+                                </div>
+                                <div class="flex items-center gap-1.5">
+                                    <div class="w-3 h-3 rounded-xs bg-primary-fixed"></div>
+                                    <span>推進中 (In Progress)</span>
+                                </div>
+                            </div>
+                            <span class="font-mono text-xs font-bold text-on-surface">平均產出: 14.2 任務/日</span>
+                        </div>
+                    </div>
+
+                    <!-- Bento 3: Team Collaboration Heatmap (Col 1-6) -->
+                    <div class="lg:col-span-6 bg-surface border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col justify-between">
+                        <div class="flex items-center justify-between mb-3">
+                            <div>
+                                <span class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-mono block">ACTIVITY MATRIX</span>
+                                <h3 class="font-headline font-bold text-sm text-on-surface">Team Collaboration Heatmap</h3>
+                            </div>
+                            <div class="flex items-center gap-1 text-[11px] text-on-surface-variant font-mono">
+                                <span>Less</span>
+                                <div class="w-2.5 h-2.5 rounded-xs bg-slate-100"></div>
+                                <div class="w-2.5 h-2.5 rounded-xs bg-primary-fixed"></div>
+                                <div class="w-2.5 h-2.5 rounded-xs bg-primary/60"></div>
+                                <div class="w-2.5 h-2.5 rounded-xs bg-primary"></div>
+                                <span>More</span>
+                            </div>
+                        </div>
+
+                        <!-- Heatmap Grid -->
+                        <div id="homeActivityHeatmap" class="my-2">
+                            <!-- 動態注入熱力矩陣 -->
+                        </div>
+
+                        <div class="flex items-center justify-between pt-3 border-t border-slate-100 text-xs text-on-surface-variant">
+                            <span>高峰協作時段: <strong class="text-on-surface">10:00 AM – 4:00 PM</strong></span>
+                            <button onclick="app.switchView('Execution')" class="text-primary font-bold hover:underline">檢視完整日誌 →</button>
+                        </div>
+                    </div>
+
+                    <!-- Bento 4: Review Speed Leaderboard (Col 7-12) -->
+                    <div class="lg:col-span-6 bg-surface border border-slate-200 rounded-xl p-6 shadow-sm flex flex-col justify-between">
+                        <div class="flex items-center justify-between mb-3">
+                            <div>
+                                <span class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-mono block">PERFORMANCE</span>
+                                <h3 class="font-headline font-bold text-sm text-on-surface">Review Speed Leaderboard</h3>
+                            </div>
+                            <span class="text-primary">
+                                <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+                            </span>
+                        </div>
+
+                        <!-- Leaderboard List -->
+                        <div id="homeLeaderboardList" class="space-y-2 my-1">
+                            <!-- 動態注入排行 -->
+                        </div>
+
+                        <div class="flex items-center justify-between pt-3 border-t border-slate-100 text-xs text-on-surface-variant">
+                            <span>團隊平均延遲: <strong class="text-on-surface font-mono">2.3 hours</strong></span>
+                            <button onclick="app.openSettingsModal('project')" class="text-primary font-bold hover:underline">管理所有成員 →</button>
+                        </div>
                     </div>
                 </div>
 
-                <!-- 專案卡片網格 -->
-                <div id="homeProjectsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                    <!-- 動態注入專案卡片 -->
+                <!-- 專案庫與工作台 (Project Workspace Catalog Grid) -->
+                <div class="space-y-4 pt-2">
+                    <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-surface p-4 rounded-xl border border-slate-200 shadow-sm">
+                        <div class="flex items-center gap-2">
+                            <span class="text-primary">
+                                <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg>
+                            </span>
+                            <h3 class="font-headline font-bold text-base text-on-surface">專案庫工作台 (Project Catalog)</h3>
+                        </div>
+                        
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <div class="relative min-w-[200px] flex-1 sm:flex-initial">
+                                <input id="homeProjectSearch" type="text" oninput="app.renderHomeView()" placeholder="搜尋專案名稱、標籤..." class="w-full p-2 pl-8 text-xs bg-surface-dim border border-slate-200 rounded-lg text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:bg-surface focus:ring-1 focus:ring-primary" />
+                                <span class="absolute left-2.5 top-2.5 text-xs pointer-events-none text-slate-400">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+                                </span>
+                            </div>
+                            <select id="homeCategoryFilter" onchange="app.renderHomeView()" class="p-2 text-xs font-semibold bg-surface-dim border border-slate-200 rounded-lg text-on-surface cursor-pointer">
+                                <option value="ALL">所有分類</option>
+                            </select>
+                            <span id="homeProjectCountBadge" class="text-xs font-mono font-bold bg-surface-dim text-on-surface-variant rounded-lg px-2.5 py-2 border border-slate-200">0 個專案</span>
+                        </div>
+                    </div>
+
+                    <!-- 專案卡片網格 -->
+                    <div id="homeProjectsGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                        <!-- 動態注入專案卡片 -->
+                    </div>
                 </div>
             </div>
 
@@ -1136,23 +1299,23 @@
 
     <nav class="md:hidden fixed bottom-0 left-0 right-0 h-16 bg-white/95 backdrop-blur border-t border-slate-200 z-40 flex justify-around items-center px-1 safe-area-pb">
         <button onclick="app.switchView('Home')" class="flex flex-col items-center justify-center w-full h-full text-slate-500 hover:text-slate-900 transition-colors" id="navBtnHome">
-            <span class="text-xl mb-0.5">🏠</span>
+            <svg class="w-5 h-5 mb-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
             <span class="text-[10px] font-semibold">首頁</span>
         </button>
         <button onclick="app.switchView('Dashboard')" class="flex flex-col items-center justify-center w-full h-full text-slate-500 hover:text-slate-900 transition-colors" id="navBtnDashboard">
-            <span class="text-xl mb-0.5">📊</span>
+            <svg class="w-5 h-5 mb-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
             <span class="text-[10px] font-semibold">總覽</span>
         </button>
         <button onclick="app.switchView('Execution')" class="flex flex-col items-center justify-center w-full h-full text-slate-500 hover:text-slate-900 transition-colors" id="navBtnExecution">
-            <span class="text-xl mb-0.5">☑️</span>
+            <svg class="w-5 h-5 mb-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
             <span class="text-[10px] font-semibold">任務</span>
         </button>
         <button onclick="app.switchView('Kpi')" class="flex flex-col items-center justify-center w-full h-full text-slate-500 hover:text-slate-900 transition-colors" id="navBtnKpi">
-            <span class="text-xl mb-0.5">🎯</span>
+            <svg class="w-5 h-5 mb-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke-width="2"></circle><circle cx="12" cy="12" r="5" stroke-width="2"></circle><circle cx="12" cy="12" r="1.5" fill="currentColor"></circle></svg>
             <span class="text-[10px] font-semibold">KPI</span>
         </button>
         <button onclick="app.switchView('Docs')" class="flex flex-col items-center justify-center w-full h-full text-slate-500 hover:text-slate-900 transition-colors" id="navBtnDocs">
-            <span class="text-xl mb-0.5">📄</span>
+            <svg class="w-5 h-5 mb-0.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
             <span class="text-[10px] font-semibold">文檔</span>
         </button>
     </nav>

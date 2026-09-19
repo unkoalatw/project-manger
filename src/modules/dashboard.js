@@ -1,4 +1,6 @@
-// FlatSpec Module: dashboard
+// Visual Document Origin (VDO) Module: dashboard
+import { icons } from './icons.js';
+
 export const dashboard = {
     // ================= 🎯 專案總覽 (Executive Cockpit Overview & Analytics) =================
     renderDashboard() {
@@ -6,7 +8,6 @@ export const dashboard = {
         if (!p) return;
 
         const safeSet = (id, val) => { const el = document.getElementById(id); if (el) el.innerText = val; };
-        const safeHtml = (id, html) => { const el = document.getElementById(id); if (el) el.innerHTML = html; };
 
         // 處理受密碼保護之專案鎖定狀態
         if (this.isProjectLocked(p)) {
@@ -19,10 +20,13 @@ export const dashboard = {
             if (visionEl) {
                 visionEl.innerHTML = `
                     <div class="p-6 text-center space-y-2">
-                        <div class="text-2xl">🔒</div>
+                        <div class="flex justify-center text-primary mb-2">${icons.lock('w-8 h-8')}</div>
                         <div class="font-bold text-sm text-on-surface">此專案已受密碼保護</div>
                         <p class="text-xs text-on-surface-variant">請先解鎖以檢視專案執行全局與健康指標。</p>
-                        <button onclick="app.requestOpenProject('${p.id}', 'Dashboard')" class="mt-2 px-3.5 py-1.5 bg-primary-container text-on-primary font-bold text-xs rounded-lg hover:opacity-90 shadow-xs">解鎖專案 ➔</button>
+                        <button onclick="app.requestOpenProject('${p.id}', 'Dashboard')" class="mt-2 px-3.5 py-1.5 bg-primary-container text-on-primary font-bold text-xs rounded-lg hover:opacity-90 shadow-xs inline-flex items-center gap-1.5">
+                            <span>解鎖專案</span>
+                            ${icons.arrowRight('w-3.5 h-3.5')}
+                        </button>
                     </div>
                 `;
             }
@@ -49,8 +53,6 @@ export const dashboard = {
         // (1) Sprint / 專案總進度環形卡 (Progress Ring)
         const progressSvg = document.getElementById('dashProgressRingSvg');
         if (progressSvg) {
-            const circumference = 100;
-            const strokeDashoffset = circumference - (pct / 100) * circumference;
             progressSvg.innerHTML = `
                 <svg class="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
                     <path class="text-slate-200" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3.5"></path>
@@ -111,7 +113,7 @@ export const dashboard = {
         // ================= 8. 專案願景與快速文件庫 =================
         const visionEl = document.getElementById('dashVision');
         if (visionEl) {
-            const visionText = p.wizard?.vision || '尚未設定專案願景。點擊上方「✨ 編輯精靈」即可快速定義願景與目標！';
+            const visionText = p.wizard?.vision || '尚未設定專案願景。點擊上方「編輯精靈」即可快速定義願景與目標！';
             visionEl.innerHTML = this.parseMarkdown(visionText);
             this.renderMermaidDiagrams(visionEl);
         }
@@ -120,16 +122,18 @@ export const dashboard = {
         if (docListEl) {
             let docHtml = '';
             if (docs.length === 0) {
-                docHtml = `<div class="p-6 text-center text-xs text-on-surface-variant italic">目前尚無文件，點擊上方「＋ 新增」建立</div>`;
+                docHtml = `<div class="p-6 text-center text-xs text-on-surface-variant italic">目前尚無文件，點擊上方「新增」建立</div>`;
             } else {
                 docs.slice(0, 5).forEach(d => {
                     docHtml += `
                         <div class="bg-surface hover:bg-surface-dim border border-slate-200 p-3 rounded-xl transition-all cursor-pointer flex justify-between items-center group shadow-2xs" onclick="app.openDoc('${d.id}')">
                             <div class="flex items-center gap-2.5 min-w-0">
-                                <span class="text-sm">📄</span>
+                                <span class="text-primary">${icons.docs('w-4 h-4')}</span>
                                 <span class="font-bold text-xs text-on-surface truncate group-hover:text-primary transition-colors">${this.escapeHtml(d.title || '未命名文檔')}</span>
                             </div>
-                            <span class="text-xs font-mono text-on-surface-variant font-bold group-hover:translate-x-0.5 transition-transform">➔</span>
+                            <span class="text-xs text-on-surface-variant group-hover:text-primary group-hover:translate-x-0.5 transition-all">
+                                ${icons.arrowRight('w-3.5 h-3.5')}
+                            </span>
                         </div>
                     `;
                 });
@@ -138,73 +142,81 @@ export const dashboard = {
         }
     },
 
-    // ================= 📈 燃盡圖 SVG 渲染 =================
+    // ================= 📈 燃盡圖 SVG 渲染 (Fixed Accurate Coordinates & Trajectory) =================
     renderBurndownChart(tasks) {
         const container = document.getElementById('dashBurndownChartContainer');
         if (!container) return;
 
         const total = Math.max(tasks.length, 10);
         const done = tasks.filter(t => t.status === 'DONE').length;
-        const remaining = tasks.length - done;
+        const remaining = total - done;
 
-        // 計算 7 個衝刺週期的理想與實際燃盡點 (SVG 寬 600, 高 200)
         const W = 600;
         const H = 200;
-        const paddingY = 25;
-        const chartH = H - paddingY * 2;
+        const padX = 35;
+        const padY = 25;
+        const chartW = W - padX * 2;
+        const chartH = H - padY * 2;
 
+        const totalDays = 7;
+        const currentDayIndex = 4; // Day 5 of 7 (0-indexed: 4)
+
+        // 1. 理想燃盡線 (Ideal Burn): (padX, padY) -> (W - padX, H - padY)
         const idealPoints = [];
+        for (let i = 0; i < totalDays; i++) {
+            const x = Math.round(padX + (i / (totalDays - 1)) * chartW);
+            const y = Math.round(padY + (i / (totalDays - 1)) * chartH);
+            idealPoints.push(`${x},${y}`);
+        }
+        const idealPolyline = idealPoints.join(' ');
+
+        // 2. 實際燃盡曲線 (Actual Burn):
+        // 當完成率為 pct (done/total) 時，第 4 天的 y 軸位置反映實際剩餘
+        const completionRatio = tasks.length > 0 ? (done / tasks.length) : 0.35;
         const actualPoints = [];
-        const numDays = 7;
 
-        for (let i = 0; i < numDays; i++) {
-            const x = Math.round((i / (numDays - 1)) * (W - 40) + 20);
-            // 理想曲線：從頂部 (25px) 到 底部 (H - 25px)
-            const idealY = Math.round(paddingY + (i / (numDays - 1)) * chartH);
-            idealPoints.push(`${x},${idealY}`);
-
-            // 實際曲線：根據當前完成進度模擬到第 5 天 (最新進度點)
-            if (i <= 4) {
-                const ratio = (i / 4);
-                const currentRemaining = Math.max(0, total - (done * ratio));
-                const actualY = Math.round(paddingY + ((total - currentRemaining) / total) * chartH);
-                actualPoints.push({ x, y: actualY });
-            }
+        for (let i = 0; i <= currentDayIndex; i++) {
+            const x = Math.round(padX + (i / (totalDays - 1)) * chartW);
+            // 根據天數進展曲線下降
+            const dayFactor = (i / currentDayIndex);
+            const burnRatio = completionRatio * dayFactor;
+            // y 座標：起始在頂部 (padY)，隨著燃盡向下至 (padY + burnRatio * chartH)
+            const y = Math.round(padY + burnRatio * chartH);
+            actualPoints.push({ x, y });
         }
 
-        const idealPolyline = idealPoints.join(' ');
         const actualPolyline = actualPoints.map(p => `${p.x},${p.y}`).join(' ');
-        const latestPoint = actualPoints[actualPoints.length - 1] || { x: 420, y: 120 };
+        const latestPoint = actualPoints[actualPoints.length - 1];
 
         container.innerHTML = `
-            <svg class="w-full h-full overflow-visible" preserveAspectRatio="none" viewBox="0 0 ${W} ${H}">
-                <!-- 背景水平格線 -->
-                <line x1="0" y1="${paddingY}" x2="${W}" y2="${paddingY}" stroke="#E2E8F0" stroke-dasharray="4" stroke-width="1"></line>
-                <line x1="0" y1="${paddingY + chartH * 0.33}" x2="${W}" y2="${paddingY + chartH * 0.33}" stroke="#E2E8F0" stroke-dasharray="4" stroke-width="1"></line>
-                <line x1="0" y1="${paddingY + chartH * 0.66}" x2="${W}" y2="${paddingY + chartH * 0.66}" stroke="#E2E8F0" stroke-dasharray="4" stroke-width="1"></line>
-                <line x1="0" y1="${H - paddingY}" x2="${W}" y2="${H - paddingY}" stroke="#E2E8F0" stroke-width="1.5"></line>
+            <svg class="w-full h-full overflow-visible select-none" preserveAspectRatio="none" viewBox="0 0 ${W} ${H}">
+                <!-- 背景水平格線與 Y 軸標籤 -->
+                <line x1="${padX}" y1="${padY}" x2="${W - padX}" y2="${padY}" stroke="#E2E8F0" stroke-dasharray="4" stroke-width="1"></line>
+                <line x1="${padX}" y1="${padY + chartH * 0.33}" x2="${W - padX}" y2="${padY + chartH * 0.33}" stroke="#E2E8F0" stroke-dasharray="4" stroke-width="1"></line>
+                <line x1="${padX}" y1="${padY + chartH * 0.66}" x2="${W - padX}" y2="${padY + chartH * 0.66}" stroke="#E2E8F0" stroke-dasharray="4" stroke-width="1"></line>
+                <line x1="${padX}" y1="${H - padY}" x2="${W - padX}" y2="${H - padY}" stroke="#CBD5E1" stroke-width="1.5"></line>
 
                 <!-- 理想燃盡曲線 (虛線) -->
                 <polyline fill="none" points="${idealPolyline}" stroke="#94A3B8" stroke-dasharray="6" stroke-width="2"></polyline>
 
                 <!-- 實際燃盡面積漸層 -->
                 <defs>
-                    <linearGradient id="actualBurnGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stop-color="#004ac6" stop-opacity="0.25"></stop>
-                        <stop offset="100%" stop-color="#004ac6" stop-opacity="0.0"></stop>
+                    <linearGradient id="vdoBurnGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#004ac6" stop-opacity="0.22"></stop>
+                        <stop offset="100%" stop-color="#004ac6" stop-opacity="0.01"></stop>
                     </linearGradient>
                 </defs>
-                <path d="M ${actualPoints[0].x} ${actualPoints[0].y} ${actualPoints.map(p => `L ${p.x} ${p.y}`).join(' ')} L ${latestPoint.x} ${H - paddingY} L ${actualPoints[0].x} ${H - paddingY} Z" fill="url(#actualBurnGradient)"></path>
+                <path d="M ${actualPoints[0].x} ${actualPoints[0].y} ${actualPoints.map(p => `L ${p.x} ${p.y}`).join(' ')} L ${latestPoint.x} ${H - padY} L ${actualPoints[0].x} ${H - padY} Z" fill="url(#vdoBurnGradient)"></path>
 
                 <!-- 實際燃盡曲線 (實線) -->
-                <polyline fill="none" points="${actualPolyline}" stroke="#004ac6" stroke-width="3" stroke-linecap="round"></polyline>
+                <polyline fill="none" points="${actualPolyline}" stroke="#004ac6" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></polyline>
 
-                <!-- 數據點 -->
-                ${actualPoints.map(p => `<circle cx="${p.x}" cy="${p.y}" r="4.5" class="fill-primary stroke-white stroke-2"></circle>`).join('')}
+                <!-- 各天數據點 -->
+                ${actualPoints.map(p => `<circle cx="${p.x}" cy="${p.y}" r="4.5" fill="#004ac6" stroke="#ffffff" stroke-width="2.5"></circle>`).join('')}
                 
-                <!-- 最新進度高亮脈衝點 -->
-                <circle cx="${latestPoint.x}" cy="${latestPoint.y}" r="8" class="fill-primary/30 animate-ping"></circle>
-                <circle cx="${latestPoint.x}" cy="${latestPoint.y}" r="5" class="fill-primary stroke-white stroke-2"></circle>
+                <!-- 最新進度點脈衝動效 (精確吸附在曲線末端) -->
+                <circle cx="${latestPoint.x}" cy="${latestPoint.y}" r="10" fill="#004ac6" opacity="0.25" class="animate-ping"></circle>
+                <circle cx="${latestPoint.x}" cy="${latestPoint.y}" r="5" fill="#004ac6" stroke="#ffffff" stroke-width="2.5"></circle>
             </svg>
         `;
 
@@ -247,13 +259,9 @@ export const dashboard = {
         if (donutSvg) {
             donutSvg.innerHTML = `
                 <svg class="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-                    <!-- Todo -->
                     <path class="text-status-todo-border transition-all duration-500" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-dasharray="${pctTodo}, 100" stroke-dashoffset="${offsetTodo}" stroke-width="4"></path>
-                    <!-- In Progress / Doing -->
                     <path class="text-status-doing-border transition-all duration-500" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-dasharray="${pctDoing}, 100" stroke-dashoffset="${offsetDoing}" stroke-width="4"></path>
-                    <!-- Review / High Priority -->
                     <path class="text-status-review-border transition-all duration-500" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-dasharray="${pctHigh}, 100" stroke-dashoffset="${offsetHigh}" stroke-width="4"></path>
-                    <!-- Done -->
                     <path class="text-status-done-border transition-all duration-500" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-dasharray="${pctDone}, 100" stroke-dashoffset="${offsetDone}" stroke-width="4"></path>
                 </svg>
             `;
@@ -298,7 +306,6 @@ export const dashboard = {
         const container = document.getElementById('dashWorkloadList');
         if (!container) return;
 
-        // 統計每位成員任務分派
         const memberStats = members.map(m => {
             const assigned = tasks.filter(t => t.assignee === m.name || t.assignee === m.id);
             const openTasks = assigned.filter(t => t.status !== 'DONE');
@@ -326,7 +333,7 @@ export const dashboard = {
                 <div class="space-y-1.5 p-3 rounded-xl bg-surface-dim/60 border border-slate-200/60">
                     <div class="flex justify-between items-center text-xs">
                         <span class="font-bold text-on-surface flex items-center gap-1.5">
-                            <span class="text-sm">${s.member.avatar || '👤'}</span>
+                            <span class="w-5 h-5 rounded-full bg-primary text-white text-[10px] flex items-center justify-center font-bold">${s.member.name ? s.member.name.charAt(0) : 'U'}</span>
                             <span>${this.escapeHtml(s.member.name)}</span>
                             <span class="text-[10px] text-on-surface-variant font-normal">(${this.escapeHtml(s.member.role || '成員')})</span>
                         </span>
@@ -357,12 +364,10 @@ export const dashboard = {
         if (!container) return;
 
         const tasks = Array.isArray(p.tasks) ? p.tasks : [];
-        const folders = Array.isArray(p.docFolders) ? p.docFolders : [];
 
-        // 依照分類或資料夾分組 Epic
         const epics = [
-            { name: 'EPIC-01: 核心規格與架構設計', desc: '核心邏輯、資料模型與權限設計', filter: (t, idx) => idx % 3 === 0 },
-            { name: 'EPIC-02: 介面互動與組件實作', desc: 'Cockpit 總覽、看板與響應式介面', filter: (t, idx) => idx % 3 === 1 },
+            { name: 'EPIC-01: 核心規格與視覺化架構', desc: '核心邏輯、資料模型與權限設計', filter: (t, idx) => idx % 3 === 0 },
+            { name: 'EPIC-02: 介面互動與智能中台', desc: 'VDO Cockpit 總覽、看板與響應式介面', filter: (t, idx) => idx % 3 === 1 },
             { name: 'EPIC-03: 雲端同步與數據持久化', desc: 'WebRTC 多人協作、Firebase 與離線 IDB', filter: (t, idx) => idx % 3 === 2 }
         ];
 
@@ -376,7 +381,7 @@ export const dashboard = {
                 <div class="space-y-1.5 p-3 rounded-xl bg-surface-dim/60 border border-slate-200/60">
                     <div class="flex justify-between items-center">
                         <span class="font-bold text-xs text-on-surface flex items-center gap-1.5 truncate">
-                            <span>🎯</span>
+                            <span class="text-primary">${icons.kpi('w-3.5 h-3.5')}</span>
                             <span class="truncate">${epic.name}</span>
                         </span>
                         <span class="font-bold font-mono text-xs text-primary">${progress}%</span>
@@ -403,8 +408,10 @@ export const dashboard = {
                 <tr>
                     <td colspan="6" class="p-8 text-center text-xs text-on-surface-variant">
                         <div class="flex flex-col items-center justify-center space-y-2">
-                            <span class="text-2xl">🎉</span>
-                            <span class="font-bold text-on-surface">目前無任何阻礙或高風險任務</span>
+                            <div class="w-10 h-10 rounded-full bg-status-done-bg text-status-done-text flex items-center justify-center mb-1">
+                                ${icons.checkCircle('w-6 h-6')}
+                            </div>
+                            <span class="font-bold text-on-surface text-sm">目前無任何阻礙或高風險任務</span>
                             <span class="text-slate-400">所有任務皆依照規劃順暢推進中</span>
                         </div>
                     </td>
@@ -435,7 +442,7 @@ export const dashboard = {
                     </td>
                     <td class="py-3 px-4">
                         <span class="px-2 py-0.5 rounded-full bg-status-blocked-bg text-status-blocked-text text-[10px] font-bold uppercase tracking-wider inline-flex items-center gap-1">
-                            <span>⚠️</span> <span>需排解</span>
+                            ${icons.alert('w-3 h-3')} <span>需排解</span>
                         </span>
                     </td>
                     <td class="py-3 px-4">
@@ -447,8 +454,9 @@ export const dashboard = {
                         ${this.escapeHtml(t.desc || '等待進一步資源排解或技術驗證')}
                     </td>
                     <td class="py-3 px-4 text-right">
-                        <button onclick="app.switchView('Execution')" class="px-2.5 py-1 rounded-lg bg-surface border border-slate-200 text-on-surface font-bold text-xs hover:bg-primary-container hover:text-white hover:border-primary-container transition-colors shadow-2xs">
-                            處理 ➔
+                        <button onclick="app.switchView('Execution')" class="px-2.5 py-1 rounded-lg bg-surface border border-slate-200 text-on-surface font-bold text-xs hover:bg-primary-container hover:text-white hover:border-primary-container transition-colors shadow-2xs inline-flex items-center gap-1">
+                            <span>處理</span>
+                            ${icons.arrowRight('w-3 h-3')}
                         </button>
                     </td>
                 </tr>
