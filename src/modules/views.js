@@ -152,7 +152,7 @@ export const views = {
             },
 
             switchView(viewName) {
-                const views = ['Home', 'Dashboard', 'Docs', 'Wizard', 'Execution'];
+                const views = ['Home', 'Dashboard', 'Docs', 'Wizard', 'Execution', 'Kpi'];
                 if (!views.includes(viewName)) return;
 
                 // 若目標為專案內部視圖，但當前專案受密碼保護且尚未解鎖，則攔截並要求輸入密碼
@@ -181,15 +181,16 @@ export const views = {
                     'Home': document.getElementById('sideNavHome'),
                     'Dashboard': document.getElementById('sideNavDashboard'),
                     'Execution': document.getElementById('sideNavExecution'),
+                    'Kpi': document.getElementById('sideNavKpi'),
                     'Docs': document.getElementById('sideNavDocs')
                 };
 
                 for (const [key, btn] of Object.entries(sideNavMap)) {
                     if (btn) {
                         if (key === viewName) {
-                            btn.className = 'w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-bold bg-slate-900 text-white flex items-center justify-between shadow-xs transition-colors';
+                            btn.className = 'w-full text-left px-3 py-2 rounded-lg text-xs font-bold bg-slate-900 text-white flex items-center justify-between shadow-xs transition-colors';
                         } else {
-                            btn.className = 'w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-200/70 hover:text-slate-900 flex items-center justify-between transition-colors';
+                            btn.className = 'w-full text-left px-3 py-2 rounded-lg text-xs font-bold text-on-surface-variant hover:bg-surface-dim hover:text-on-surface flex items-center justify-between transition-colors';
                         }
                     }
                 }
@@ -202,6 +203,7 @@ export const views = {
                         'Dashboard': '專案總覽',
                         'Docs': '文件庫',
                         'Execution': '執行任務',
+                        'Kpi': 'KPI 指標管理',
                         'Wizard': '規格精靈'
                     };
                     breadcrumbEl.textContent = viewLabelMap[viewName] || viewName;
@@ -212,6 +214,7 @@ export const views = {
                     'Dashboard': document.getElementById('navBtnDashboard'),
                     'Docs': document.getElementById('navBtnDocs'),
                     'Execution': document.getElementById('navBtnExecution'),
+                    'Kpi': document.getElementById('navBtnKpi'),
                     'Wizard': document.getElementById('navBtnWizard')
                 };
 
@@ -232,6 +235,7 @@ export const views = {
                 if (viewName === 'Docs') this.renderDocs();
                 if (viewName === 'Wizard') this.renderWizard();
                 if (viewName === 'Execution') this.renderExecution();
+                if (viewName === 'Kpi') this.renderKpiView();
             },
 
             toggleSidebar(forceState) {

@@ -148,6 +148,26 @@ export const dataModels = {
                     p.presence = {};
                 }
 
+                // KPI 指標結構
+                if (!Array.isArray(p.kpis)) {
+                    p.kpis = [];
+                } else {
+                    p.kpis = p.kpis.map((k, idx) => ({
+                        ...k,
+                        id: k.id || 'kpi_' + (Date.now() + idx),
+                        title: k.title || '未命名指標',
+                        category: k.category || '營運',
+                        currentValue: (k.currentValue !== undefined && k.currentValue !== null) ? k.currentValue : 0,
+                        targetValue: (k.targetValue !== undefined && k.targetValue !== null) ? k.targetValue : 100,
+                        unit: k.unit || '%',
+                        trend: k.trend || 'STABLE',
+                        owner: k.owner || '',
+                        deadline: k.deadline || '',
+                        desc: k.desc || '',
+                        updatedAt: k.updatedAt || new Date().toISOString()
+                    }));
+                }
+
                 return p;
             }
 };

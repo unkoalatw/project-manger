@@ -136,7 +136,7 @@
             </div>
         </div>
 
-        <!-- 專案核心視圖導覽 (Overview / Tasks / Documents / Wizard) -->
+        <!-- 專案核心視圖導覽 (Overview / Tasks / KPI / Documents / Wizard) -->
         <div class="p-2 border-b border-slate-200 bg-surface-dim/50 space-y-1" id="sidebarPrimaryNav">
             <button id="sideNavHome" onclick="app.switchView('Home')" class="w-full text-left px-3 py-2 rounded-lg text-xs font-bold text-on-surface-variant hover:bg-surface-dim hover:text-on-surface flex items-center justify-between transition-colors">
                 <span class="flex items-center gap-2"><span>🏠</span> <span class="font-headline">專案首頁</span></span>
@@ -147,6 +147,10 @@
             <button id="sideNavExecution" onclick="app.switchView('Execution')" class="w-full text-left px-3 py-2 rounded-lg text-xs font-bold text-on-surface-variant hover:bg-surface-dim hover:text-on-surface flex items-center justify-between transition-colors">
                 <span class="flex items-center gap-2"><span>☑️</span> <span class="font-headline">執行任務</span></span>
                 <span id="sideNavTaskCount" class="text-[10px] font-mono font-bold px-2 py-0.5 bg-surface-container-high text-on-surface rounded-full shadow-xs">0</span>
+            </button>
+            <button id="sideNavKpi" onclick="app.switchView('Kpi')" class="w-full text-left px-3 py-2 rounded-lg text-xs font-bold text-on-surface-variant hover:bg-surface-dim hover:text-on-surface flex items-center justify-between transition-colors">
+                <span class="flex items-center gap-2"><span>🎯</span> <span class="font-headline">KPI 管理</span></span>
+                <span class="text-[9px] font-mono font-bold px-1.5 py-0.2 bg-primary-fixed text-on-primary-fixed rounded-full">KPI</span>
             </button>
             <button id="sideNavDocs" onclick="app.switchView('Docs')" class="w-full text-left px-3 py-2 rounded-lg text-xs font-bold text-on-surface-variant hover:bg-surface-dim hover:text-on-surface flex items-center justify-between transition-colors">
                 <span class="flex items-center gap-2"><span>📄</span> <span class="font-headline">文件庫</span></span>
@@ -816,6 +820,41 @@
                 </div>
             </div>
 
+            <!-- 視圖 5: KPI 管理檢視器 (KPI Cockpit Viewer) -->
+            <div id="viewKpi" class="hidden h-full flex flex-col p-4 md:p-6 space-y-6 max-w-6xl mx-auto overflow-y-auto no-scrollbar pb-24 md:pb-12">
+                <!-- Top Ribbon -->
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-surface p-5 sm:p-6 rounded-xl border border-slate-200 shadow-sm">
+                    <div class="flex flex-col">
+                        <div class="flex items-center gap-2">
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-primary font-mono">Performance & Objectives</span>
+                            <span class="text-on-surface-variant font-caption-xs">•</span>
+                            <span class="text-xs text-on-surface-variant">Live KPI Cockpit</span>
+                        </div>
+                        <h2 class="font-headline font-bold text-xl sm:text-2xl text-on-surface mt-1">專案 KPI 管理與關鍵成果檢視器</h2>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="app.openNewKpiModal()" class="px-4 py-2 bg-primary-container text-on-primary rounded-lg font-bold text-xs shadow-sm hover:opacity-90 transition-opacity flex items-center gap-1.5" type="button">
+                            <span>＋</span> <span>建立新 KPI 指標</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- KPI Summary Metric Cards -->
+                <div id="kpiSummaryStats">
+                    <!-- 動態載入 KPI 統計 -->
+                </div>
+
+                <!-- 分類篩選列 -->
+                <div class="flex items-center gap-2 overflow-x-auto no-scrollbar pb-1" id="kpiCategoryFilterBar">
+                    <!-- 動態載入分類篩選 -->
+                </div>
+
+                <!-- KPI 卡片網格 -->
+                <div id="kpiGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                    <!-- 動態載入 KPI 卡片 -->
+                </div>
+            </div>
+
         </div>
     </main>
 
@@ -828,11 +867,88 @@
             <span class="text-xl mb-0.5">📊</span>
             <span class="text-[10px] font-semibold">總覽</span>
         </button>
+        <button onclick="app.switchView('Execution')" class="flex flex-col items-center justify-center w-full h-full text-slate-500 hover:text-slate-900 transition-colors" id="navBtnExecution">
+            <span class="text-xl mb-0.5">☑️</span>
+            <span class="text-[10px] font-semibold">任務</span>
+        </button>
+        <button onclick="app.switchView('Kpi')" class="flex flex-col items-center justify-center w-full h-full text-slate-500 hover:text-slate-900 transition-colors" id="navBtnKpi">
+            <span class="text-xl mb-0.5">🎯</span>
+            <span class="text-[10px] font-semibold">KPI</span>
+        </button>
         <button onclick="app.switchView('Docs')" class="flex flex-col items-center justify-center w-full h-full text-slate-500 hover:text-slate-900 transition-colors" id="navBtnDocs">
             <span class="text-xl mb-0.5">📄</span>
             <span class="text-[10px] font-semibold">文檔</span>
         </button>
-        <button onclick="app.switchView('Execution')" class="flex flex-col items-center justify-center w-full h-full text-slate-500 hover:text-slate-900 transition-colors" id="navBtnExecution">
+    </nav>
+
+    <!-- Modal: 新增 / 編輯 KPI 指標 Modal -->
+    <div id="kpiModal" class="hidden fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4" onclick="document.getElementById('kpiModal').classList.add('hidden')">
+        <div class="bg-surface border border-slate-200 rounded-xl max-w-lg w-full p-6 space-y-4 shadow-xl text-on-surface" onclick="event.stopPropagation()">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <div class="flex items-center gap-2">
+                    <span class="text-xl">🎯</span>
+                    <h3 class="font-headline font-bold text-lg text-on-surface">KPI 指標設定</h3>
+                </div>
+                <button type="button" onclick="document.getElementById('kpiModal').classList.add('hidden')" class="text-on-surface-variant hover:text-on-surface text-lg font-bold">✕</button>
+            </div>
+
+            <input type="hidden" id="editKpiId">
+
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="block font-bold text-on-surface mb-1">指標名稱 <span class="text-red-500">*</span></label>
+                    <input type="text" id="editKpiTitle" placeholder="例如：核心服務延遲降至 100ms 以下、付費轉換率..." class="flat-input w-full p-2.5 bg-surface border border-slate-200 rounded-lg text-xs font-semibold">
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-on-surface mb-1">指標分類 / 維度</label>
+                        <input type="text" id="editKpiCategory" placeholder="核心業務 / 技術性能 / 營收..." class="flat-input w-full p-2 bg-surface border border-slate-200 rounded-lg text-xs">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-on-surface mb-1">負責人 / 團隊</label>
+                        <input type="text" id="editKpiOwner" placeholder="例如：前端團隊 / Alex..." class="flat-input w-full p-2 bg-surface border border-slate-200 rounded-lg text-xs">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-3 gap-3">
+                    <div>
+                        <label class="block font-bold text-on-surface mb-1">目前進度數值</label>
+                        <input type="text" id="editKpiCurrentValue" placeholder="88.4" class="flat-input w-full p-2 bg-surface border border-slate-200 rounded-lg text-xs font-mono font-bold">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-on-surface mb-1">目標數值</label>
+                        <input type="text" id="editKpiTargetValue" placeholder="100" class="flat-input w-full p-2 bg-surface border border-slate-200 rounded-lg text-xs font-mono font-bold">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-on-surface mb-1">單位 (可選)</label>
+                        <input type="text" id="editKpiUnit" placeholder="%, 萬, 次, ms" class="flat-input w-full p-2 bg-surface border border-slate-200 rounded-lg text-xs">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block font-bold text-on-surface mb-1">趨勢標籤 (如 ▲ +4.2%)</label>
+                        <input type="text" id="editKpiTrend" placeholder="▲ +4.2% / ▼ -1.5%" class="flat-input w-full p-2 bg-surface border border-slate-200 rounded-lg text-xs font-mono">
+                    </div>
+                    <div>
+                        <label class="block font-bold text-on-surface mb-1">目標截止日</label>
+                        <input type="date" id="editKpiDeadline" class="flat-input w-full p-2 bg-surface border border-slate-200 rounded-lg text-xs">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-bold text-on-surface mb-1">詳細說明與衡量方式</label>
+                    <textarea id="editKpiDesc" rows="2" placeholder="說明此指標的重要性與驗收計算標準..." class="flat-input w-full p-2 bg-surface border border-slate-200 rounded-lg text-xs leading-relaxed"></textarea>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                <button type="button" onclick="document.getElementById('kpiModal').classList.add('hidden')" class="px-3.5 py-2 bg-surface-dim hover:bg-surface-container-high text-on-surface font-bold text-xs rounded-lg transition-colors">取消</button>
+                <button type="button" onclick="app.saveKpi()" class="px-4 py-2 bg-primary-container hover:opacity-90 text-on-primary font-bold text-xs rounded-lg shadow-sm transition-opacity">儲存指標</button>
+            </div>
+        </div>
+    </div>
             <span class="text-xl mb-0.5">✅</span>
             <span class="text-[10px] font-semibold">任務</span>
         </button>
