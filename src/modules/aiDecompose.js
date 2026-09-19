@@ -394,26 +394,7 @@ export const aiDecompose = {
                     console.error('[AI Decompose] GAS HTTP Error:', proxyResponse.status, errText);
                 }
             } catch (proxyErr) {
-                console.warn('[AI Decompose] GAS POST Failed, retrying via GET fallback...', proxyErr);
-                try {
-                    const params = new URLSearchParams({
-                        action: 'ai_task_decompose',
-                        token: this.state.authToken || '',
-                        projectContext: projectContext.slice(0, 1000),
-                        userNotes: (userNotes || '').slice(0, 500),
-                        t: Date.now().toString()
-                    });
-                    const getUrl = this.state.gasUrl + (this.state.gasUrl.includes('?') ? '&' : '?') + params.toString();
-                    const getRes = await fetch(getUrl, { method: 'GET', redirect: 'follow', cache: 'no-store' });
-                    if (getRes.ok) {
-                        const getResult = await getRes.json();
-                        if (getResult.status === 'success' && getResult.data) {
-                            return getResult.data;
-                        }
-                    }
-                } catch (getErr) {
-                    console.error('[AI Decompose] GAS GET Fallback Failed:', getErr);
-                }
+                console.warn('[AI Decompose] GAS POST Failed:', proxyErr);
             }
         }
 
@@ -426,7 +407,7 @@ export const aiDecompose = {
                     'Authorization': `Bearer ${clientKey}`
                 },
                 body: JSON.stringify({
-                    model: 'openai/gpt-oss-20b',
+                    model: 'llama-3.3-70b-versatile',
                     messages: [
                         { role: 'system', content: systemPrompt },
                         { role: 'user', content: userMessage }
