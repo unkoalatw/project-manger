@@ -221,12 +221,9 @@ export const views = {
                 for (const [key, btn] of Object.entries(navBtns)) {
                     if (btn) {
                         if (key === viewName) {
-                            btn.classList.add('text-black', 'bg-zinc-200');
-                            btn.classList.remove('text-zinc-500');
-                            if(key === 'Wizard') btn.classList.add('bg-violet-200');
+                            btn.className = 'flex flex-col items-center justify-center w-full h-full text-primary font-bold bg-primary-fixed/40 transition-colors';
                         } else {
-                            btn.classList.remove('text-black', 'bg-zinc-200', 'bg-violet-200');
-                            btn.classList.add('text-zinc-500');
+                            btn.className = 'flex flex-col items-center justify-center w-full h-full text-slate-500 hover:text-slate-900 transition-colors';
                         }
                     }
                 }
