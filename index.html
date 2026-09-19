@@ -16,10 +16,63 @@
     <link rel="apple-touch-icon" href="icon-192.png">
     <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              'surface': '#FFFFFF',
+              'surface-dim': '#F1F5F9',
+              'surface-container-high': '#E2E8F0',
+              'surface-bright': '#faf8ff',
+              'on-surface': '#0F172A',
+              'on-surface-variant': '#475569',
+              'background': '#F8FAFC',
+              'primary': '#004ac6',
+              'primary-container': '#2563eb',
+              'on-primary': '#ffffff',
+              'primary-fixed': '#dbe1ff',
+              'primary-fixed-dim': '#b4c5ff',
+              'ai-accent': '#8B5CF6',
+              'status-todo-bg': '#F8FAFC',
+              'status-todo-border': '#94A3B8',
+              'status-todo-text': '#475569',
+              'status-doing-bg': '#EFF6FF',
+              'status-doing-border': '#3B82F6',
+              'status-doing-text': '#1E40AF',
+              'status-done-bg': '#ECFDF5',
+              'status-done-border': '#10B981',
+              'status-done-text': '#065F46',
+              'status-review-bg': '#FFFBEB',
+              'status-review-border': '#F59E0B',
+              'status-review-text': '#92400E',
+              'status-blocked-bg': '#FFF1F2',
+              'status-blocked-border': '#F43F5E',
+              'status-blocked-text': '#9F1239',
+              'priority-high-bg': '#FEE2E2',
+              'priority-high-border': '#EF4444',
+              'priority-high-text': '#991B1B',
+              'priority-med-bg': '#FEF9C3',
+              'priority-med-border': '#EAB308',
+              'priority-med-text': '#854D0E',
+              'priority-low-bg': '#DBEAFE',
+              'priority-low-border': '#3B82F6',
+              'priority-low-text': '#1E40AF'
+            },
+            fontFamily: {
+              'headline': ['Manrope', 'sans-serif'],
+              'body': ['Inter', 'Plus Jakarta Sans', 'Noto Sans TC', 'sans-serif'],
+              'mono': ['JetBrains Mono', 'monospace']
+            }
+          }
+        }
+      };
+    </script>
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&family=Noto+Sans+TC:wght@400;500;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <!-- DOMPurify 網頁安全過濾器 -->
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
     <!-- Marked.js 全規格 Markdown 與 GFM 表格解析引擎 -->
@@ -48,15 +101,18 @@
     
     <aside id="sidebar" class="bg-slate-50/80 border-r border-slate-200 w-72 flex-shrink-0 flex flex-col fixed md:relative z-50 h-full transform -translate-x-full md:translate-x-0 transition-transform duration-300 select-none">
         <!-- 側邊欄頭部 -->
-        <div class="p-4 border-b border-slate-200 bg-white flex items-center justify-between">
-            <h1 class="font-bold text-base tracking-tight text-slate-800 flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity" onclick="app.switchView('Home')" title="返回專案首頁">
-                <span class="text-xl">📁</span> FlatSpec
-            </h1>
+        <div class="h-14 px-4 border-b border-slate-200 bg-surface flex items-center justify-between shrink-0">
+            <div class="flex items-center gap-2.5 cursor-pointer" onclick="app.switchView('Home')" title="返回專案首頁">
+                <div class="w-7 h-7 rounded-lg bg-primary-container flex items-center justify-center text-white font-black text-sm shadow-xs">
+                    <span>⚡</span>
+                </div>
+                <div class="flex flex-col">
+                    <span class="font-headline font-bold text-sm text-on-surface leading-tight tracking-tight">FlatSpec</span>
+                    <span class="text-[9px] font-mono text-on-surface-variant uppercase tracking-widest leading-none mt-0.5">Execution Core</span>
+                </div>
+            </div>
             <div class="flex items-center gap-1">
-                <button onclick="app.switchView('Home')" class="p-1 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-md flex items-center gap-1 transition-colors" title="返回專案首頁">
-                    🏠 首頁
-                </button>
-                <button onclick="app.toggleSidebar()" class="p-1 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-md flex items-center gap-1 transition-colors" title="收合側邊欄 (Ctrl+B)">
+                <button onclick="app.toggleSidebar()" class="p-1 px-1.5 hover:bg-surface-dim text-on-surface-variant hover:text-on-surface font-semibold text-xs rounded-lg transition-colors" title="收合側邊欄 (Ctrl+B)">
                     <span class="md:hidden">✕</span>
                     <span class="hidden md:inline">◀</span>
                 </button>
@@ -64,44 +120,44 @@
         </div>
 
         <!-- 專案切換與快速新增 -->
-        <div class="p-3 border-b border-slate-200 bg-white">
+        <div class="p-3 border-b border-slate-200 bg-surface">
             <div class="flex items-center justify-between gap-1.5">
                 <div class="flex-1 min-w-0">
-                    <select id="projectSelector" onchange="app.requestOpenProject(this.value, 'Docs')" class="w-full p-1.5 text-xs font-bold text-slate-800 bg-slate-50 border border-slate-200 rounded-lg cursor-pointer truncate focus:ring-1 focus:ring-indigo-500">
+                    <select id="projectSelector" onchange="app.requestOpenProject(this.value, 'Docs')" class="w-full p-1.5 text-xs font-bold text-on-surface bg-surface-dim border border-slate-200 rounded-lg cursor-pointer truncate focus:ring-1 focus:ring-primary">
                         <!-- 動態載入 -->
                     </select>
                 </div>
-                <button onclick="app.openNewProjectModal()" class="p-1.5 px-2 bg-slate-900 text-white rounded-lg font-bold text-xs hover:bg-slate-800 transition-colors shrink-0 shadow-xs" title="新建專案">
+                <button onclick="app.openNewProjectModal()" class="p-1.5 px-2.5 bg-primary-container text-white rounded-lg font-bold text-xs hover:opacity-90 transition-opacity shrink-0 shadow-xs" title="新建專案">
                     <span>＋</span>
                 </button>
-                <button onclick="app.openSettingsModal('project')" class="p-1.5 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold text-xs shrink-0 border border-slate-200 transition-colors" title="專案設定與成員">
+                <button onclick="app.openSettingsModal('project')" class="p-1.5 px-2 bg-surface hover:bg-surface-dim text-on-surface-variant hover:text-on-surface rounded-lg font-semibold text-xs shrink-0 border border-slate-200 transition-colors" title="專案設定與成員">
                     <span>⚙️</span>
                 </button>
             </div>
         </div>
 
         <!-- 專案核心視圖導覽 (Overview / Tasks / Documents / Wizard) -->
-        <div class="p-2 border-b border-slate-200 bg-slate-50/60 space-y-0.5" id="sidebarPrimaryNav">
-            <button id="sideNavHome" onclick="app.switchView('Home')" class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-200/70 hover:text-slate-900 flex items-center justify-between transition-colors">
-                <span class="flex items-center gap-2"><span>🏠</span> <span>專案首頁</span></span>
+        <div class="p-2 border-b border-slate-200 bg-surface-dim/50 space-y-1" id="sidebarPrimaryNav">
+            <button id="sideNavHome" onclick="app.switchView('Home')" class="w-full text-left px-3 py-2 rounded-lg text-xs font-bold text-on-surface-variant hover:bg-surface-dim hover:text-on-surface flex items-center justify-between transition-colors">
+                <span class="flex items-center gap-2"><span>🏠</span> <span class="font-headline">專案首頁</span></span>
             </button>
-            <button id="sideNavDashboard" onclick="app.switchView('Dashboard')" class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-200/70 hover:text-slate-900 flex items-center justify-between transition-colors">
-                <span class="flex items-center gap-2"><span>📊</span> <span>專案總覽</span></span>
+            <button id="sideNavDashboard" onclick="app.switchView('Dashboard')" class="w-full text-left px-3 py-2 rounded-lg text-xs font-bold text-on-surface-variant hover:bg-surface-dim hover:text-on-surface flex items-center justify-between transition-colors">
+                <span class="flex items-center gap-2"><span>📊</span> <span class="font-headline">專案總覽</span></span>
             </button>
-            <button id="sideNavExecution" onclick="app.switchView('Execution')" class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-200/70 hover:text-slate-900 flex items-center justify-between transition-colors">
-                <span class="flex items-center gap-2"><span>☑️</span> <span>執行任務</span></span>
-                <span id="sideNavTaskCount" class="text-[10px] font-mono font-bold px-1.5 py-0.2 bg-slate-200 text-slate-700 rounded-full">0</span>
+            <button id="sideNavExecution" onclick="app.switchView('Execution')" class="w-full text-left px-3 py-2 rounded-lg text-xs font-bold text-on-surface-variant hover:bg-surface-dim hover:text-on-surface flex items-center justify-between transition-colors">
+                <span class="flex items-center gap-2"><span>☑️</span> <span class="font-headline">執行任務</span></span>
+                <span id="sideNavTaskCount" class="text-[10px] font-mono font-bold px-2 py-0.5 bg-surface-container-high text-on-surface rounded-full shadow-xs">0</span>
             </button>
-            <button id="sideNavDocs" onclick="app.switchView('Docs')" class="w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-semibold text-slate-700 hover:bg-slate-200/70 hover:text-slate-900 flex items-center justify-between transition-colors">
-                <span class="flex items-center gap-2"><span>📄</span> <span>文件庫</span></span>
-                <span id="sideNavDocCount" class="text-[10px] font-mono font-bold px-1.5 py-0.2 bg-slate-200 text-slate-700 rounded-full">0</span>
+            <button id="sideNavDocs" onclick="app.switchView('Docs')" class="w-full text-left px-3 py-2 rounded-lg text-xs font-bold text-on-surface-variant hover:bg-surface-dim hover:text-on-surface flex items-center justify-between transition-colors">
+                <span class="flex items-center gap-2"><span>📄</span> <span class="font-headline">文件庫</span></span>
+                <span id="sideNavDocCount" class="text-[10px] font-mono font-bold px-2 py-0.5 bg-surface-container-high text-on-surface rounded-full shadow-xs">0</span>
             </button>
         </div>
 
         <!-- 搜尋列與文檔過濾 -->
-        <div class="p-2.5 border-b border-slate-200 bg-white">
+        <div class="p-2.5 border-b border-slate-200 bg-surface">
             <div class="relative">
-                <input id="searchInput" type="text" oninput="app.renderSidebar()" placeholder="過濾文檔標題..." class="w-full p-1.5 pl-7 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+                <input id="searchInput" type="text" oninput="app.renderSidebar()" placeholder="過濾文檔標題..." class="w-full p-1.5 pl-7 text-xs bg-surface-dim border border-slate-200 rounded-lg text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:bg-surface focus:ring-1 focus:ring-primary transition-all" />
                 <span class="absolute left-2 top-2 text-xs pointer-events-none text-slate-400">🔍</span>
             </div>
         </div>
@@ -112,12 +168,12 @@
         </div>
 
         <!-- 側邊欄底部 (極簡設定與工具收納) -->
-        <div class="p-2 border-t border-slate-200 bg-white flex items-center justify-between">
-            <button onclick="app.openSettingsModal('appearance')" class="flex-1 text-left px-2.5 py-1.5 hover:bg-slate-100 rounded-lg text-slate-700 font-semibold text-xs flex items-center gap-2 transition-colors" title="開啟系統設定中心">
+        <div class="p-2.5 border-t border-slate-200 bg-surface flex items-center justify-between">
+            <button onclick="app.openSettingsModal('appearance')" class="flex-1 text-left px-2.5 py-1.5 hover:bg-surface-dim rounded-lg text-on-surface-variant hover:text-on-surface font-semibold text-xs flex items-center gap-2 transition-colors" title="開啟系統設定中心">
                 <span>⚙️</span>
                 <span>系統與工作區設定</span>
             </button>
-            <button onclick="app.exportMasterMarkdown()" class="p-1.5 px-2 hover:bg-slate-100 rounded-lg text-slate-600 text-xs transition-colors shrink-0" title="匯出專案 Markdown 規格書">
+            <button onclick="app.exportMasterMarkdown()" class="p-1.5 px-2 hover:bg-surface-dim rounded-lg text-on-surface-variant hover:text-on-surface text-xs font-bold transition-colors shrink-0" title="匯出專案 Markdown 規格書">
                 <span>📦 匯出</span>
             </button>
         </div>
@@ -128,62 +184,62 @@
         <div class="w-0.5 h-6 bg-slate-300 group-hover:bg-slate-600 rounded-full transition-colors pointer-events-none"></div>
     </div>
 
-    <main class="flex-1 flex flex-col min-w-0 bg-white relative pb-16 md:pb-0 h-full overflow-hidden">
+    <main class="flex-1 flex flex-col min-w-0 bg-surface relative pb-16 md:pb-0 h-full overflow-hidden">
         
         <!-- 頂部導覽列 (Header - 現代極簡麵包屑導航與狀態整合) -->
-        <header class="h-14 border-b border-slate-200 bg-white flex items-center justify-between px-3 sm:px-5 shrink-0 shadow-xs z-10 gap-2">
+        <header class="h-14 border-b border-slate-200 bg-surface/90 backdrop-blur flex items-center justify-between px-3 sm:px-5 shrink-0 shadow-xs z-10 gap-2">
             <!-- 左側：側邊欄開關與當前位置麵包屑 -->
             <div class="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
-                <button id="sidebarToggleBtn" onclick="app.toggleSidebar()" class="p-1.5 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-md shrink-0 text-sm transition-colors" title="展開/收合側邊欄 (Ctrl+B)">
+                <button id="sidebarToggleBtn" onclick="app.toggleSidebar()" class="p-1.5 px-2 bg-surface hover:bg-surface-dim text-on-surface-variant hover:text-on-surface font-semibold rounded-lg shrink-0 text-sm transition-colors border border-slate-200" title="展開/收合側邊欄 (Ctrl+B)">
                     ☰
                 </button>
 
                 <!-- 麵包屑導航 (Breadcrumb) -->
-                <div class="flex items-center gap-1.5 min-w-0 text-xs text-slate-600 font-medium">
-                    <button onclick="app.switchView('Home')" class="hover:text-slate-900 transition-colors shrink-0 flex items-center gap-1 font-semibold text-slate-800" title="返回首頁">
-                        <span>📁</span>
-                        <span class="hidden sm:inline">FlatSpec</span>
+                <div class="flex items-center gap-1.5 min-w-0 text-xs text-on-surface-variant font-medium">
+                    <button onclick="app.switchView('Home')" class="hover:text-on-surface transition-colors shrink-0 flex items-center gap-1 font-bold text-on-surface" title="返回首頁">
+                        <span>⚡</span>
+                        <span class="hidden sm:inline font-headline">FlatSpec</span>
                     </button>
                     <span class="text-slate-300 shrink-0">/</span>
-                    <button onclick="app.openSettingsModal('project')" class="font-bold text-slate-900 hover:text-indigo-600 transition-colors truncate max-w-[140px] sm:max-w-[200px]" id="headerProjectName">
+                    <button onclick="app.openSettingsModal('project')" class="font-bold text-on-surface hover:text-primary transition-colors truncate max-w-[140px] sm:max-w-[200px]" id="headerProjectName">
                         載入中...
                     </button>
                     <span class="text-slate-300 shrink-0">/</span>
-                    <span id="headerViewBreadcrumb" class="text-indigo-600 font-semibold truncate max-w-[120px]">
+                    <span id="headerViewBreadcrumb" class="text-primary font-bold truncate max-w-[120px]">
                         文件
                     </span>
                 </div>
             </div>
 
-            <!-- 右側：全域搜尋、AI 助理、雲端同步狀態 Pill、設定 -->
+            <!-- 右側：全域搜尋、AI 助理、儲存、雲端同步狀態 Pill、設定 -->
             <div class="flex items-center gap-2 shrink-0">
                 <!-- 全域全文搜尋按鈕 (Ctrl+K) -->
-                <button onclick="app.openSearchModal()" class="p-1.5 px-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-lg flex items-center gap-1.5 transition-colors shrink-0 border border-slate-200/80" title="快速全域搜尋 (Ctrl+K)">
+                <button onclick="app.openSearchModal()" class="p-1.5 px-2.5 bg-surface-dim hover:bg-surface-container-high text-on-surface font-semibold text-xs rounded-lg flex items-center gap-1.5 transition-colors shrink-0 border border-slate-200/80" title="快速全域搜尋 (Ctrl+K)">
                     <span class="text-xs">🔍</span>
-                    <span class="hidden md:inline text-slate-700 font-medium">搜尋</span>
-                    <kbd class="hidden lg:inline bg-white border border-slate-300 rounded px-1 text-[9px] font-mono text-slate-400">⌘K</kbd>
+                    <span class="hidden md:inline text-on-surface font-medium">搜尋</span>
+                    <kbd class="hidden lg:inline bg-surface border border-slate-200 rounded px-1.5 py-0.5 text-[10px] font-mono text-on-surface-variant">⌘K</kbd>
                 </button>
 
                 <!-- AI 助理抽屜觸發按鈕 -->
-                <button onclick="app.toggleAiDocDrawer ? app.toggleAiDocDrawer() : app.openAiTaskDecomposeModal()" class="p-1.5 px-2.5 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 font-semibold text-xs rounded-lg flex items-center gap-1.5 shadow-xs transition-colors shrink-0" title="開啟 AI 專案與文檔助理">
+                <button onclick="app.toggleAiDocDrawer ? app.toggleAiDocDrawer() : app.openAiTaskDecomposeModal()" class="p-1.5 px-2.5 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 font-bold text-xs rounded-lg flex items-center gap-1.5 shadow-xs transition-colors shrink-0" title="開啟 AI 專案與文檔助理">
                     <span class="text-xs">✨</span>
                     <span class="hidden sm:inline">AI 助理</span>
                 </button>
 
                 <!-- 手動儲存按鈕 (手動同步至雲端) -->
-                <button onclick="app.manualSaveAndSync()" class="p-1.5 px-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-semibold text-xs rounded-lg flex items-center gap-1.5 transition-colors shrink-0 border border-emerald-200 shadow-xs" title="手動儲存並同步至雲端 (Ctrl+S)">
+                <button onclick="app.manualSaveAndSync()" class="p-1.5 px-2.5 bg-status-done-bg hover:bg-emerald-100 text-status-done-text font-bold text-xs rounded-lg flex items-center gap-1.5 transition-colors shrink-0 border border-status-done-border/30 shadow-xs" title="手動儲存並同步至雲端 (Ctrl+S)">
                     <span>💾</span>
                     <span class="font-bold">儲存</span>
                 </button>
 
                 <!-- 雲端同步整合狀態膠囊 (Cloud Pill) -->
-                <div id="syncStatusBadge" onclick="app.openSettingsModal('cloud')" class="cursor-pointer px-2.5 py-1.5 border border-slate-200 rounded-lg font-semibold text-xs flex items-center gap-2 bg-slate-50 hover:bg-slate-100 transition-all shrink-0 select-none group shadow-xs" title="點擊檢視雲端連線詳細資訊">
-                    <span id="syncDot" class="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
-                    <span id="syncText" class="text-slate-700 font-medium text-xs">已同步</span>
+                <div id="syncStatusBadge" onclick="app.openSettingsModal('cloud')" class="cursor-pointer px-2.5 py-1.5 border border-slate-200 rounded-lg font-bold text-xs flex items-center gap-2 bg-surface hover:bg-surface-dim transition-all shrink-0 select-none group shadow-xs" title="點擊檢視雲端連線詳細資訊">
+                    <span id="syncDot" class="w-2 h-2 rounded-full bg-status-done-border shrink-0 animate-pulse"></span>
+                    <span id="syncText" class="text-on-surface font-medium text-xs">已同步</span>
                 </div>
 
                 <!-- 系統設定按鈕 -->
-                <button onclick="app.openSettingsModal()" class="p-1.5 px-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold text-xs rounded-lg flex items-center gap-1 transition-colors shrink-0 border border-slate-200" title="開啟系統與專案設定">
+                <button onclick="app.openSettingsModal()" class="p-1.5 px-2 bg-surface hover:bg-surface-dim text-on-surface-variant hover:text-on-surface font-semibold text-xs rounded-lg flex items-center gap-1 transition-colors shrink-0 border border-slate-200" title="開啟系統與專案設定">
                     <span>⚙️</span>
                 </button>
             </div>
@@ -231,46 +287,115 @@
                 </div>
             </div>
 
-            <!-- 視圖 1: 儀表板 (Dashboard) -->
-            <div id="viewDashboard" class="hidden p-4 md:p-8 max-w-5xl mx-auto space-y-6">
-                <!-- 數據卡片 -->
+            <!-- 視圖 1: 儀表板 (Dashboard - Executive Minimalist Bento Grid) -->
+            <div id="viewDashboard" class="hidden p-4 md:p-8 max-w-6xl mx-auto space-y-6">
+                <!-- Top Executive Summary Ribbon -->
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-surface p-5 sm:p-6 rounded-xl border border-slate-200 shadow-sm">
+                    <div class="flex flex-col">
+                        <div class="flex items-center gap-2">
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-primary font-mono">Sprint Velocity & Execution</span>
+                            <span class="text-on-surface-variant font-caption-xs">•</span>
+                            <span class="text-xs text-on-surface-variant">Active Tracking</span>
+                        </div>
+                        <h1 class="font-headline font-bold text-xl sm:text-2xl text-on-surface mt-1" id="dashProjectTitleHeading">專案總覽與執行中台</h1>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="app.switchView('Execution')" class="px-3.5 py-2 rounded-lg bg-surface-dim hover:bg-surface-container-high text-on-surface font-bold text-xs transition-all flex items-center gap-1.5 border border-slate-200" type="button">
+                            <span>☑️ 進入執行看板</span>
+                        </button>
+                        <button onclick="app.exportMasterMarkdown()" class="px-3.5 py-2 rounded-lg bg-primary-container text-on-primary font-bold text-xs transition-all flex items-center gap-1.5 shadow-sm hover:opacity-90" type="button">
+                            <span>📦 匯出規格書</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Executive Bento Metric Cards -->
                 <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
-                        <div class="text-slate-400 font-semibold text-[11px] uppercase tracking-wider mb-1">專案總進度</div>
-                        <div class="text-2xl md:text-3xl font-bold font-mono text-slate-900" id="dashProgress">0%</div>
+                    <!-- Progress Card -->
+                    <div class="bg-surface border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col justify-between">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-mono">整體完成率</span>
+                            <span class="w-2 h-2 rounded-full bg-status-done-border animate-pulse"></span>
+                        </div>
+                        <div class="my-3">
+                            <div class="text-3xl sm:text-4xl font-headline font-extrabold text-on-surface" id="dashProgress">0%</div>
+                            <div class="w-full bg-surface-dim h-2 rounded-full mt-2 overflow-hidden">
+                                <div id="dashProgressBar" class="bg-primary-container h-full rounded-full transition-all duration-700" style="width: 0%;"></div>
+                            </div>
+                        </div>
+                        <span class="text-xs text-on-surface-variant">根據全專案任務即時統計</span>
                     </div>
-                    <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
-                        <div class="text-slate-400 font-semibold text-[11px] uppercase tracking-wider mb-1">待辦任務</div>
-                        <div class="text-2xl md:text-3xl font-bold font-mono text-blue-600" id="dashTodo">0</div>
+
+                    <!-- Todo Card -->
+                    <div class="bg-surface border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col justify-between">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-mono">待辦任務</span>
+                            <span class="px-1.5 py-0.5 rounded bg-status-doing-bg text-status-doing-text text-[10px] font-bold">Todo</span>
+                        </div>
+                        <div class="my-3">
+                            <div class="text-3xl sm:text-4xl font-headline font-extrabold text-status-doing-text" id="dashTodo">0</div>
+                        </div>
+                        <span class="text-xs text-on-surface-variant">待處理或進行中任務</span>
                     </div>
-                    <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
-                        <div class="text-slate-400 font-semibold text-[11px] uppercase tracking-wider mb-1">已完成</div>
-                        <div class="text-2xl md:text-3xl font-bold font-mono text-emerald-600" id="dashDone">0</div>
+
+                    <!-- Done Card -->
+                    <div class="bg-surface border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col justify-between">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-mono">已完成驗證</span>
+                            <span class="px-1.5 py-0.5 rounded bg-status-done-bg text-status-done-text text-[10px] font-bold">Verified</span>
+                        </div>
+                        <div class="my-3">
+                            <div class="text-3xl sm:text-4xl font-headline font-extrabold text-status-done-text" id="dashDone">0</div>
+                        </div>
+                        <span class="text-xs text-on-surface-variant">已完成並驗證通過</span>
                     </div>
-                    <div class="bg-white border border-slate-200 rounded-xl p-4 shadow-xs">
-                        <div class="text-slate-400 font-semibold text-[11px] uppercase tracking-wider mb-1">文檔總數</div>
-                        <div class="text-2xl md:text-3xl font-bold font-mono text-slate-900" id="dashDocs">0</div>
+
+                    <!-- Docs Card -->
+                    <div class="bg-surface border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col justify-between">
+                        <div class="flex items-center justify-between">
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-mono">知識庫文檔</span>
+                            <span class="px-1.5 py-0.5 rounded bg-primary-fixed text-on-primary-fixed text-[10px] font-bold">Docs</span>
+                        </div>
+                        <div class="my-3">
+                            <div class="text-3xl sm:text-4xl font-headline font-extrabold text-on-surface" id="dashDocs">0</div>
+                        </div>
+                        <span class="text-xs text-on-surface-variant">已索引的規格與筆記</span>
                     </div>
                 </div>
                 
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <!-- 專案概況 -->
-                    <div class="md:col-span-2 bg-white border border-slate-200 rounded-xl shadow-xs p-6 space-y-4">
-                        <div class="flex items-center justify-between border-b border-slate-200 pb-3">
-                            <h2 class="font-bold text-base text-slate-800">📌 專案願景與目標</h2>
-                            <button onclick="app.switchView('Wizard')" class="text-xs bg-slate-900 hover:bg-slate-800 text-white px-2.5 py-1 rounded-md font-semibold transition-colors">編輯精靈</button>
-                        </div>
-                        <div id="dashVision" class="prose prose-sm font-normal text-slate-600 min-h-[100px]">
-                            <!-- 動態載入願景 -->
+                <!-- Bento Bottom Grid: Vision & Quick Docs -->
+                <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+                    <!-- 專案概況與目標 (Col 1-7) -->
+                    <div class="md:col-span-7 bg-surface border border-slate-200 rounded-xl shadow-sm p-6 space-y-4 flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-3">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-base">📌</span>
+                                    <h2 class="font-headline font-bold text-base text-on-surface">專案願景與目標架構</h2>
+                                </div>
+                                <button onclick="app.switchView('Wizard')" class="text-xs bg-surface-dim hover:bg-surface-container-high text-on-surface px-2.5 py-1 rounded-lg font-bold border border-slate-200 transition-colors">✨ 編輯精靈</button>
+                            </div>
+                            <div id="dashVision" class="prose prose-slate max-w-none font-normal text-on-surface text-sm min-h-[120px] leading-relaxed">
+                                <!-- 動態載入願景 -->
+                            </div>
                         </div>
                     </div>
-                    <!-- 快捷文檔庫 -->
-                    <div class="bg-slate-50 border border-slate-200 rounded-xl shadow-xs p-6 flex flex-col">
-                        <h2 class="font-bold text-base text-slate-800 border-b border-slate-200 pb-3 mb-3">📄 快速文件存取</h2>
-                        <div id="dashDocList" class="flex-1 space-y-2 overflow-y-auto">
-                            <!-- 動態載入 -->
+
+                    <!-- 快捷文檔庫 (Col 8-12) -->
+                    <div class="md:col-span-5 bg-surface border border-slate-200 rounded-xl shadow-sm p-6 flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-3">
+                                <div class="flex items-center gap-2">
+                                    <span class="text-base">📄</span>
+                                    <h2 class="font-headline font-bold text-base text-on-surface">文件庫快速導覽</h2>
+                                </div>
+                                <button onclick="app.openNewDocModal()" class="text-xs bg-primary-container text-on-primary px-2.5 py-1 rounded-lg font-bold hover:opacity-90 shadow-xs transition-colors">＋ 新增</button>
+                            </div>
+                            <div id="dashDocList" class="space-y-2 overflow-y-auto max-h-[260px] no-scrollbar">
+                                <!-- 動態載入 -->
+                            </div>
                         </div>
-                        <button onclick="app.openNewDocModal()" class="w-full mt-4 bg-white border border-slate-200 rounded-lg py-2 font-semibold text-xs text-slate-700 hover:bg-slate-100 transition-colors shadow-xs">+ 新增文檔</button>
+                        <button onclick="app.switchView('Docs')" class="w-full mt-4 bg-surface-dim border border-slate-200 rounded-lg py-2 font-bold text-xs text-on-surface hover:bg-surface-container-high transition-colors text-center">進入完整文件庫 ➔</button>
                     </div>
                 </div>
             </div>
@@ -626,46 +751,56 @@
             </div>
 
             <!-- 視圖 4: 執行控制台 (Execution Board) -->
-            <div id="viewExecution" class="hidden h-full flex flex-col p-4 md:p-6">
-                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-4">
+            <div id="viewExecution" class="hidden h-full flex flex-col p-4 md:p-6 space-y-4">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-surface p-4 rounded-xl border border-slate-200 shadow-sm">
                     <div>
-                        <h2 class="text-xl md:text-2xl font-bold text-slate-900">✅ 執行控制台</h2>
-                        <p class="text-xs font-medium text-slate-400 mt-0.5">追蹤與管理專案里程碑</p>
-                    </div>
-                    <div class="flex items-center gap-1.5 w-full sm:w-auto">
-                        <div class="flex gap-1 p-0.5 bg-slate-100 rounded-lg border border-slate-200/80 flex-1 sm:flex-none">
-                            <button onclick="app.toggleExecutionView('list')" id="btnViewList" class="flex-1 sm:flex-none bg-white text-slate-900 px-4 py-1.5 rounded-md font-semibold text-xs shadow-xs transition-all">清單模式</button>
-                            <button onclick="app.toggleExecutionView('kanban')" id="btnViewKanban" class="flex-1 sm:flex-none bg-transparent text-slate-600 px-4 py-1.5 rounded-md font-semibold text-xs transition-all hover:text-slate-900">看板模式</button>
+                        <div class="flex items-center gap-2">
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-primary font-mono">Workstream Board</span>
+                            <span class="text-on-surface-variant font-caption-xs">•</span>
+                            <span class="text-xs text-on-surface-variant">Real-time Sync</span>
                         </div>
-                        <button onclick="app.openAiTaskDecomposeModal()" class="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-bold text-xs shadow-xs flex items-center gap-1.5 shrink-0 transition-colors" title="AI 智慧自動拆解任務 (前期準備、進行時順序、善後任務)">
-                            <span>✨</span> <span>AI 自動拆解</span>
+                        <h2 class="font-headline text-xl sm:text-2xl font-bold text-on-surface mt-0.5">執行任務與工作流看板</h2>
+                    </div>
+                    <div class="flex items-center gap-2 w-full sm:w-auto flex-wrap">
+                        <div class="flex p-0.5 bg-surface-dim rounded-lg border border-slate-200 flex-1 sm:flex-none">
+                            <button onclick="app.toggleExecutionView('kanban')" id="btnViewKanban" class="flex-1 sm:flex-none bg-surface text-on-surface px-3.5 py-1.5 rounded-md font-bold text-xs shadow-xs transition-all flex items-center justify-center gap-1">
+                                <span>📋 看板</span>
+                            </button>
+                            <button onclick="app.toggleExecutionView('list')" id="btnViewList" class="flex-1 sm:flex-none bg-transparent text-on-surface-variant px-3.5 py-1.5 rounded-md font-bold text-xs transition-all hover:text-on-surface flex items-center justify-center gap-1">
+                                <span>📑 清單</span>
+                            </button>
+                        </div>
+                        <button onclick="app.openAiTaskDecomposeModal()" class="px-3 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 rounded-lg font-bold text-xs shadow-xs flex items-center gap-1.5 shrink-0 transition-colors" title="AI 智慧自動拆解任務 (前期準備、進行時順序、善後任務)">
+                            <span>✨</span> <span>AI 拆解</span>
                         </button>
-                        <button onclick="app.openAddColumnModal()" class="px-3 py-1.5 bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 rounded-lg font-semibold text-xs shadow-xs flex items-center gap-1 shrink-0" title="自定義工作流看板欄位">
-                            <span>⚙️</span> <span class="hidden sm:inline">自定義欄位</span>
+                        <button onclick="app.openAddColumnModal()" class="px-3 py-1.5 bg-surface hover:bg-surface-dim text-on-surface border border-slate-200 rounded-lg font-bold text-xs shadow-xs flex items-center gap-1 shrink-0 transition-colors" title="自定義工作流看板欄位">
+                            <span>⚙️</span> <span class="hidden sm:inline">自訂欄位</span>
                         </button>
                     </div>
                 </div>
 
                 <!-- 成員篩選與任務新增區 -->
-                <div class="space-y-3 mb-5">
+                <div class="space-y-3">
                     <!-- 成員過濾 Chips -->
                     <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-1 text-xs font-medium" id="taskMemberFilterBar">
                         <!-- 動態載入成員過濾按鈕 -->
                     </div>
 
                     <!-- 任務新增列 -->
-                    <div class="flex flex-col sm:flex-row gap-2 bg-white p-2.5 rounded-xl border border-slate-200 shadow-xs">
-                        <input type="text" id="newTaskInput" placeholder="輸入新任務名稱... (按 Enter 新增)" class="flat-input w-full sm:flex-1 p-2 sm:p-2.5 font-medium text-sm min-w-0" onkeypress="if(event.key==='Enter') app.addTask()">
+                    <div class="flex flex-col sm:flex-row gap-2 bg-surface p-2.5 rounded-xl border border-slate-200 shadow-xs">
+                        <input type="text" id="newTaskInput" placeholder="輸入新任務名稱... (按 Enter 新增)" class="flat-input w-full sm:flex-1 p-2 sm:p-2.5 font-medium text-sm min-w-0 bg-surface border border-slate-200 rounded-lg" onkeypress="if(event.key==='Enter') app.addTask()">
                         <div class="flex items-center gap-1.5 w-full sm:w-auto shrink-0">
-                            <select id="newTaskAssignee" class="flat-input p-2 sm:p-2.5 font-medium text-xs bg-slate-50 cursor-pointer flex-1 sm:w-32 min-w-0 shrink-0">
+                            <select id="newTaskAssignee" class="flat-input p-2 sm:p-2.5 font-medium text-xs bg-surface-dim cursor-pointer flex-1 sm:w-36 min-w-0 shrink-0 border border-slate-200 rounded-lg">
                                 <!-- 動態載入指派成員 -->
                             </select>
-                            <select id="newTaskPriority" class="flat-input p-2 sm:p-2.5 font-semibold text-xs bg-slate-50 cursor-pointer w-20 sm:w-24 shrink-0">
-                                <option value="HIGH">🔴 高</option>
-                                <option value="MED" selected>🟡 中</option>
-                                <option value="LOW">🔵 低</option>
+                            <select id="newTaskPriority" class="flat-input p-2 sm:p-2.5 font-bold text-xs bg-surface-dim cursor-pointer w-24 sm:w-28 shrink-0 border border-slate-200 rounded-lg">
+                                <option value="HIGH">🔴 High</option>
+                                <option value="MED" selected>🟡 Med</option>
+                                <option value="LOW">🔵 Low</option>
                             </select>
-                            <button onclick="app.addTask()" class="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 sm:py-2.5 rounded-lg font-semibold text-xs whitespace-nowrap shadow-xs transition-colors shrink-0">＋ 新增</button>
+                            <button onclick="app.addTask()" class="bg-primary-container hover:opacity-90 text-on-primary px-4 py-2 sm:py-2.5 rounded-lg font-bold text-xs whitespace-nowrap shadow-xs transition-opacity shrink-0 flex items-center gap-1">
+                                <span>＋ 新增任務</span>
+                            </button>
                         </div>
                     </div>
                 </div>

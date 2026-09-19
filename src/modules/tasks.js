@@ -165,14 +165,14 @@ export const tasks = {
                 const filterBar = document.getElementById('taskMemberFilterBar');
                 if (filterBar) {
                     let barHtml = `
-                        <button onclick="app.setTaskMemberFilter('ALL')" class="px-2.5 py-1 border-2 border-black font-bold text-xs shrink-0 transition-colors ${this.taskMemberFilter === 'ALL' ? 'bg-black text-white' : 'bg-white hover:bg-zinc-100'}">👥 全部 (${tasks.length})</button>
+                        <button onclick="app.setTaskMemberFilter('ALL')" class="px-3 py-1.5 rounded-lg border font-bold text-xs shrink-0 transition-colors shadow-2xs ${this.taskMemberFilter === 'ALL' ? 'bg-primary-container text-on-primary border-primary-container' : 'bg-surface text-on-surface-variant border-slate-200 hover:bg-surface-dim hover:text-on-surface'}">👥 全部 (${tasks.length})</button>
                     `;
                     members.forEach(m => {
                         const count = tasks.filter(t => t.assignee === m.id || t.assignee === m.name).length;
                         const isSel = this.taskMemberFilter === m.id;
                         barHtml += `
-                            <button onclick="app.setTaskMemberFilter('${this.escapeHtml(m.id)}')" class="px-2.5 py-1 border-2 border-black font-bold text-xs shrink-0 flex items-center gap-1 transition-colors ${isSel ? 'bg-black text-white' : 'bg-white hover:bg-zinc-100'}">
-                                <span>${this.escapeHtml(m.avatar || '👤')}</span> <span>${this.escapeHtml(m.name)}</span> <span class="text-[10px] opacity-75">(${count})</span>
+                            <button onclick="app.setTaskMemberFilter('${this.escapeHtml(m.id)}')" class="px-3 py-1.5 rounded-lg border font-bold text-xs shrink-0 flex items-center gap-1.5 transition-colors shadow-2xs ${isSel ? 'bg-primary-container text-on-primary border-primary-container' : 'bg-surface text-on-surface-variant border-slate-200 hover:bg-surface-dim hover:text-on-surface'}">
+                                <span>${this.escapeHtml(m.avatar || '👤')}</span> <span>${this.escapeHtml(m.name)}</span> <span class="text-[10px] opacity-80 font-mono">(${count})</span>
                             </button>
                         `;
                     });
@@ -180,7 +180,7 @@ export const tasks = {
                     if (unassignedCount > 0) {
                         const isSel = this.taskMemberFilter === 'UNASSIGNED';
                         barHtml += `
-                            <button onclick="app.setTaskMemberFilter('UNASSIGNED')" class="px-2.5 py-1 border-2 border-black font-bold text-xs shrink-0 transition-colors ${isSel ? 'bg-black text-white' : 'bg-white hover:bg-zinc-100'}">👤 未指派 (${unassignedCount})</button>
+                            <button onclick="app.setTaskMemberFilter('UNASSIGNED')" class="px-3 py-1.5 rounded-lg border font-bold text-xs shrink-0 transition-colors shadow-2xs ${isSel ? 'bg-primary-container text-on-primary border-primary-container' : 'bg-surface text-on-surface-variant border-slate-200 hover:bg-surface-dim hover:text-on-surface'}">👤 未指派 (${unassignedCount})</button>
                         `;
                     }
                     filterBar.innerHTML = barHtml;
@@ -196,52 +196,56 @@ export const tasks = {
                 const cols = this.getProjectTaskColumns(p);
 
                 const getPrioBadge = (prio) => {
-                    if (prio === 'HIGH') return `<span class="bg-red-100 text-red-900 border border-red-500 px-1 py-0.2 text-[9px] sm:text-[10px] font-black shrink-0">🔴<span class="hidden sm:inline ml-0.5">HIGH</span></span>`;
-                    if (prio === 'LOW') return `<span class="bg-blue-100 text-blue-900 border border-blue-500 px-1 py-0.2 text-[9px] sm:text-[10px] font-black shrink-0">🔵<span class="hidden sm:inline ml-0.5">LOW</span></span>`;
-                    return `<span class="bg-yellow-100 text-yellow-900 border border-yellow-500 px-1 py-0.2 text-[9px] sm:text-[10px] font-black shrink-0">🟡<span class="hidden sm:inline ml-0.5">MED</span></span>`;
+                    if (prio === 'HIGH') return `<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-priority-high-bg text-priority-high-text font-bold text-[10px] tracking-wider uppercase"><span class="w-1.5 h-1.5 rounded-full bg-priority-high-border"></span>High</span>`;
+                    if (prio === 'LOW') return `<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-priority-low-bg text-priority-low-text font-bold text-[10px] tracking-wider uppercase"><span class="w-1.5 h-1.5 rounded-full bg-priority-low-border"></span>Low</span>`;
+                    return `<span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-priority-med-bg text-priority-med-text font-bold text-[10px] tracking-wider uppercase"><span class="w-1.5 h-1.5 rounded-full bg-priority-med-border"></span>Med</span>`;
                 };
 
                 const getAssigneeBadge = (assigneeId) => {
                     if (!assigneeId) return '';
                     const m = members.find(x => x.id === assigneeId || x.name === assigneeId);
-                    if (!m) return `<span class="bg-zinc-100 text-zinc-700 border border-zinc-400 px-1 py-0.2 text-[9px] sm:text-[10px] font-bold shrink-0">👤<span class="hidden sm:inline ml-0.5">${this.escapeHtml(assigneeId)}</span></span>`;
-                    return `<span class="bg-violet-100 text-violet-900 border border-violet-400 px-1 py-0.2 text-[9px] sm:text-[10px] font-bold flex items-center gap-0.5 shrink-0" title="${this.escapeHtml(m.name)}"><span>${this.escapeHtml(m.avatar || '👤')}</span><span class="hidden sm:inline">${this.escapeHtml(m.name)}</span></span>`;
+                    if (!m) return `<span class="inline-flex items-center gap-1 px-2 py-0.5 bg-surface-container-high text-on-surface-variant font-medium text-[11px] rounded-full"><span>👤</span><span>${this.escapeHtml(assigneeId)}</span></span>`;
+                    return `<span class="inline-flex items-center gap-1 px-2 py-0.5 bg-primary-fixed text-on-primary-fixed font-semibold text-[11px] rounded-full shadow-xs" title="${this.escapeHtml(m.name)}"><span>${this.escapeHtml(m.avatar || '👤')}</span><span>${this.escapeHtml(m.name)}</span></span>`;
                 };
 
                 // 清單模式渲染
                 if (this.state.execViewMode === 'list') {
                     const listEl = document.getElementById('execListView');
                     if(listEl) {
-                        listEl.innerHTML = filteredTasks.length === 0 ? `<div class="p-8 text-center text-zinc-400 font-bold border-2 border-dashed border-zinc-300">目前尚無符合的任務。</div>` : 
-                            filteredTasks.map(t => {
+                        listEl.innerHTML = filteredTasks.length === 0 ? `<div class="p-8 text-center text-on-surface-variant font-medium bg-surface border border-dashed border-slate-200 rounded-xl">目前尚無符合的任務。</div>` : 
+                            filteredTasks.map((t, idx) => {
                                 const commentCount = (t.comments || []).length;
                                 const audioCount = (t.audioList || []).length;
                                 const optHtml = cols.map(c => `<option value="${this.escapeHtml(c.id)}" ${t.status === c.id ? 'selected' : ''}>${this.escapeHtml(c.title)}</option>`).join('');
+                                const taskCode = `T-${(idx + 1).toString().padStart(3, '0')}`;
                                 return `
-                                    <div id="task_${t.id}" class="bg-white border border-slate-200 rounded-xl p-3 hover:border-slate-300 hover:shadow-sm transition-all flex items-center justify-between gap-3 ${t.status === 'DONE' ? 'opacity-60 bg-slate-50/70' : ''}">
-                                        <div class="flex items-center gap-2 flex-1 min-w-0">
-                                            <input type="checkbox" class="w-4 h-4 sm:w-5 sm:h-5 border-2 border-black accent-black cursor-pointer shrink-0" 
+                                    <div id="task_${t.id}" class="bg-surface border border-slate-200 rounded-xl p-3.5 hover:border-slate-300 hover:shadow-sm transition-all flex items-center justify-between gap-3 ${t.status === 'DONE' ? 'opacity-70 bg-surface-dim' : ''}">
+                                        <div class="flex items-center gap-3 flex-1 min-w-0">
+                                            <input type="checkbox" class="w-4 h-4 rounded border-slate-300 text-primary-container focus:ring-primary cursor-pointer shrink-0 accent-blue-600" 
                                                 ${t.status === 'DONE' ? 'checked' : ''} 
                                                 onchange="app.updateTaskStatus('${t.id}', this.checked ? 'DONE' : '${cols[0]?.id || 'TODO'}')">
                                             <div class="flex flex-col min-w-0">
-                                                <span onclick="app.openEditTaskModal('${t.id}')" class="font-black text-xs sm:text-sm truncate cursor-pointer hover:underline ${t.status === 'DONE' ? 'line-through text-zinc-500' : ''}" title="點擊編輯任務">${this.escapeHtml(t.title)}</span>
-                                                ${t.desc ? `<span class="text-[10px] sm:text-[11px] text-zinc-500 font-mono truncate max-w-md">${this.escapeHtml(t.desc)}</span>` : ''}
+                                                <div class="flex items-center gap-2 mb-0.5">
+                                                    <span class="font-mono text-[10px] text-on-surface-variant font-bold">${taskCode}</span>
+                                                    <span onclick="app.openEditTaskModal('${t.id}')" class="font-bold text-sm text-on-surface truncate cursor-pointer hover:text-primary transition-colors ${t.status === 'DONE' ? 'line-through text-on-surface-variant' : ''}" title="點擊編輯任務">${this.escapeHtml(t.title)}</span>
+                                                </div>
+                                                ${t.desc ? `<span class="text-xs text-on-surface-variant truncate max-w-md font-sans">${this.escapeHtml(t.desc)}</span>` : ''}
                                             </div>
                                         </div>
-                                        <div class="flex items-center gap-1 sm:gap-1.5 shrink-0">
+                                        <div class="flex items-center gap-2 shrink-0">
                                             ${getAssigneeBadge(t.assignee)}
                                             ${getPrioBadge(t.priority)}
-                                            <button onclick="app.openTaskVoiceMemoRecorder('${t.id}')" class="p-0.5 sm:p-1 px-1 sm:px-1.5 border border-slate-200 font-bold text-[10px] sm:text-[11px] bg-white hover:bg-rose-50 text-rose-600 rounded flex items-center gap-0.5 shrink-0" title="錄製/檢視語音備忘">
+                                            <button onclick="app.openTaskVoiceMemoRecorder('${t.id}')" class="px-2 py-1 bg-surface hover:bg-rose-50 text-rose-600 border border-slate-200 font-bold text-xs rounded-lg flex items-center gap-1 shrink-0 transition-colors" title="錄製/檢視語音備忘">
                                                 <span>🎙️</span> <span>${audioCount}</span>
                                             </button>
-                                            <button onclick="app.openTaskComments('${t.id}')" class="p-0.5 sm:p-1 px-1 sm:px-1.5 border border-black font-bold text-[10px] sm:text-[11px] bg-white hover:bg-yellow-200 flat-box flex items-center gap-0.5 shrink-0" title="任務討論串">
+                                            <button onclick="app.openTaskComments('${t.id}')" class="px-2 py-1 bg-surface hover:bg-surface-dim text-on-surface-variant border border-slate-200 font-bold text-xs rounded-lg flex items-center gap-1 shrink-0 transition-colors" title="任務討論串">
                                                 <span>💬</span> <span>${commentCount}</span>
                                             </button>
-                                            <select onchange="app.updateTaskStatus('${t.id}', this.value)" class="flat-input flat-select-sm text-xs font-bold bg-white cursor-pointer hidden md:block">
+                                            <select onchange="app.updateTaskStatus('${t.id}', this.value)" class="flat-input flat-select-sm text-xs font-semibold bg-surface cursor-pointer hidden md:block border border-slate-200 rounded-lg">
                                                 ${optHtml}
                                             </select>
-                                            <button onclick="app.openEditTaskModal('${t.id}')" class="text-zinc-600 hover:bg-zinc-200 p-1 border border-transparent hover:border-black transition-colors text-xs font-bold shrink-0" title="編輯">✏️</button>
-                                            <button onclick="app.deleteTask('${t.id}')" class="text-red-500 hover:bg-red-100 p-1 border border-transparent hover:border-red-500 transition-colors text-xs shrink-0" title="刪除">🗑️</button>
+                                            <button onclick="app.openEditTaskModal('${t.id}')" class="p-1 text-on-surface-variant hover:text-on-surface hover:bg-surface-dim rounded-lg transition-colors text-xs shrink-0" title="編輯">✏️</button>
+                                            <button onclick="app.deleteTask('${t.id}')" class="p-1 text-slate-400 hover:text-red-600 hover:bg-rose-50 rounded-lg transition-colors text-xs shrink-0" title="刪除">✕</button>
                                         </div>
                                     </div>
                                 `;
@@ -254,14 +258,12 @@ export const tasks = {
                     if (!kanbanContainer) return;
 
                     const colorStyles = {
-                        slate: { bg: 'bg-slate-50', border: 'border-slate-200', text: 'text-slate-800', badge: 'bg-slate-100 text-slate-700' },
-                        blue: { bg: 'bg-blue-50/50', border: 'border-blue-200', text: 'text-blue-800', badge: 'bg-blue-100 text-blue-800' },
-                        emerald: { bg: 'bg-emerald-50/50', border: 'border-emerald-200', text: 'text-emerald-800', badge: 'bg-emerald-100 text-emerald-800' },
-                        amber: { bg: 'bg-amber-50/50', border: 'border-amber-200', text: 'text-amber-800', badge: 'bg-amber-100 text-amber-800' },
-                        purple: { bg: 'bg-purple-50/50', border: 'border-purple-200', text: 'text-purple-800', badge: 'bg-purple-100 text-purple-800' },
-                        rose: { bg: 'bg-rose-50/50', border: 'border-rose-200', text: 'text-rose-800', badge: 'bg-rose-100 text-rose-800' },
-                        cyan: { bg: 'bg-cyan-50/50', border: 'border-cyan-200', text: 'text-cyan-800', badge: 'bg-cyan-100 text-cyan-800' },
-                        indigo: { bg: 'bg-indigo-50/50', border: 'border-indigo-200', text: 'text-indigo-800', badge: 'bg-indigo-100 text-indigo-800' }
+                        slate: { bg: 'bg-surface-dim', border: 'border-slate-200', text: 'text-on-surface', badge: 'bg-surface text-on-surface-variant font-bold' },
+                        blue: { bg: 'bg-status-doing-bg/60', border: 'border-status-doing-border/30', text: 'text-status-doing-text', badge: 'bg-status-doing-bg text-status-doing-text font-bold' },
+                        emerald: { bg: 'bg-status-done-bg/60', border: 'border-status-done-border/30', text: 'text-status-done-text', badge: 'bg-status-done-bg text-status-done-text font-bold' },
+                        amber: { bg: 'bg-status-review-bg/60', border: 'border-status-review-border/30', text: 'text-status-review-text', badge: 'bg-status-review-bg text-status-review-text font-bold' },
+                        purple: { bg: 'bg-purple-50/60', border: 'border-purple-200', text: 'text-purple-900', badge: 'bg-purple-100 text-purple-800 font-bold' },
+                        rose: { bg: 'bg-status-blocked-bg/60', border: 'border-status-blocked-border/30', text: 'text-status-blocked-text', badge: 'bg-status-blocked-bg text-status-blocked-text font-bold' }
                     };
 
                     let kanbanHtml = '';
@@ -271,38 +273,42 @@ export const tasks = {
                         const cStyle = colorStyles[col.color || 'slate'] || colorStyles.slate;
 
                         const cardsHtml = colTasks.length === 0 
-                            ? `<div class="text-xs text-slate-400 p-6 text-center italic">尚無任務</div>`
-                            : colTasks.map(t => {
+                            ? `<div class="text-xs text-on-surface-variant p-6 text-center italic bg-surface/50 border border-dashed border-slate-200 rounded-xl my-1">尚無任務</div>`
+                            : colTasks.map((t, idx) => {
                                 const commentCount = (t.comments || []).length;
                                 const audioCount = (t.audioList || []).length;
                                 const statusOptions = cols.map(c => `<option value="${this.escapeHtml(c.id)}" ${t.status === c.id ? 'selected' : ''}>${this.escapeHtml(c.title)}</option>`).join('');
+                                const taskCode = `T-${(idx + 1).toString().padStart(3, '0')}`;
 
                                 return `
-                                    <div id="task_${t.id}" draggable="true" ondragstart="app.onTaskDragStart(event, '${t.id}')" class="bg-white border border-slate-200 rounded-xl p-4 shadow-sm hover:border-slate-300 transition-all text-sm flex flex-col gap-2.5 cursor-grab active:cursor-grabbing">
-                                        <div class="flex justify-between items-start">
-                                            <span onclick="app.openEditTaskModal('${t.id}')" class="leading-tight cursor-pointer hover:underline font-black" title="點擊編輯任務">${this.escapeHtml(t.title)}</span>
-                                            <div class="flex items-center gap-1 shrink-0">
-                                                <button onclick="app.openEditTaskModal('${t.id}')" class="text-[10px] text-zinc-500 hover:text-black">✏️</button>
-                                                <button onclick="app.deleteTask('${t.id}')" class="text-xs text-zinc-400 hover:text-red-500">✕</button>
+                                    <div id="task_${t.id}" draggable="true" ondragstart="app.onTaskDragStart(event, '${t.id}')" class="bg-surface border border-slate-200 rounded-xl p-3.5 shadow-sm hover:shadow-md hover:border-slate-300 transition-all flex flex-col gap-2.5 cursor-grab active:cursor-grabbing group ${t.status === 'DONE' ? 'opacity-75' : ''}">
+                                        <div class="flex justify-between items-center">
+                                            <div class="flex items-center gap-1.5">
+                                                <span class="font-mono font-bold text-[10px] text-on-surface-variant">${taskCode}</span>
+                                            </div>
+                                            <div class="flex items-center gap-1.5">
+                                                ${getPrioBadge(t.priority)}
+                                                <button onclick="app.deleteTask('${t.id}')" class="text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity text-xs" title="刪除">✕</button>
                                             </div>
                                         </div>
-                                        ${t.desc ? `<p class="text-[11px] text-zinc-500 font-mono line-clamp-2">${this.escapeHtml(t.desc)}</p>` : ''}
-                                        <div class="flex items-center justify-between gap-1 flex-wrap">
-                                            ${getAssigneeBadge(t.assignee)}
-                                            <div class="flex items-center gap-1">
-                                                ${audioCount > 0 ? `
-                                                    <button onclick="app.openTaskVoiceMemoRecorder('${t.id}')" class="text-[10px] text-rose-600 hover:text-rose-800 flex items-center gap-0.5 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200">
-                                                        <span>🎙️</span> <span>${audioCount}</span>
+                                        <p onclick="app.openEditTaskModal('${t.id}')" class="font-bold text-sm text-on-surface leading-snug cursor-pointer hover:text-primary transition-colors ${t.status === 'DONE' ? 'line-through text-on-surface-variant' : ''}" title="點擊編輯任務">${this.escapeHtml(t.title)}</p>
+                                        ${t.desc ? `<p class="text-xs text-on-surface-variant line-clamp-2 leading-relaxed">${this.escapeHtml(t.desc)}</p>` : ''}
+                                        
+                                        <div class="flex items-center justify-between gap-1 pt-1.5 border-t border-slate-100 mt-1">
+                                            <div class="flex items-center gap-1.5 flex-wrap">
+                                                ${getAssigneeBadge(t.assignee)}
+                                                <div class="flex items-center gap-1">
+                                                    ${audioCount > 0 ? `
+                                                        <button onclick="app.openTaskVoiceMemoRecorder('${t.id}')" class="text-[10px] text-rose-600 hover:text-rose-800 flex items-center gap-0.5 bg-rose-50 px-1.5 py-0.5 rounded border border-rose-200">
+                                                            <span>🎙️</span> <span>${audioCount}</span>
+                                                        </button>
+                                                    ` : ''}
+                                                    <button onclick="app.openTaskComments('${t.id}')" class="text-[10px] text-on-surface-variant hover:text-on-surface flex items-center gap-0.5 bg-surface-dim px-1.5 py-0.5 rounded border border-slate-200">
+                                                        <span>💬</span> <span>${commentCount}</span>
                                                     </button>
-                                                ` : ''}
-                                                <button onclick="app.openTaskComments('${t.id}')" class="text-[10px] text-zinc-600 hover:text-black flex items-center gap-0.5 bg-zinc-100 px-1.5 py-0.5 border border-zinc-300">
-                                                    <span>💬</span> <span>${commentCount}</span>
-                                                </button>
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div class="flex justify-between items-center mt-1 border-t-2 border-zinc-100 pt-2">
-                                            ${getPrioBadge(t.priority)}
-                                            <select onchange="app.updateTaskStatus('${t.id}', this.value)" class="flat-input flat-select-sm text-[10px] font-bold bg-white cursor-pointer max-w-[110px]">
+                                            <select onchange="app.updateTaskStatus('${t.id}', this.value)" class="flat-input flat-select-sm text-[10px] font-bold bg-surface cursor-pointer max-w-[100px] border border-slate-200 rounded-lg">
                                                 ${statusOptions}
                                             </select>
                                         </div>
@@ -311,15 +317,17 @@ export const tasks = {
                             }).join('');
 
                         kanbanHtml += `
-                            <div ondragover="event.preventDefault(); this.classList.add('ring-2', 'ring-black');" ondragleave="this.classList.remove('ring-2', 'ring-black');" ondrop="this.classList.remove('ring-2', 'ring-black'); app.onTaskDrop(event, '${col.id}')" class="min-w-[85vw] md:min-w-[300px] flex-1 flex flex-col ${cStyle.bg} border ${cStyle.border} rounded-xl snap-center overflow-hidden transition-all">
-                                <div class="p-3 border-b ${cStyle.border} bg-white font-bold text-xs ${cStyle.text} flex justify-between items-center">
-                                    <span class="truncate">${this.escapeHtml(col.title)}</span>
+                            <div ondragover="event.preventDefault(); this.classList.add('ring-2', 'ring-primary');" ondragleave="this.classList.remove('ring-2', 'ring-primary');" ondrop="this.classList.remove('ring-2', 'ring-primary'); app.onTaskDrop(event, '${col.id}')" class="min-w-[85vw] md:min-w-[310px] flex-1 flex flex-col ${cStyle.bg} border ${cStyle.border} rounded-xl snap-center overflow-hidden transition-all shadow-inner">
+                                <div class="p-3 border-b ${cStyle.border} bg-surface font-bold text-xs ${cStyle.text} flex justify-between items-center">
+                                    <div class="flex items-center gap-2">
+                                        <span class="truncate font-headline font-bold text-sm">${this.escapeHtml(col.title)}</span>
+                                        <span class="${cStyle.badge} rounded-full px-2 py-0.5 text-[11px] font-mono shadow-xs">${colTasks.length}</span>
+                                    </div>
                                     <div class="flex items-center gap-1 shrink-0">
-                                        <span class="${cStyle.badge} rounded px-2 py-0.5 text-xs font-mono">${colTasks.length}</span>
-                                        <button type="button" onclick="app.openEditColumnModal('${col.id}')" class="text-slate-400 hover:text-slate-700 p-0.5 rounded" title="設定此欄位">⚙️</button>
+                                        <button type="button" onclick="app.openEditColumnModal('${col.id}')" class="text-on-surface-variant hover:text-on-surface p-1 rounded-lg hover:bg-surface-dim transition-colors" title="設定此欄位">⚙️</button>
                                     </div>
                                 </div>
-                                <div class="flex-1 p-2 overflow-y-auto space-y-2 no-scrollbar min-h-[120px]" id="kanbanCol_${col.id}">
+                                <div class="flex-1 p-2.5 overflow-y-auto space-y-2.5 no-scrollbar min-h-[140px]" id="kanbanCol_${col.id}">
                                     ${cardsHtml}
                                 </div>
                             </div>
@@ -328,9 +336,9 @@ export const tasks = {
 
                     // Add Column Card at the end of Kanban
                     kanbanHtml += `
-                        <div onclick="app.openAddColumnModal()" class="min-w-[180px] md:min-w-[200px] flex flex-col items-center justify-center border-2 border-dashed border-slate-300 rounded-xl p-6 text-slate-500 hover:text-slate-800 hover:border-slate-500 cursor-pointer transition-colors bg-white/50">
-                            <span class="text-2xl mb-1">➕</span>
-                            <span class="font-bold text-xs">新增自定義欄位</span>
+                        <div onclick="app.openAddColumnModal()" class="min-w-[180px] md:min-w-[220px] flex flex-col items-center justify-center border-2 border-dashed border-slate-300 rounded-xl p-6 text-on-surface-variant hover:text-on-surface hover:border-slate-500 cursor-pointer transition-colors bg-surface/50 hover:bg-surface shadow-xs">
+                            <span class="text-2xl mb-1.5">➕</span>
+                            <span class="font-bold text-xs font-headline">新增自定義欄位</span>
                         </div>
                     `;
 

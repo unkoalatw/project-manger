@@ -81,70 +81,70 @@ export const views = {
                     const isHidden = !!p.hidden;
 
                     return `
-                        <div class="bg-white border ${isHidden ? 'border-amber-400 ring-1 ring-amber-300' : 'border-slate-200'} rounded-xl hover:border-slate-300 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between group overflow-hidden"
+                        <div class="bg-surface border ${isHidden ? 'border-amber-300 ring-1 ring-amber-200' : 'border-slate-200'} rounded-xl hover:border-slate-300 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between group overflow-hidden"
                              onclick="app.requestOpenProject('${p.id}', 'Docs')">
                             <!-- 卡片頂部 -->
-                            <div class="p-5 border-b ${isHidden ? 'border-amber-100 bg-amber-50/40' : 'border-slate-100'}">
+                            <div class="p-5 border-b ${isHidden ? 'border-amber-100 bg-amber-50/40' : 'border-slate-100 bg-surface'}">
                                 <div class="flex items-start justify-between gap-2 mb-2">
                                     <div class="flex items-center gap-1.5 flex-wrap">
-                                        <span class="text-[11px] font-mono font-black px-2 py-0.5 border border-black bg-zinc-100 uppercase">
+                                        <span class="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-surface-dim text-on-surface-variant uppercase border border-slate-200">
                                             🏷️ ${safeCategory}
                                         </span>
                                         ${isHidden ? `
-                                            <span class="text-[10px] font-bold px-1.5 py-0.5 bg-amber-200 text-amber-900 border border-amber-800 rounded">
+                                            <span class="text-[10px] font-bold px-1.5 py-0.5 bg-amber-100 text-amber-800 rounded border border-amber-300">
                                                 👁️‍🗨️ 已隱藏
                                             </span>
                                         ` : ''}
                                     </div>
                                     <div class="flex items-center gap-1">
                                         ${hasPassword ? `
-                                            <span class="text-xs px-1.5 py-0.5 font-bold ${isUnlocked ? 'bg-green-100 text-green-800' : 'bg-amber-100 text-amber-800'} border border-black" title="${isUnlocked ? '已在此工作階段解鎖' : '受密碼保護'}">
+                                            <span class="text-xs px-2 py-0.5 font-bold rounded-full ${isUnlocked ? 'bg-status-done-bg text-status-done-text' : 'bg-status-review-bg text-status-review-text'}" title="${isUnlocked ? '已在此工作階段解鎖' : '受密碼保護'}">
                                                 ${isUnlocked ? '🔓 已解鎖' : '🔒 需密碼'}
                                             </span>
                                         ` : ''}
                                         ${isCurrent ? `
-                                            <span class="text-[10px] font-black bg-black text-white px-1.5 py-0.5 uppercase">
+                                            <span class="text-[10px] font-bold bg-primary-container text-on-primary px-2 py-0.5 rounded-full uppercase">
                                                 當前使用
                                             </span>
                                         ` : ''}
                                     </div>
                                 </div>
-                                <h3 class="text-xl font-black group-hover:text-violet-600 transition-colors truncate mb-1">
+                                <h3 class="text-lg font-headline font-bold text-on-surface group-hover:text-primary transition-colors truncate mb-1">
                                     ${safeTitle}
                                 </h3>
-                                <p class="text-xs text-zinc-500 font-medium">
+                                <p class="text-xs text-on-surface-variant font-normal">
                                     最後更新：${updatedStr}
                                 </p>
                             </div>
 
                             <!-- 卡片中間指標 -->
-                            <div class="p-5 space-y-3 bg-zinc-50/50">
+                            <div class="p-5 space-y-3 bg-surface-dim/40">
                                 <div class="flex items-center justify-between text-xs font-bold font-mono">
-                                    <span>專案進度</span>
-                                    <span class="${pct === 100 ? 'text-green-600' : 'text-zinc-700'} font-black">${pct}%</span>
+                                    <span class="text-on-surface-variant font-sans">專案進度</span>
+                                    <span class="${pct === 100 ? 'text-status-done-text' : 'text-on-surface'} font-bold">${pct}%</span>
                                 </div>
-                                <div class="w-full bg-zinc-200 h-2.5 border border-black overflow-hidden">
-                                    <div class="${pct === 100 ? 'bg-green-500' : (pct > 0 ? 'bg-blue-500' : 'bg-zinc-300')} h-full transition-all duration-300" style="width: ${pct}%"></div>
+                                <div class="w-full bg-surface-container-high h-2 rounded-full overflow-hidden">
+                                    <div class="${pct === 100 ? 'bg-status-done-border' : (pct > 0 ? 'bg-primary-container' : 'bg-slate-300')} h-full rounded-full transition-all duration-300" style="width: ${pct}%"></div>
                                 </div>
 
                                 <div class="grid grid-cols-2 gap-2 pt-1 text-center font-mono">
-                                    <div class="p-2 bg-white border border-black">
-                                        <div class="text-[10px] text-zinc-500 font-bold">文檔數量</div>
-                                        <div class="text-sm font-black">${docs.length} 篇</div>
+                                    <div class="p-2.5 bg-surface border border-slate-200 rounded-lg shadow-2xs">
+                                        <div class="text-[10px] text-on-surface-variant font-bold font-sans">文檔數量</div>
+                                        <div class="text-sm font-bold text-on-surface">${docs.length} 篇</div>
                                     </div>
-                                    <div class="p-2 bg-white border border-black">
-                                        <div class="text-[10px] text-zinc-500 font-bold">任務清單</div>
-                                        <div class="text-sm font-black">${doneTasks}/${totalTasks}</div>
+                                    <div class="p-2.5 bg-surface border border-slate-200 rounded-lg shadow-2xs">
+                                        <div class="text-[10px] text-on-surface-variant font-bold font-sans">任務清單</div>
+                                        <div class="text-sm font-bold text-on-surface">${doneTasks}/${totalTasks}</div>
                                     </div>
                                 </div>
                             </div>
 
                             <!-- 卡片底部動作列 -->
-                            <div class="p-3.5 bg-slate-50 border-t border-slate-100 flex items-center justify-between">
-                                <span class="text-xs font-bold text-zinc-600 group-hover:text-black">
-                                    ${hasPassword && !isUnlocked ? '輸入密碼進入編輯 ➔' : '點擊開啟文檔編輯器 ➔'}
+                            <div class="p-3.5 bg-surface border-t border-slate-100 flex items-center justify-between">
+                                <span class="text-xs font-bold text-on-surface-variant group-hover:text-primary transition-colors">
+                                    ${hasPassword && !isUnlocked ? '輸入密碼進入編輯 ➔' : '開啟文檔工作台 ➔'}
                                 </span>
-                                <span class="text-base font-black group-hover:translate-x-1 transition-transform">➔</span>
+                                <span class="text-sm font-bold text-on-surface-variant group-hover:text-primary group-hover:translate-x-1 transition-all">➔</span>
                             </div>
                         </div>
                     `;
