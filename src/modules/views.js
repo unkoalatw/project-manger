@@ -232,6 +232,7 @@ export const views = {
                 }
 
                 if (viewName === 'Home') this.renderHomeView();
+                if (viewName === 'Dashboard') this.renderDashboard();
                 if (viewName === 'Docs') this.renderDocs();
                 if (viewName === 'Wizard') this.renderWizard();
                 if (viewName === 'Execution') this.renderExecution();

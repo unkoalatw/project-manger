@@ -291,21 +291,24 @@
                 </div>
             </div>
 
-            <!-- 視圖 1: 儀表板 (Dashboard - Executive Minimalist Bento Grid) -->
-            <div id="viewDashboard" class="hidden p-4 md:p-8 max-w-6xl mx-auto space-y-6">
+            <!-- 視圖 1: 儀表板 (Dashboard - Executive Minimalist Cockpit Overview) -->
+            <div id="viewDashboard" class="hidden p-4 md:p-8 max-w-7xl mx-auto space-y-6">
                 <!-- Top Executive Summary Ribbon -->
                 <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-surface p-5 sm:p-6 rounded-xl border border-slate-200 shadow-sm">
                     <div class="flex flex-col">
                         <div class="flex items-center gap-2">
-                            <span class="text-[10px] font-bold uppercase tracking-wider text-primary font-mono">Sprint Velocity & Execution</span>
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-primary font-mono">Executive Cockpit</span>
                             <span class="text-on-surface-variant font-caption-xs">•</span>
-                            <span class="text-xs text-on-surface-variant">Active Tracking</span>
+                            <span class="text-xs text-on-surface-variant">Real-time Project Intelligence</span>
                         </div>
                         <h1 class="font-headline font-bold text-xl sm:text-2xl text-on-surface mt-1" id="dashProjectTitleHeading">專案總覽與執行中台</h1>
                     </div>
-                    <div class="flex items-center gap-2">
+                    <div class="flex items-center gap-2 flex-wrap">
                         <button onclick="app.switchView('Execution')" class="px-3.5 py-2 rounded-lg bg-surface-dim hover:bg-surface-container-high text-on-surface font-bold text-xs transition-all flex items-center gap-1.5 border border-slate-200" type="button">
-                            <span>☑️ 進入執行看板</span>
+                            <span>☑️ 執行看板</span>
+                        </button>
+                        <button onclick="app.switchView('Kpi')" class="px-3.5 py-2 rounded-lg bg-surface-dim hover:bg-surface-container-high text-on-surface font-bold text-xs transition-all flex items-center gap-1.5 border border-slate-200" type="button">
+                            <span>🎯 KPI 指標</span>
                         </button>
                         <button onclick="app.exportMasterMarkdown()" class="px-3.5 py-2 rounded-lg bg-primary-container text-on-primary font-bold text-xs transition-all flex items-center gap-1.5 shadow-sm hover:opacity-90" type="button">
                             <span>📦 匯出規格書</span>
@@ -313,61 +316,334 @@
                     </div>
                 </div>
 
-                <!-- Executive Bento Metric Cards -->
-                <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <!-- Progress Card -->
-                    <div class="bg-surface border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col justify-between">
+                <!-- 1. Top 4 Executive KPI Metric Cards -->
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- Card 1: Sprint / 專案總進度環形卡 -->
+                    <div class="bg-surface rounded-xl p-5 border border-slate-200 shadow-sm flex flex-col justify-between relative overflow-hidden group hover:-translate-y-0.5 transition-all">
                         <div class="flex items-center justify-between">
-                            <span class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-mono">整體完成率</span>
-                            <span class="w-2 h-2 rounded-full bg-status-done-border animate-pulse"></span>
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-mono">專案衝刺總進度</span>
+                            <span class="text-xs font-bold text-primary">● Active</span>
                         </div>
-                        <div class="my-3">
-                            <div class="text-3xl sm:text-4xl font-headline font-extrabold text-on-surface" id="dashProgress">0%</div>
-                            <div class="w-full bg-surface-dim h-2 rounded-full mt-2 overflow-hidden">
-                                <div id="dashProgressBar" class="bg-primary-container h-full rounded-full transition-all duration-700" style="width: 0%;"></div>
+                        <div class="flex items-center gap-4 my-3">
+                            <div class="relative w-14 h-14 flex items-center justify-center shrink-0" id="dashProgressRingSvg">
+                                <!-- 動態環形 SVG -->
+                            </div>
+                            <div class="flex flex-col">
+                                <div class="text-2xl font-headline font-extrabold text-on-surface leading-tight" id="dashProgressMainNumber">0</div>
+                                <span class="text-xs text-on-surface-variant" id="dashProgressSubtext">/ 0 任務完成</span>
                             </div>
                         </div>
-                        <span class="text-xs text-on-surface-variant">根據全專案任務即時統計</span>
+                        <div class="flex items-center justify-between pt-2 border-t border-slate-100 text-[11px] text-on-surface-variant">
+                            <span id="dashProgressPacing" class="text-status-done-text font-bold">⚡ 正常節奏推進</span>
+                            <span>即時統計</span>
+                        </div>
                     </div>
 
-                    <!-- Todo Card -->
-                    <div class="bg-surface border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col justify-between">
+                    <!-- Card 2: 燃盡速率與趨勢折線 -->
+                    <div class="bg-surface rounded-xl p-5 border border-slate-200 shadow-sm flex flex-col justify-between relative overflow-hidden group hover:-translate-y-0.5 transition-all">
                         <div class="flex items-center justify-between">
-                            <span class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-mono">待辦任務</span>
-                            <span class="px-1.5 py-0.5 rounded bg-status-doing-bg text-status-doing-text text-[10px] font-bold">Todo</span>
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-mono">燃盡與交付速率</span>
+                            <span class="text-xs font-bold text-status-doing-text">⚡ Velocity</span>
                         </div>
-                        <div class="my-3">
-                            <div class="text-3xl sm:text-4xl font-headline font-extrabold text-status-doing-text" id="dashTodo">0</div>
+                        <div class="flex items-baseline justify-between my-3">
+                            <div class="flex flex-col">
+                                <div class="flex items-baseline gap-1">
+                                    <span class="text-2xl font-headline font-extrabold text-on-surface" id="dashVelocityValue">0.0</span>
+                                    <span class="text-xs font-bold text-on-surface-variant font-mono">任務/日</span>
+                                </div>
+                                <span class="text-[11px] text-status-done-text font-bold mt-0.5" id="dashVelocityTarget">目標基準: 0.0 任務/日</span>
+                            </div>
+                            <!-- Mini Sparkline SVG -->
+                            <div class="w-20 h-8">
+                                <svg class="w-full h-full overflow-visible" viewBox="0 0 100 40">
+                                    <path d="M 0 35 Q 25 20, 50 25 T 100 5" fill="none" stroke="#004ac6" stroke-linecap="round" stroke-width="2.5"></path>
+                                    <path d="M 0 40 L 0 35 Q 25 20, 50 25 T 100 5 L 100 40 Z" fill="rgba(0, 74, 198, 0.15)"></path>
+                                </svg>
+                            </div>
                         </div>
-                        <span class="text-xs text-on-surface-variant">待處理或進行中任務</span>
+                        <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-on-surface-variant">
+                            <span>衝刺週期步調</span>
+                            <span class="text-status-done-text font-bold">穩定進行 (On Track)</span>
+                        </div>
                     </div>
 
-                    <!-- Done Card -->
-                    <div class="bg-surface border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col justify-between">
+                    <!-- Card 3: 任務週轉時間與效率 -->
+                    <div class="bg-surface rounded-xl p-5 border border-slate-200 shadow-sm flex flex-col justify-between relative overflow-hidden group hover:-translate-y-0.5 transition-all">
                         <div class="flex items-center justify-between">
-                            <span class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-mono">已完成驗證</span>
-                            <span class="px-1.5 py-0.5 rounded bg-status-done-bg text-status-done-text text-[10px] font-bold">Verified</span>
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-mono">平均交付週期</span>
+                            <span class="text-xs font-bold text-purple-600">⏱️ Cycle</span>
                         </div>
-                        <div class="my-3">
-                            <div class="text-3xl sm:text-4xl font-headline font-extrabold text-status-done-text" id="dashDone">0</div>
+                        <div class="flex items-baseline gap-2 my-3">
+                            <span class="text-2xl font-headline font-extrabold text-on-surface" id="dashCycleTime">1.4 天</span>
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-status-done-bg text-status-done-text font-mono">高效</span>
                         </div>
-                        <span class="text-xs text-on-surface-variant">已完成並驗證通過</span>
+                        <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-on-surface-variant">
+                            <span>總產出吞吐量</span>
+                            <span class="font-bold text-on-surface" id="dashThroughput">0 項已交付</span>
+                        </div>
                     </div>
 
-                    <!-- Docs Card -->
-                    <div class="bg-surface border border-slate-200 rounded-xl p-5 shadow-sm flex flex-col justify-between">
+                    <!-- Card 4: 阻礙與風險指標 -->
+                    <div class="bg-surface rounded-xl p-5 border border-slate-200 shadow-sm flex flex-col justify-between relative overflow-hidden group hover:-translate-y-0.5 transition-all">
                         <div class="flex items-center justify-between">
-                            <span class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-mono">知識庫文檔</span>
-                            <span class="px-1.5 py-0.5 rounded bg-primary-fixed text-on-primary-fixed text-[10px] font-bold">Docs</span>
+                            <span class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-mono">活躍阻礙與風險</span>
+                            <span class="text-xs font-bold text-status-blocked-text">⚠️ Risks</span>
                         </div>
-                        <div class="my-3">
-                            <div class="text-3xl sm:text-4xl font-headline font-extrabold text-on-surface" id="dashDocs">0</div>
+                        <div class="flex items-baseline gap-2 my-3">
+                            <span class="text-2xl font-headline font-extrabold text-status-blocked-text" id="dashBlockersCount">0 項</span>
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-status-done-bg text-status-done-text" id="dashBlockersBadge">運行健康</span>
                         </div>
-                        <span class="text-xs text-on-surface-variant">已索引的規格與筆記</span>
+                        <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px] text-on-surface-variant">
+                            <span>專案推進健康度</span>
+                            <span class="font-bold text-on-surface">即時監控中</span>
+                        </div>
                     </div>
                 </div>
-                
-                <!-- Bento Bottom Grid: Vision & Quick Docs -->
+
+                <!-- 2. Sprint 燃盡圖 & 生命週期分佈 (Burndown & Lifecycle Bento) -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- 燃盡圖 (Span 2 cols) -->
+                    <div class="lg:col-span-2 bg-surface rounded-xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between">
+                        <div class="flex items-center justify-between mb-4">
+                            <div>
+                                <h2 class="font-headline font-bold text-base text-on-surface flex items-center gap-2">
+                                    <span>📉</span> <span>Sprint 燃盡圖與速率追蹤 (Burndown & Velocity)</span>
+                                </h2>
+                                <p class="text-xs text-on-surface-variant mt-0.5">對比理想燃盡曲線 (Ideal Scope) 與實際剩餘任務軌跡。</p>
+                            </div>
+                            <span class="px-2.5 py-1 rounded-lg bg-surface-dim font-mono font-bold text-xs text-on-surface border border-slate-200">當前衝刺週期</span>
+                        </div>
+                        
+                        <!-- 響應式 SVG 燃盡圖容器 -->
+                        <div class="relative w-full h-56 flex items-end my-2" id="dashBurndownChartContainer">
+                            <!-- 動態注入 SVG 燃盡圖 -->
+                        </div>
+
+                        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mt-4 pt-3 border-t border-slate-100 gap-2">
+                            <div class="flex items-center gap-4 text-xs">
+                                <div class="flex items-center gap-1.5">
+                                    <div class="w-3 h-3 rounded-full bg-primary"></div>
+                                    <span class="text-on-surface font-medium">實際剩餘 (Actual Remaining)</span>
+                                </div>
+                                <div class="flex items-center gap-1.5">
+                                    <div class="w-3 h-3 rounded-full bg-status-todo-border"></div>
+                                    <span class="text-on-surface-variant font-medium">理想燃盡 (Ideal Burn)</span>
+                                </div>
+                            </div>
+                            <span class="text-xs font-bold text-status-done-text font-mono" id="dashBurndownSummary">衝刺進度推進中</span>
+                        </div>
+                    </div>
+
+                    <!-- 任務生命週期分佈圖 (Span 1 col) -->
+                    <div class="bg-surface rounded-xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between">
+                        <div>
+                            <h2 class="font-headline font-bold text-base text-on-surface flex items-center gap-2">
+                                <span>🍩</span> <span>生命週期分佈 (Lifecycle Distribution)</span>
+                            </h2>
+                            <p class="text-xs text-on-surface-variant mt-0.5">全專案任務狀態節點佔比。</p>
+                        </div>
+
+                        <!-- Donut Chart 圓環 -->
+                        <div class="flex items-center justify-center my-4">
+                            <div class="relative w-36 h-36">
+                                <div id="dashLifecycleDonutSvg" class="w-full h-full">
+                                    <!-- 動態 Donut SVG -->
+                                </div>
+                                <div class="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none">
+                                    <span class="font-headline font-extrabold text-2xl text-on-surface" id="dashLifecycleTotal">0</span>
+                                    <span class="text-[9px] font-bold text-on-surface-variant uppercase tracking-wider">Total Tasks</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Legend 狀態明細 -->
+                        <div class="space-y-1.5 pt-2 border-t border-slate-100" id="dashLifecycleLegend">
+                            <!-- 動態注入圖例與數據 -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. 四大核心管理模組 (Health, Workload, Epics, Alerts) -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <!-- 模組 1: 專案健康評估指標卡 (Project Health Metrics) -->
+                    <div class="bg-surface rounded-xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between">
+                        <div class="flex items-center justify-between mb-4">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-8 h-8 rounded-lg bg-primary-container text-on-primary flex items-center justify-center font-bold text-sm">
+                                    🛡️
+                                </div>
+                                <div>
+                                    <h3 class="font-headline font-bold text-sm text-on-surface">專案健康評估指標 (Health Radar)</h3>
+                                    <p class="text-xs text-on-surface-variant">即時風險雷達與系統資源餘量</p>
+                                </div>
+                            </div>
+                            <button onclick="app.switchView('Execution')" class="text-xs font-bold text-primary hover:underline">任務詳情 →</button>
+                        </div>
+
+                        <div class="grid grid-cols-3 gap-3 my-2">
+                            <div class="bg-surface-dim p-3 rounded-xl flex flex-col justify-between border border-slate-200/50">
+                                <span class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-mono">活躍阻礙</span>
+                                <div class="flex items-baseline gap-1 my-1">
+                                    <span class="text-2xl font-headline font-extrabold text-status-blocked-text" id="dashHealthBlockers">0</span>
+                                    <span class="text-[10px] text-on-surface-variant">active</span>
+                                </div>
+                                <span class="text-[10px] text-status-blocked-text font-bold">需即時排解</span>
+                            </div>
+                            <div class="bg-surface-dim p-3 rounded-xl flex flex-col justify-between border border-slate-200/50">
+                                <span class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-mono">團隊速率</span>
+                                <div class="flex items-baseline gap-1 my-1">
+                                    <span class="text-2xl font-headline font-extrabold text-on-surface" id="dashHealthVelocity">12</span>
+                                    <span class="text-[10px] text-on-surface-variant">tasks/wk</span>
+                                </div>
+                                <span class="text-[10px] text-status-done-text font-bold">穩定產出</span>
+                            </div>
+                            <div class="bg-surface-dim p-3 rounded-xl flex flex-col justify-between border border-slate-200/50">
+                                <span class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant font-mono">規劃週期</span>
+                                <div class="flex items-baseline gap-1 my-1">
+                                    <span class="text-2xl font-headline font-extrabold text-on-surface">Q3-Q4</span>
+                                </div>
+                                <span class="text-[10px] text-primary font-bold">目標明確</span>
+                            </div>
+                        </div>
+
+                        <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-on-surface-variant">
+                            <span>整體健康指數: <strong class="text-status-done-text font-mono" id="dashHealthScore">94.2 / 100</strong></span>
+                            <div class="flex items-center gap-1.5">
+                                <div class="w-2 h-2 rounded-full bg-status-done-border animate-pulse"></div>
+                                <span class="font-bold text-on-surface" id="dashHealthStatus">系統運作健康</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 模組 2: 核心工作負載與資源分配 (Workload & Allocation) -->
+                    <div class="bg-surface rounded-xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-8 h-8 rounded-lg bg-surface-dim text-on-surface flex items-center justify-center font-bold text-sm border border-slate-200">
+                                    👥
+                                </div>
+                                <div>
+                                    <h3 class="font-headline font-bold text-sm text-on-surface">成員負載與資源分配 (Workload)</h3>
+                                    <p class="text-xs text-on-surface-variant">團隊各成員任務容量與分配狀態</p>
+                                </div>
+                            </div>
+                            <button onclick="app.openSettingsModal('project')" class="text-xs px-2 py-1 rounded bg-surface-dim hover:bg-surface-container-high text-on-surface font-bold border border-slate-200 transition-colors">管理成員</button>
+                        </div>
+
+                        <div class="space-y-2.5 my-1" id="dashWorkloadList">
+                            <!-- 動態注入成員負載 -->
+                        </div>
+
+                        <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-on-surface-variant">
+                            <span>團隊平均負載率: <strong class="text-on-surface font-mono">82%</strong></span>
+                            <span class="text-status-done-text font-bold">資源分配均衡</span>
+                        </div>
+                    </div>
+
+                    <!-- 模組 3: 跨 Epic / 里程碑進度 (Cross-Epic Progress) -->
+                    <div class="bg-surface rounded-xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-8 h-8 rounded-lg bg-primary-fixed text-on-primary-fixed flex items-center justify-center font-bold text-sm">
+                                    🌲
+                                </div>
+                                <div>
+                                    <h3 class="font-headline font-bold text-sm text-on-surface">跨 Epic / 里程碑進度 (Cross-Epic Progress)</h3>
+                                    <p class="text-xs text-on-surface-variant">主幹工作流程與里程碑達成率</p>
+                                </div>
+                            </div>
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-primary-fixed text-on-primary-fixed font-mono">3 Epics</span>
+                        </div>
+
+                        <div class="space-y-2.5 my-1" id="dashEpicList">
+                            <!-- 動態注入 Epic 進度 -->
+                        </div>
+
+                        <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-on-surface-variant">
+                            <span>總體達成步調: <strong class="text-on-surface font-mono">良好</strong></span>
+                            <span class="text-status-done-text font-bold">準時交付中 (On Schedule)</span>
+                        </div>
+                    </div>
+
+                    <!-- 模組 4: 即時工程警示與風險摘要 (Engineering Alerts & Risks) -->
+                    <div class="bg-surface rounded-xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between">
+                        <div class="flex items-center justify-between mb-3">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-8 h-8 rounded-lg bg-status-blocked-bg text-status-blocked-text flex items-center justify-center font-bold text-sm">
+                                    ⚠️
+                                </div>
+                                <div>
+                                    <h3 class="font-headline font-bold text-sm text-on-surface">即時工程警示 (Alerts & Risks)</h3>
+                                    <p class="text-xs text-on-surface-variant">自動化異常偵測與風險摘要</p>
+                                </div>
+                            </div>
+                            <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-status-blocked-bg text-status-blocked-text font-mono">3 Active</span>
+                        </div>
+
+                        <div class="space-y-2 my-1">
+                            <div class="p-2.5 rounded-xl bg-status-blocked-bg/40 border-l-4 border-status-blocked-border flex items-start justify-between gap-2">
+                                <div class="flex items-start gap-2">
+                                    <span class="text-xs mt-0.5">🚨</span>
+                                    <div class="flex flex-col">
+                                        <span class="font-bold text-xs text-on-surface">核心 API 連線延遲預警</span>
+                                        <span class="text-[10px] text-on-surface-variant">雲端同步延遲偶發上升，已啟用本機 IndexedDB 快取保護。</span>
+                                    </div>
+                                </div>
+                                <button onclick="app.switchView('Execution')" class="px-2 py-0.5 bg-surface text-status-blocked-text font-bold text-[10px] rounded shadow-2xs hover:bg-surface-dim shrink-0">排查</button>
+                            </div>
+                            <div class="p-2.5 rounded-xl bg-status-review-bg/40 border-l-4 border-status-review-border flex items-start justify-between gap-2">
+                                <div class="flex items-start gap-2">
+                                    <span class="text-xs mt-0.5">💡</span>
+                                    <div class="flex flex-col">
+                                        <span class="font-bold text-xs text-on-surface">未分派高優先級任務</span>
+                                        <span class="text-[10px] text-on-surface-variant">待辦中有高優先級任務尚未指派負責成員。</span>
+                                    </div>
+                                </div>
+                                <button onclick="app.switchView('Execution')" class="px-2 py-0.5 bg-surface text-status-review-text font-bold text-[10px] rounded shadow-2xs hover:bg-surface-dim shrink-0">指派</button>
+                            </div>
+                        </div>
+
+                        <div class="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-on-surface-variant">
+                            <span>系統狀態: <strong class="text-status-done-text">核心服務正常運行中</strong></span>
+                            <button onclick="app.switchView('Execution')" class="text-primary font-bold hover:underline">檢視任務日誌 →</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. 即時阻礙與高風險任務矩陣 (Active Blockers Matrix Table) -->
+                <div class="bg-surface rounded-xl p-6 border border-slate-200 shadow-sm space-y-4">
+                    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div>
+                            <h2 class="font-headline font-bold text-base text-on-surface flex items-center gap-2">
+                                <span>🛑</span> <span>即時阻礙與高風險任務矩陣 (Active Blockers & Risk Matrix)</span>
+                            </h2>
+                            <p class="text-xs text-on-surface-variant mt-0.5">阻礙團隊推進之關鍵瓶頸與需立即排解的高優先級任務。</p>
+                        </div>
+                        <button onclick="app.switchView('Execution')" class="px-3 py-1.5 rounded-lg bg-surface-dim hover:bg-surface-container-high text-on-surface font-bold text-xs flex items-center gap-1.5 border border-slate-200 transition-colors w-max">
+                            <span>篩選全部任務 ➔</span>
+                        </button>
+                    </div>
+
+                    <div class="overflow-x-auto rounded-xl border border-slate-200">
+                        <table class="w-full text-left border-collapse text-xs">
+                            <thead class="bg-surface-dim border-b border-slate-200 text-[11px] font-bold text-on-surface-variant uppercase tracking-wider font-mono">
+                                <tr>
+                                    <th class="py-2.5 px-4">任務名稱</th>
+                                    <th class="py-2.5 px-4">指派成員</th>
+                                    <th class="py-2.5 px-4">狀態</th>
+                                    <th class="py-2.5 px-4">優先級</th>
+                                    <th class="py-2.5 px-4">阻礙原因 / 說明</th>
+                                    <th class="py-2.5 px-4 text-right">動作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dashBlockersTableBody" class="divide-y divide-slate-100 font-sans">
+                                <!-- 動態注入阻礙項目 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- 5. 專案概況與目標架構 + 快捷文件庫 (Vision & Docs Bento) -->
                 <div class="grid grid-cols-1 md:grid-cols-12 gap-6">
                     <!-- 專案概況與目標 (Col 1-7) -->
                     <div class="md:col-span-7 bg-surface border border-slate-200 rounded-xl shadow-sm p-6 space-y-4 flex flex-col justify-between">
