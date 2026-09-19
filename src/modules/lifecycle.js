@@ -175,12 +175,12 @@ export const lifecycle = {
                 // 3. 視窗關閉前保證推送至雲端
                 window.addEventListener('beforeunload', () => {
                     this.saveToLocal();
-                    this.sendBeaconOrKeepalivePush();
+                    this.pushBeaconSync();
                 });
 
                 window.addEventListener('pagehide', () => {
                     this.saveToLocal();
-                    this.sendBeaconOrKeepalivePush();
+                    this.pushBeaconSync();
                 });
 
                 // 4. 跨裝置 / 切換分頁感知：當用戶切回此分頁且無未存修改時，檢查雲端更新 (加入 4 秒防抖)
