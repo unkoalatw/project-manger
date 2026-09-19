@@ -174,7 +174,7 @@ export const aiDocAssistant = {
                 }
 
                 const payload = {
-                    model: 'openai/gpt-oss-20b',
+                    model: 'llama-3.3-70b-versatile',
                     messages: [
                         { role: 'system', content: systemPrompt },
                         { role: 'user', content: userMessageContent }
