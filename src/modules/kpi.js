@@ -1,4 +1,6 @@
-// FlatSpec Module: kpi
+// Visual Document Origin (VDO) Module: kpi
+import { icons } from './icons.js';
+
 export const kpi = {
     // ================= 🎯 KPI 管理檢視器 (Executive KPI Management & Tracking) =================
     kpiCategoryFilter: 'ALL',
@@ -110,14 +112,20 @@ export const kpi = {
 
         if (kpiFilterBar) {
             let filterHtml = `
-                <button onclick="app.setKpiCategoryFilter('ALL')" class="px-3 py-1.5 rounded-lg border font-bold text-xs shrink-0 transition-colors shadow-2xs ${this.kpiCategoryFilter === 'ALL' ? 'bg-primary-container text-on-primary border-primary-container' : 'bg-surface text-on-surface-variant border-slate-200 hover:bg-surface-dim hover:text-on-surface'}">🎯 全部指標 (${totalCount})</button>
+                <button onclick="app.setKpiCategoryFilter('ALL')" class="inline-flex items-center gap-1.5 h-9 min-h-[36px] px-3.5 py-1.5 rounded-lg border font-bold text-xs shrink-0 whitespace-nowrap leading-none transition-all cursor-pointer select-none shadow-2xs ${this.kpiCategoryFilter === 'ALL' ? 'bg-primary-container text-on-primary border-primary-container shadow-xs' : 'bg-surface text-on-surface-variant border-slate-200 hover:bg-surface-dim hover:text-on-surface'}">
+                    ${icons.kpi('w-3.5 h-3.5')}
+                    <span>全部指標</span>
+                    <span class="text-[10px] opacity-80 font-mono">(${totalCount})</span>
+                </button>
             `;
             catList.forEach(cat => {
                 const count = kpis.filter(k => k.category === cat).length;
                 const isSel = this.kpiCategoryFilter === cat;
                 filterHtml += `
-                    <button onclick="app.setKpiCategoryFilter('${this.escapeHtml(cat)}')" class="px-3 py-1.5 rounded-lg border font-bold text-xs shrink-0 flex items-center gap-1.5 transition-colors shadow-2xs ${isSel ? 'bg-primary-container text-on-primary border-primary-container' : 'bg-surface text-on-surface-variant border-slate-200 hover:bg-surface-dim hover:text-on-surface'}">
-                        <span>🏷️</span> <span>${this.escapeHtml(cat)}</span> <span class="text-[10px] opacity-80 font-mono">(${count})</span>
+                    <button onclick="app.setKpiCategoryFilter('${this.escapeHtml(cat)}')" class="inline-flex items-center gap-1.5 h-9 min-h-[36px] px-3.5 py-1.5 rounded-lg border font-bold text-xs shrink-0 whitespace-nowrap leading-none transition-all cursor-pointer select-none shadow-2xs ${isSel ? 'bg-primary-container text-on-primary border-primary-container shadow-xs' : 'bg-surface text-on-surface-variant border-slate-200 hover:bg-surface-dim hover:text-on-surface'}">
+                        ${icons.tag('w-3.5 h-3.5')}
+                        <span>${this.escapeHtml(cat)}</span>
+                        <span class="text-[10px] opacity-80 font-mono">(${count})</span>
                     </button>
                 `;
             });
