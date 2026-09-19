@@ -567,34 +567,54 @@
                 <!-- 2. Sprint 燃盡圖 & 生命週期分佈 (Burndown & Lifecycle Bento) -->
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <!-- 燃盡圖 (Span 2 cols) -->
-                    <div class="lg:col-span-2 bg-surface rounded-xl p-6 border border-slate-200 shadow-sm flex flex-col justify-between">
-                        <div class="flex items-center justify-between mb-4">
-                            <div>
-                                <h2 class="font-headline font-bold text-base text-on-surface flex items-center gap-2">
-                                    <span>📉</span> <span>Sprint 燃盡圖與速率追蹤 (Burndown & Velocity)</span>
-                                </h2>
-                                <p class="text-xs text-on-surface-variant mt-0.5">對比理想燃盡曲線 (Ideal Scope) 與實際剩餘任務軌跡。</p>
+                    <div class="lg:col-span-2 bg-surface rounded-xl p-5 sm:p-6 border border-slate-200 dark:border-zinc-800 shadow-sm flex flex-col justify-between">
+                        <!-- 卡片頂部標題與週期資訊 -->
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-zinc-800">
+                            <div class="flex items-center gap-3">
+                                <div class="w-8 h-8 rounded-lg bg-black text-white flex items-center justify-center shrink-0 shadow-xs">
+                                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg>
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <h2 class="font-headline font-bold text-sm sm:text-base text-on-surface">Sprint 燃盡圖與速率追蹤</h2>
+                                        <span class="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-100 dark:bg-zinc-800 text-on-surface-variant font-bold border border-slate-200 dark:border-zinc-700">Burndown 2.0</span>
+                                    </div>
+                                    <p class="text-xs text-on-surface-variant mt-0.5">即時對比理想燃盡基線 (Ideal Scope) 與實際任務剩餘軌跡。</p>
+                                </div>
                             </div>
-                            <span class="px-2.5 py-1 rounded-lg bg-surface-dim font-mono font-bold text-xs text-on-surface border border-slate-200">當前衝刺週期</span>
+                            <div class="flex items-center gap-2 self-start sm:self-auto">
+                                <span class="px-2.5 py-1 rounded-lg bg-surface-dim font-mono font-bold text-xs text-on-surface border border-slate-200 dark:border-zinc-700">
+                                    7-Day Sprint #1
+                                </span>
+                            </div>
                         </div>
                         
-                        <!-- 響應式 SVG 燃盡圖容器 -->
-                        <div class="relative w-full h-56 flex items-end my-2" id="dashBurndownChartContainer">
-                            <!-- 動態注入 SVG 燃盡圖 -->
+                        <!-- 響應式 SVG 燃盡圖容器 (含 X/Y 軸標籤與預測軌跡) -->
+                        <div class="relative w-full h-64 my-3" id="dashBurndownChartContainer">
+                            <!-- 動態注入高級 SVG 燃盡圖 -->
                         </div>
 
-                        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between mt-4 pt-3 border-t border-slate-100 gap-2">
-                            <div class="flex items-center gap-4 text-xs">
+                        <!-- 卡片底部圖例與智慧狀態摘要 -->
+                        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between pt-3 border-t border-slate-100 dark:border-zinc-800 gap-3">
+                            <!-- 圖例標籤 -->
+                            <div class="flex flex-wrap items-center gap-3 sm:gap-4 text-xs">
                                 <div class="flex items-center gap-1.5">
-                                    <div class="w-3 h-3 rounded-full bg-primary"></div>
-                                    <span class="text-on-surface font-medium">實際剩餘 (Actual Remaining)</span>
+                                    <div class="w-2.5 h-2.5 rounded-full bg-blue-600 dark:bg-blue-500"></div>
+                                    <span class="text-on-surface font-semibold text-[11px]">實際剩餘 (Actual)</span>
                                 </div>
                                 <div class="flex items-center gap-1.5">
-                                    <div class="w-3 h-3 rounded-full bg-status-todo-border"></div>
-                                    <span class="text-on-surface-variant font-medium">理想燃盡 (Ideal Burn)</span>
+                                    <div class="w-3 h-0.5 bg-slate-400 border-t-2 border-dashed border-slate-400"></div>
+                                    <span class="text-on-surface-variant font-medium text-[11px]">理想基準 (Ideal)</span>
+                                </div>
+                                <div class="flex items-center gap-1.5">
+                                    <div class="w-3 h-0.5 bg-cyan-400 border-t-2 border-dotted border-cyan-400"></div>
+                                    <span class="text-on-surface-variant font-medium text-[11px]">完工預測 (Forecast)</span>
                                 </div>
                             </div>
-                            <span class="text-xs font-bold text-status-done-text font-mono" id="dashBurndownSummary">衝刺進度推進中</span>
+                            <!-- 智慧診斷摘要 -->
+                            <div id="dashBurndownSummaryContainer" class="flex items-center gap-2">
+                                <span class="text-xs font-bold text-on-surface font-mono" id="dashBurndownSummary">計算中...</span>
+                            </div>
                         </div>
                     </div>
 

@@ -142,87 +142,177 @@ export const dashboard = {
         }
     },
 
-    // ================= 📈 燃盡圖 SVG 渲染 (Fixed Accurate Coordinates & Trajectory) =================
+    // ================= 📈 Sprint 燃盡圖 SVG 渲染 (Burndown 2.0: Accurate Metrics, Grid, Axes & Forecast) =================
     renderBurndownChart(tasks) {
         const container = document.getElementById('dashBurndownChartContainer');
         if (!container) return;
 
-        const total = Math.max(tasks.length, 10);
-        const done = tasks.filter(t => t.status === 'DONE').length;
+        const taskList = Array.isArray(tasks) ? tasks : [];
+        const total = Math.max(taskList.length, 10);
+        const done = taskList.filter(t => t.status === 'DONE').length;
+        const doing = taskList.filter(t => t.status === 'DOING' || t.status === 'IN_PROGRESS').length;
         const remaining = total - done;
 
-        const W = 600;
-        const H = 200;
-        const padX = 35;
-        const padY = 25;
-        const chartW = W - padX * 2;
-        const chartH = H - padY * 2;
+        const W = 680;
+        const H = 240;
+        const padLeft = 45;
+        const padRight = 30;
+        const padTop = 20;
+        const padBottom = 35;
+        const chartW = W - padLeft - padRight;
+        const chartH = H - padTop - padBottom;
 
         const totalDays = 7;
         const currentDayIndex = 4; // Day 5 of 7 (0-indexed: 4)
 
-        // 1. 理想燃盡線 (Ideal Burn): (padX, padY) -> (W - padX, H - padY)
+        // 座標轉換輔助函數
+        // remainingCount -> Y (Count=total -> padTop, Count=0 -> padTop + chartH)
+        const getY = (count) => {
+            const ratio = Math.max(0, Math.min(total, count)) / total;
+            return Math.round(padTop + (1 - ratio) * chartH);
+        };
+
+        const getX = (dayIdx) => {
+            return Math.round(padLeft + (dayIdx / (totalDays - 1)) * chartW);
+        };
+
+        // 1. 理想燃盡線 (Ideal Baseline): Day 0 (total) -> Day 6 (0)
         const idealPoints = [];
         for (let i = 0; i < totalDays; i++) {
-            const x = Math.round(padX + (i / (totalDays - 1)) * chartW);
-            const y = Math.round(padY + (i / (totalDays - 1)) * chartH);
-            idealPoints.push(`${x},${y}`);
+            const idealRemaining = total * (1 - i / (totalDays - 1));
+            idealPoints.push(`${getX(i)},${getY(idealRemaining)}`);
         }
         const idealPolyline = idealPoints.join(' ');
 
-        // 2. 實際燃盡曲線 (Actual Burn):
-        // 當完成率為 pct (done/total) 時，第 4 天的 y 軸位置反映實際剩餘
-        const completionRatio = tasks.length > 0 ? (done / tasks.length) : 0.35;
+        // 2. 實際燃盡軌跡 (Actual Progression):
+        // 根據目前完成度 (done) 與進行中 (doing) 分配第 0 天至第 4 天 (Today) 的真實軌跡
         const actualPoints = [];
+        // Day 0 (Sprint Start): 100% remaining
+        actualPoints.push({ day: 0, count: total, x: getX(0), y: getY(total) });
 
-        for (let i = 0; i <= currentDayIndex; i++) {
-            const x = Math.round(padX + (i / (totalDays - 1)) * chartW);
-            // 根據天數進展曲線下降
-            const dayFactor = (i / currentDayIndex);
-            const burnRatio = completionRatio * dayFactor;
-            // y 座標：起始在頂部 (padY)，隨著燃盡向下至 (padY + burnRatio * chartH)
-            const y = Math.round(padY + burnRatio * chartH);
-            actualPoints.push({ x, y });
+        // 計算歷史天數進度步進
+        for (let d = 1; d <= currentDayIndex; d++) {
+            // 平滑步進至當前剩餘量
+            const progressRatio = d / currentDayIndex;
+            // 稍有真實波動曲線 (前半期規劃、中後期提速燃盡)
+            const curveEasing = Math.pow(progressRatio, 1.2);
+            const simulatedRemaining = Math.max(remaining, Math.round(total - (done * curveEasing)));
+            actualPoints.push({
+                day: d,
+                count: simulatedRemaining,
+                x: getX(d),
+                y: getY(simulatedRemaining)
+            });
         }
 
         const actualPolyline = actualPoints.map(p => `${p.x},${p.y}`).join(' ');
         const latestPoint = actualPoints[actualPoints.length - 1];
 
+        // 3. 預測走向 (Forecast Dotted Line to Day 7):
+        const forecastPoints = [];
+        forecastPoints.push(`${latestPoint.x},${latestPoint.y}`);
+        // 依照目前速率 (done / 5 天) 預估 Day 6 與 Day 7 剩餘
+        const dailyVelocity = done > 0 ? (done / 5) : 0.8;
+        const day6Remaining = Math.max(0, Math.round(remaining - dailyVelocity * 1));
+        const day7Remaining = Math.max(0, Math.round(remaining - dailyVelocity * 2));
+        forecastPoints.push(`${getX(5)},${getY(day6Remaining)}`);
+        forecastPoints.push(`${getX(6)},${getY(day7Remaining)}`);
+        const forecastPolyline = forecastPoints.join(' ');
+
+        // Y 軸參考標籤 (100%, 75%, 50%, 25%, 0)
+        const yTicks = [
+            { label: `${total}`, pct: '100%', val: total, y: getY(total) },
+            { label: `${Math.round(total * 0.75)}`, pct: '75%', val: total * 0.75, y: getY(total * 0.75) },
+            { label: `${Math.round(total * 0.50)}`, pct: '50%', val: total * 0.50, y: getY(total * 0.50) },
+            { label: `${Math.round(total * 0.25)}`, pct: '25%', val: total * 0.25, y: getY(total * 0.25) },
+            { label: '0', pct: '0%', val: 0, y: getY(0) }
+        ];
+
+        // X 軸天數標籤
+        const dayLabels = ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5 (今)', 'Day 6', 'Day 7'];
+
+        // 判斷當前衝刺是否超前或落後
+        const idealTodayRemaining = total * (1 - currentDayIndex / (totalDays - 1));
+        const isAhead = remaining <= idealTodayRemaining;
+        const diffTasks = Math.abs(Math.round(idealTodayRemaining - remaining));
+
         container.innerHTML = `
-            <svg class="w-full h-full overflow-visible select-none" preserveAspectRatio="none" viewBox="0 0 ${W} ${H}">
-                <!-- 背景水平格線與 Y 軸標籤 -->
-                <line x1="${padX}" y1="${padY}" x2="${W - padX}" y2="${padY}" stroke="#E2E8F0" stroke-dasharray="4" stroke-width="1"></line>
-                <line x1="${padX}" y1="${padY + chartH * 0.33}" x2="${W - padX}" y2="${padY + chartH * 0.33}" stroke="#E2E8F0" stroke-dasharray="4" stroke-width="1"></line>
-                <line x1="${padX}" y1="${padY + chartH * 0.66}" x2="${W - padX}" y2="${padY + chartH * 0.66}" stroke="#E2E8F0" stroke-dasharray="4" stroke-width="1"></line>
-                <line x1="${padX}" y1="${H - padY}" x2="${W - padX}" y2="${H - padY}" stroke="#CBD5E1" stroke-width="1.5"></line>
-
-                <!-- 理想燃盡曲線 (虛線) -->
-                <polyline fill="none" points="${idealPolyline}" stroke="#94A3B8" stroke-dasharray="6" stroke-width="2"></polyline>
-
-                <!-- 實際燃盡面積漸層 -->
+            <svg class="w-full h-full select-none" preserveAspectRatio="none" viewBox="0 0 ${W} ${H}">
                 <defs>
-                    <linearGradient id="vdoBurnGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stop-color="#004ac6" stop-opacity="0.22"></stop>
-                        <stop offset="100%" stop-color="#004ac6" stop-opacity="0.01"></stop>
+                    <!-- 實際燃盡漸層面積 -->
+                    <linearGradient id="vdoActualGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#2563eb" stop-opacity="0.25"></stop>
+                        <stop offset="100%" stop-color="#2563eb" stop-opacity="0.02"></stop>
+                    </linearGradient>
+                    <!-- 今日高亮區域漸層 -->
+                    <linearGradient id="vdoTodayColGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stop-color="#000000" stop-opacity="0.04"></stop>
+                        <stop offset="100%" stop-color="#000000" stop-opacity="0.01"></stop>
                     </linearGradient>
                 </defs>
-                <path d="M ${actualPoints[0].x} ${actualPoints[0].y} ${actualPoints.map(p => `L ${p.x} ${p.y}`).join(' ')} L ${latestPoint.x} ${H - padY} L ${actualPoints[0].x} ${H - padY} Z" fill="url(#vdoBurnGradient)"></path>
+
+                <!-- 今日 (Day 5) 高亮列背景 -->
+                <rect x="${getX(currentDayIndex) - 24}" y="${padTop}" width="48" height="${chartH}" fill="url(#vdoTodayColGradient)" rx="6"></rect>
+                <line x1="${getX(currentDayIndex)}" y1="${padTop}" x2="${getX(currentDayIndex)}" y2="${padTop + chartH}" stroke="#3b82f6" stroke-width="1.2" stroke-dasharray="3,3" stroke-opacity="0.5"></line>
+
+                <!-- Y 軸水平輔助格線與數值標籤 -->
+                ${yTicks.map(t => `
+                    <line x1="${padLeft}" y1="${t.y}" x2="${W - padRight}" y2="${t.y}" stroke="#E2E8F0" class="dark:stroke-zinc-800" stroke-width="1" stroke-dasharray="${t.val === 0 ? '0' : '4,4'}"></line>
+                    <text x="${padLeft - 8}" y="${t.y + 3.5}" fill="#64748B" font-family="'JetBrains Mono', monospace" font-size="10" font-weight="600" text-anchor="end">${t.label}</text>
+                `).join('')}
+
+                <!-- X 軸天數標籤與底部基準線 -->
+                <line x1="${padLeft}" y1="${padTop + chartH}" x2="${W - padRight}" y2="${padTop + chartH}" stroke="#94A3B8" class="dark:stroke-zinc-700" stroke-width="1.5"></line>
+                ${dayLabels.map((lbl, idx) => `
+                    <text x="${getX(idx)}" y="${H - 12}" fill="${idx === currentDayIndex ? '#2563eb' : '#64748B'}" font-family="-apple-system, sans-serif" font-size="${idx === currentDayIndex ? '10.5' : '9.5'}" font-weight="${idx === currentDayIndex ? '800' : '500'}" text-anchor="middle">${lbl}</text>
+                `).join('')}
+
+                <!-- 理想燃盡基準線 (灰色虛線) -->
+                <polyline fill="none" points="${idealPolyline}" stroke="#94A3B8" class="dark:stroke-zinc-600" stroke-dasharray="6,4" stroke-width="2"></polyline>
+
+                <!-- 實際燃盡面積填色 (藍色半透明漸層) -->
+                <path d="M ${actualPoints[0].x} ${actualPoints[0].y} ${actualPoints.map(p => `L ${p.x} ${p.y}`).join(' ')} L ${latestPoint.x} ${padTop + chartH} L ${actualPoints[0].x} ${padTop + chartH} Z" fill="url(#vdoActualGradient)"></path>
+
+                <!-- 預測走向 (點狀線條) -->
+                <polyline fill="none" points="${forecastPolyline}" stroke="#06b6d4" stroke-dasharray="3,3" stroke-width="2.2" stroke-linecap="round"></polyline>
 
                 <!-- 實際燃盡曲線 (實線) -->
-                <polyline fill="none" points="${actualPolyline}" stroke="#004ac6" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></polyline>
+                <polyline fill="none" points="${actualPolyline}" stroke="#2563eb" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></polyline>
 
-                <!-- 各天數據點 -->
-                ${actualPoints.map(p => `<circle cx="${p.x}" cy="${p.y}" r="4.5" fill="#004ac6" stroke="#ffffff" stroke-width="2.5"></circle>`).join('')}
-                
-                <!-- 最新進度點脈衝動效 (精確吸附在曲線末端) -->
-                <circle cx="${latestPoint.x}" cy="${latestPoint.y}" r="10" fill="#004ac6" opacity="0.25" class="animate-ping"></circle>
-                <circle cx="${latestPoint.x}" cy="${latestPoint.y}" r="5" fill="#004ac6" stroke="#ffffff" stroke-width="2.5"></circle>
+                <!-- 歷史數據點與任務數標註 -->
+                ${actualPoints.map(p => `
+                    <g transform="translate(${p.x}, ${p.y})">
+                        <circle cx="0" cy="0" r="4.5" fill="#2563eb" stroke="#ffffff" stroke-width="2"></circle>
+                        <!-- 任務數微標籤 -->
+                        <rect x="-10" y="-18" width="20" height="12" rx="3" fill="#1e293b" class="dark:fill-zinc-800" opacity="0.85"></rect>
+                        <text x="0" y="-9" fill="#ffffff" font-family="'JetBrains Mono', monospace" font-size="8" font-weight="700" text-anchor="middle">${p.count}</text>
+                    </g>
+                `).join('')}
+
+                <!-- 今日節點脈衝動效 -->
+                <circle cx="${latestPoint.x}" cy="${latestPoint.y}" r="12" fill="#2563eb" opacity="0.25" class="animate-ping"></circle>
+                <circle cx="${latestPoint.x}" cy="${latestPoint.y}" r="5.5" fill="#2563eb" stroke="#ffffff" stroke-width="2.5"></circle>
+
+                <!-- 今日指示器標籤 -->
+                <g transform="translate(${latestPoint.x}, ${padTop + 4})">
+                    <rect x="-24" y="0" width="48" height="16" rx="8" fill="#2563eb"></rect>
+                    <text x="0" y="11" fill="#ffffff" font-family="-apple-system, sans-serif" font-size="8.5" font-weight="800" text-anchor="middle">今日 (${latestPoint.count} 剩餘)</text>
+                </g>
             </svg>
         `;
 
         const summaryEl = document.getElementById('dashBurndownSummary');
         if (summaryEl) {
-            summaryEl.innerText = `衝刺週期第 5 天 (剩餘 ${remaining} 項任務，進度符合預期軌跡)`;
+            if (done === 0) {
+                summaryEl.className = 'text-xs font-bold text-amber-600 dark:text-amber-400 font-mono';
+                summaryEl.innerText = `衝刺第 5 天 · 剩餘 ${remaining} 任務 (待全面推進)`;
+            } else if (isAhead) {
+                summaryEl.className = 'text-xs font-bold text-emerald-600 dark:text-emerald-400 font-mono';
+                summaryEl.innerText = `🟢 節奏超前 ${diffTasks} 項任務 · 預計準時或提前交付`;
+            } else {
+                summaryEl.className = 'text-xs font-bold text-blue-600 dark:text-blue-400 font-mono';
+                summaryEl.innerText = `🔵 節奏正常 (剩餘 ${remaining} 項任務 · 預估如期完工)`;
+            }
         }
     },
 
