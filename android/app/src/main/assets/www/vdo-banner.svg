@@ -1,143 +1,71 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 320" width="100%" height="100%">
-  <defs>
-    <!-- Background & Diffused Studio Orbs -->
-    <radialGradient id="bgStudio" cx="50%" cy="50%" r="70%">
-      <stop offset="0%" stop-color="#0e1326"/>
-      <stop offset="60%" stop-color="#070a14"/>
-      <stop offset="100%" stop-color="#02040a"/>
-    </radialGradient>
-    <radialGradient id="orbBlue" cx="30%" cy="40%" r="50%">
-      <stop offset="0%" stop-color="#2563eb" stop-opacity="0.35"/>
-      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
-    </radialGradient>
-    <radialGradient id="orbViolet" cx="75%" cy="60%" r="55%">
-      <stop offset="0%" stop-color="#8b5cf6" stop-opacity="0.3"/>
-      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
-    </radialGradient>
-    <radialGradient id="orbCyan" cx="50%" cy="80%" r="40%">
-      <stop offset="0%" stop-color="#06b6d4" stop-opacity="0.2"/>
-      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
-    </radialGradient>
+  <!-- Vercel Pure Black Canvas -->
+  <rect width="1200" height="320" fill="#000000"/>
 
-    <!-- Glass Gradients -->
-    <linearGradient id="glassCardBg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.12"/>
-      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.03"/>
-    </linearGradient>
-    <linearGradient id="glassBorder" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.4"/>
-      <stop offset="50%" stop-color="#ffffff" stop-opacity="0.1"/>
-      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.2"/>
-    </linearGradient>
+  <!-- Subtle Vercel 32px Grid Background -->
+  <pattern id="vercelGrid" width="32" height="32" patternUnits="userSpaceOnUse">
+    <path d="M 32 0 L 0 0 0 32" fill="none" stroke="#18181b" stroke-width="1"/>
+  </pattern>
+  <rect width="1200" height="320" fill="url(#vercelGrid)"/>
 
-    <!-- 3D Prism Gradients -->
-    <linearGradient id="prismGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95"/>
-      <stop offset="30%" stop-color="#38bdf8"/>
-      <stop offset="100%" stop-color="#2563eb"/>
-    </linearGradient>
-    <linearGradient id="prismGrad2" x1="100%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" stop-color="#f472b6"/>
-      <stop offset="40%" stop-color="#a855f7"/>
-      <stop offset="100%" stop-color="#1e40af"/>
-    </linearGradient>
+  <!-- Minimalist Radial Flash (Pure White Subtle Glow) -->
+  <radialGradient id="centerWhiteGlow" cx="20%" cy="50%" r="50%">
+    <stop offset="0%" stop-color="#ffffff" stop-opacity="0.08"/>
+    <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
+  </radialGradient>
+  <rect width="1200" height="320" fill="url(#centerWhiteGlow)"/>
 
-    <filter id="glassShadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="12" stdDeviation="16" flood-color="#000000" flood-opacity="0.6"/>
-    </filter>
-    <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%">
-      <feGaussianBlur stdDeviation="6" result="blur"/>
-      <feMerge>
-        <feMergeNode in="blur"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
-    </filter>
-  </defs>
+  <!-- Top / Bottom Monochromatic 1px Hairlines -->
+  <line x1="0" y1="0" x2="1200" y2="0" stroke="#27272a" stroke-width="1"/>
+  <line x1="0" y1="320" x2="1200" y2="320" stroke="#27272a" stroke-width="1"/>
 
-  <!-- Ambient Backdrop -->
-  <rect width="1200" height="320" fill="url(#bgStudio)"/>
-  <rect width="1200" height="320" fill="url(#orbBlue)"/>
-  <rect width="1200" height="320" fill="url(#orbViolet)"/>
-  <rect width="1200" height="320" fill="url(#orbCyan)"/>
-
-  <!-- Subtle Frosted Backdrop Grid Accents -->
-  <circle cx="150" cy="160" r="140" fill="#3b82f6" fill-opacity="0.12" filter="url(#softGlow)"/>
-
-  <!-- Left: Apple Glassmorphic Squircle App Icon -->
-  <g transform="translate(80, 50)" filter="url(#glassShadow)">
-    <!-- Base Squircle -->
-    <rect x="0" y="0" width="220" height="220" rx="52" fill="#0c1022" fill-opacity="0.75" stroke="url(#glassBorder)" stroke-width="2"/>
+  <!-- Left: Vercel Geometric VDO Monolith Card -->
+  <g transform="translate(80, 50)">
+    <rect x="0" y="0" width="220" height="220" rx="44" fill="#09090b" stroke="#27272a" stroke-width="1.5"/>
     
-    <!-- Multi-Layer Frosted Documents -->
-    <g transform="rotate(-10 110 110)">
-      <rect x="50" y="35" width="120" height="150" rx="22" fill="#ffffff" fill-opacity="0.14" stroke="#ffffff" stroke-width="1.2" stroke-opacity="0.3"/>
-      <line x1="70" y1="60" x2="110" y2="60" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-opacity="0.4"/>
-      <line x1="70" y1="80" x2="135" y2="80" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-opacity="0.25"/>
-    </g>
-    <g transform="rotate(8 110 110)">
-      <rect x="48" y="38" width="124" height="152" rx="22" fill="#ffffff" fill-opacity="0.18" stroke="#ffffff" stroke-width="1.5" stroke-opacity="0.45"/>
-      <line x1="70" y1="62" x2="115" y2="62" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-opacity="0.5"/>
-      <line x1="70" y1="82" x2="140" y2="82" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-opacity="0.3"/>
-    </g>
-
-    <!-- 3D Crystalline Glass 'V' Emblem -->
-    <g filter="url(#glassShadow)">
-      <path d="M 45 60 L 78 60 L 110 135 L 90 150 Z" fill="url(#prismGrad1)" stroke="#ffffff" stroke-width="1.2" stroke-opacity="0.8"/>
-      <path d="M 175 60 L 142 60 L 110 135 L 130 150 Z" fill="url(#prismGrad2)" stroke="#ffffff" stroke-width="1.2" stroke-opacity="0.8"/>
-      <path d="M 90 150 L 110 135 L 130 150 L 110 168 Z" fill="url(#prismGrad1)" stroke="#ffffff" stroke-width="1.2" stroke-opacity="0.9"/>
-    </g>
-
-    <!-- Radiant Glowing Core Jewel -->
-    <circle cx="110" cy="98" r="14" fill="#ffffff" filter="url(#softGlow)"/>
-    <circle cx="110" cy="98" r="6" fill="#38bdf8"/>
-
-    <!-- Specular Highlight Curve -->
-    <path d="M 8 50 C 8 26 26 8 50 8 L 170 8 C 194 8 212 26 212 50 C 212 65 110 90 8 50 Z" fill="url(#glassCardBg)"/>
+    <!-- Outer Inverted Triangle -->
+    <polygon points="110,180 40,60 180,60" fill="#ffffff"/>
+    <!-- Inner Cutout -->
+    <polygon points="110,145 68,74 152,74" fill="#09090b"/>
+    <!-- Origin Core Dot -->
+    <circle cx="110" cy="44" r="6" fill="#ffffff"/>
   </g>
 
-  <!-- Center Typography & System Spec -->
-  <g transform="translate(360, 75)">
-    <!-- Frosted Glass Pill Badge -->
-    <rect x="0" y="0" width="310" height="32" rx="16" fill="url(#glassCardBg)" stroke="url(#glassBorder)" stroke-width="1"/>
-    <circle cx="18" cy="16" r="5" fill="#38bdf8" filter="url(#softGlow)"/>
-    <text x="34" y="21" fill="#e2e8f0" font-size="12" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif" font-weight="600" letter-spacing="1.2">SPATIAL PROJECT INTELLIGENCE</text>
-    
-    <!-- Main Apple Style Typography -->
-    <text x="0" y="80" fill="#ffffff" font-size="48" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', sans-serif" font-weight="800" letter-spacing="-0.8">Visual Document Origin</text>
-    
-    <!-- Secondary Subtitle -->
-    <text x="2" y="116" fill="#94a3b8" font-size="17" font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Inter', sans-serif" font-weight="500" letter-spacing="0.2">晶透多維文檔規格、全視界數據燃盡與敏捷協作交付樞紐</text>
-    
-    <!-- Meta Glass Labels -->
-    <g transform="translate(2, 140)">
-      <rect x="0" y="0" width="130" height="24" rx="8" fill="#ffffff" fill-opacity="0.08" stroke="#ffffff" stroke-width="0.8" stroke-opacity="0.2"/>
-      <text x="65" y="16" fill="#cbd5e1" font-size="11" font-family="-apple-system, sans-serif" font-weight="600" text-anchor="middle">⚡ Real-time Sync</text>
+  <!-- Center: Vercel Typography & Layout -->
+  <g transform="translate(350, 70)">
+    <!-- Pill Badge -->
+    <rect x="0" y="0" width="240" height="26" rx="13" fill="#18181b" stroke="#27272a" stroke-width="1"/>
+    <polygon points="16,18 10,8 22,8" fill="#ffffff"/>
+    <text x="32" y="17.5" fill="#ffffff" font-family="'Geist Mono', 'JetBrains Mono', monospace" font-size="11" font-weight="700" letter-spacing="1.5">VDO ENGINE // V2.0</text>
 
-      <rect x="140" y="0" width="130" height="24" rx="8" fill="#ffffff" fill-opacity="0.08" stroke="#ffffff" stroke-width="0.8" stroke-opacity="0.2"/>
-      <text x="205" y="16" fill="#cbd5e1" font-size="11" font-family="-apple-system, sans-serif" font-weight="600" text-anchor="middle">🛡️ Offline First</text>
+    <!-- Main Headline -->
+    <text x="0" y="76" fill="#ffffff" font-family="'Geist', -apple-system, BlinkMacSystemFont, 'Inter', sans-serif" font-weight="800" font-size="46" letter-spacing="-1.2">Visual Document Origin</text>
 
-      <rect x="280" y="0" width="130" height="24" rx="8" fill="#ffffff" fill-opacity="0.08" stroke="#ffffff" stroke-width="0.8" stroke-opacity="0.2"/>
-      <text x="345" y="16" fill="#cbd5e1" font-size="11" font-family="-apple-system, sans-serif" font-weight="600" text-anchor="middle">📊 Burndown 2.0</text>
+    <!-- Subtitle -->
+    <text x="2" y="112" fill="#a1a1aa" font-family="-apple-system, BlinkMacSystemFont, 'Inter', sans-serif" font-weight="500" font-size="16" letter-spacing="-0.2">結構化多維專案架構、極致黑白全域燃盡與敏捷協作中樞</text>
+
+    <!-- Vercel Action Metrics -->
+    <g transform="translate(2, 140)" fill="#71717a" font-family="'Geist Mono', 'JetBrains Mono', monospace" font-size="11">
+      <text x="0" y="0"><tspan fill="#ffffff" font-weight="700">01.</tspan> LOCAL_FIRST</text>
+      <text x="140" y="0"><tspan fill="#ffffff" font-weight="700">02.</tspan> HYBRID_SYNC</text>
+      <text x="280" y="0"><tspan fill="#ffffff" font-weight="700">03.</tspan> ZERO_CONFIG</text>
     </g>
   </g>
 
-  <!-- Right: Frosted Glass VisionOS Telemetry Card -->
-  <g transform="translate(930, 50)" filter="url(#glassShadow)">
-    <rect x="0" y="0" width="220" height="220" rx="32" fill="url(#glassCardBg)" stroke="url(#glassBorder)" stroke-width="1.5"/>
+  <!-- Right: Vercel Monochromatic Telemetry Card -->
+  <g transform="translate(930, 50)">
+    <rect x="0" y="0" width="210" height="220" rx="20" fill="#09090b" stroke="#27272a" stroke-width="1.5"/>
     
-    <text x="24" y="38" fill="#94a3b8" font-size="12" font-family="-apple-system, sans-serif" font-weight="600" letter-spacing="0.5">PROJECT HEALTH</text>
-    
-    <!-- Glowing Stat -->
-    <text x="24" y="86" fill="#ffffff" font-size="38" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-weight="800">99.8<tspan fill="#38bdf8" font-size="22">%</tspan></text>
-    <text x="24" y="108" fill="#22c55e" font-size="11" font-family="-apple-system, sans-serif" font-weight="600">▲ Optimal Velocity</text>
+    <text x="20" y="34" fill="#71717a" font-family="'Geist Mono', monospace" font-size="11" font-weight="700" letter-spacing="1">SYSTEM_THROUGHPUT</text>
+    <text x="20" y="82" fill="#ffffff" font-family="'Geist', sans-serif" font-weight="900" font-size="42">100<tspan font-size="20" fill="#a1a1aa">%</tspan></text>
+    <text x="20" y="105" fill="#22c55e" font-family="'Geist Mono', monospace" font-size="10.5">● INTEGRITY: VERIFIED</text>
 
-    <!-- Refractive Glass Wave -->
-    <g transform="translate(24, 125)">
-      <rect width="172" height="54" rx="14" fill="#000000" fill-opacity="0.35" stroke="#ffffff" stroke-width="0.6" stroke-opacity="0.2"/>
-      <path d="M 10 32 Q 40 8, 80 28 T 160 20" fill="none" stroke="#38bdf8" stroke-width="2.5" filter="url(#softGlow)"/>
-      <circle cx="160" cy="20" r="4" fill="#ffffff" filter="url(#softGlow)"/>
+    <line x1="20" y1="125" x2="190" y2="125" stroke="#18181b" stroke-width="1"/>
+
+    <g transform="translate(20, 142)" fill="#a1a1aa" font-family="'Geist Mono', monospace" font-size="10.5">
+      <text x="0" y="0">LATENCY: 0.1ms</text>
+      <text x="0" y="20">REGION: GLOBAL EDGE</text>
+      <text x="0" y="40">UPTIME: 99.99%</text>
     </g>
-
-    <text x="24" y="202" fill="#94a3b8" font-size="10.5" font-family="-apple-system, sans-serif">● All Nodes Connected</text>
   </g>
 </svg>

@@ -105,13 +105,12 @@
         <!-- 側邊欄頭部 -->
         <div class="h-14 px-4 border-b border-slate-200 bg-surface flex items-center justify-between shrink-0">
             <div class="flex items-center gap-2.5 cursor-pointer" onclick="app.switchView('Home')" title="返回 VDO 專案首頁">
-                <div class="w-7 h-7 rounded-lg bg-slate-900 border border-white/20 flex items-center justify-center text-white shadow-xs relative overflow-hidden">
-                    <div class="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-purple-500/20"></div>
-                    <svg class="w-4 h-4 relative z-10" viewBox="0 0 24 24" fill="none"><g transform="rotate(-6 12 12)"><rect x="6" y="4" width="12" height="15" rx="3" fill="#ffffff" fill-opacity="0.2" stroke="#ffffff" stroke-width="0.6" stroke-opacity="0.4"/></g><g transform="rotate(6 12 12)"><rect x="5.5" y="4.5" width="13" height="15" rx="3" fill="#ffffff" fill-opacity="0.3" stroke="#ffffff" stroke-width="0.7" stroke-opacity="0.6"/></g><path d="M7 8l5 8 5-8" stroke="#ffffff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="11" r="1.5" fill="#38bdf8"/></svg>
+                <div class="w-7 h-7 rounded-lg bg-black border border-white/20 flex items-center justify-center text-white shadow-xs shrink-0 select-none">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none"><polygon points="12,19 4.5,6.5 19.5,6.5" fill="#ffffff"/><polygon points="12,15.5 7.5,8 16.5,8" fill="#000000"/><circle cx="12" cy="4.5" r="1" fill="#ffffff"/></svg>
                 </div>
-                <div class="flex flex-col">
+                <div class="flex flex-col min-w-0">
                     <span class="font-headline font-bold text-sm text-on-surface leading-tight tracking-tight">VDO Studio</span>
-                    <span class="text-[9px] font-mono text-blue-600 dark:text-blue-400 uppercase tracking-widest leading-none mt-0.5">Visual Document Origin</span>
+                    <span class="text-[9px] font-mono text-zinc-500 uppercase tracking-widest leading-none mt-0.5">Visual Document Origin</span>
                 </div>
             </div>
             <div class="flex items-center gap-1">
@@ -222,8 +221,8 @@
                 <!-- 麵包屑導航 (Breadcrumb) -->
                 <div class="flex items-center gap-1.5 min-w-0 text-xs text-on-surface-variant font-medium">
                     <button onclick="app.switchView('Home')" class="hover:text-on-surface transition-colors shrink-0 flex items-center gap-1.5 font-bold text-on-surface" title="返回 VDO 首頁">
-                        <svg class="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" viewBox="0 0 24 24" fill="none"><g transform="rotate(-6 12 12)"><rect x="6" y="4" width="12" height="15" rx="3" fill="#ffffff" fill-opacity="0.2" stroke="currentColor" stroke-width="0.6" stroke-opacity="0.4"/></g><g transform="rotate(6 12 12)"><rect x="5.5" y="4.5" width="13" height="15" rx="3" fill="#ffffff" fill-opacity="0.3" stroke="currentColor" stroke-width="0.7" stroke-opacity="0.6"/></g><path d="M7 8l5 8 5-8" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="11" r="1.5" fill="#38bdf8"/></svg>
-                        <span class="hidden sm:inline font-headline">VDO</span>
+                        <div class="w-4 h-4 rounded bg-black flex items-center justify-center text-white"><svg class="w-3 h-3" viewBox="0 0 24 24" fill="none"><polygon points="12,19 4.5,6.5 19.5,6.5" fill="#ffffff"/><polygon points="12,15.5 7.5,8 16.5,8" fill="#000000"/></svg></div>
+                        <span class="hidden sm:inline font-headline font-bold">VDO</span>
                     </button>
                     <span class="text-slate-300 shrink-0">/</span>
                     <button onclick="app.openSettingsModal('project')" class="font-bold text-on-surface hover:text-primary transition-colors truncate max-w-[140px] sm:max-w-[200px]" id="headerProjectName">
