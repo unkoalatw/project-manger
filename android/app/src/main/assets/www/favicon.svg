@@ -1,38 +1,63 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="100%" height="100%">
   <defs>
-    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0b132b"/>
-      <stop offset="50%" stop-color="#1c2541"/>
-      <stop offset="100%" stop-color="#00174b"/>
+    <!-- Blueprint Radial & Linear Gradients -->
+    <radialGradient id="bpGlow" cx="50%" cy="50%" r="60%">
+      <stop offset="0%" stop-color="#0052cc" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#030816" stop-opacity="1"/>
+    </radialGradient>
+    <linearGradient id="laserCyan" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00F2FE"/>
+      <stop offset="50%" stop-color="#00C0FF"/>
+      <stop offset="100%" stop-color="#3B82F6"/>
     </linearGradient>
-    <linearGradient id="vGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#3b82f6"/>
-      <stop offset="50%" stop-color="#2563eb"/>
-      <stop offset="100%" stop-color="#8b5cf6"/>
+    <linearGradient id="facetGrad" x1="20%" y1="0%" x2="80%" y2="100%">
+      <stop offset="0%" stop-color="#00E5FF" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#1E40AF" stop-opacity="0.6"/>
     </linearGradient>
-    <linearGradient id="orbGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#38bdf8"/>
-      <stop offset="100%" stop-color="#ffffff"/>
-    </linearGradient>
-    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur stdDeviation="3" result="blur" />
-      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    <pattern id="cadGrid" width="8" height="8" patternUnits="userSpaceOnUse">
+      <path d="M 8 0 L 0 0 0 8" fill="none" stroke="#00d2ff" stroke-width="0.35" stroke-opacity="0.2"/>
+    </pattern>
+    <filter id="neonPulse" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="2.2" result="glow" />
+      <feMerge>
+        <feMergeNode in="glow"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
     </filter>
   </defs>
 
-  <!-- Squircle Base -->
-  <rect x="4" y="4" width="120" height="120" rx="28" fill="url(#bgGrad)" stroke="#3b82f6" stroke-width="2.5" stroke-opacity="0.8"/>
+  <!-- Background: Deep Blueprint Dark Navy with CAD Grid -->
+  <rect width="128" height="128" rx="28" fill="#030712"/>
+  <rect width="128" height="128" rx="28" fill="url(#bpGlow)"/>
+  <rect x="4" y="4" width="120" height="120" rx="24" fill="url(#cadGrid)"/>
+  
+  <!-- Outer Technical Blueprint Border with Corner Ticks -->
+  <rect x="5" y="5" width="118" height="118" rx="24" fill="none" stroke="#00E5FF" stroke-width="1.2" stroke-opacity="0.6"/>
+  <path d="M 5 24 L 14 24 M 24 5 L 24 14 M 123 24 L 114 24 M 104 5 L 104 14 M 5 104 L 14 104 M 24 123 L 24 114 M 123 104 L 114 104 M 104 123 L 104 114" stroke="#00F2FE" stroke-width="1.5" stroke-opacity="0.8"/>
 
-  <!-- Subtle Document Geometry Layers -->
-  <polygon points="34,22 102,18 96,84 28,88" fill="#6366f1" fill-opacity="0.25" />
-  <polygon points="28,28 96,24 90,90 22,94" fill="#06b6d4" fill-opacity="0.45" />
+  <!-- Blueprint Coordinate Circles & Crosshairs -->
+  <circle cx="64" cy="64" r="48" fill="none" stroke="#00F2FE" stroke-width="0.6" stroke-dasharray="3,3" stroke-opacity="0.35"/>
+  <line x1="64" y1="12" x2="64" y2="116" stroke="#00E5FF" stroke-width="0.5" stroke-dasharray="2,4" stroke-opacity="0.3"/>
+  <line x1="12" y1="64" x2="116" y2="64" stroke="#00E5FF" stroke-width="0.5" stroke-dasharray="2,4" stroke-opacity="0.3"/>
 
-  <!-- Main Origami 'V' Emblem with Glow -->
-  <polygon points="24,36 44,36 64,78 84,36 104,36 72,98 56,98" fill="url(#vGrad)" filter="url(#glow)"/>
+  <!-- Isometric Document Polygon Layers (Wireframe Blueprint) -->
+  <polygon points="64,18 98,38 98,82 64,102 30,82 30,38" fill="none" stroke="#00C0FF" stroke-width="0.8" stroke-opacity="0.4" stroke-dasharray="4,2"/>
 
-  <!-- Origin Core (Center Glowing Orb) -->
-  <circle cx="64" cy="50" r="9" fill="url(#orbGrad)" filter="url(#glow)"/>
+  <!-- Main Origami/Facet 'V' Structure with Laser Glow -->
+  <!-- Left Wing Facet -->
+  <polygon points="64,98 28,36 46,28 64,68" fill="url(#facetGrad)" stroke="#00F2FE" stroke-width="1.6" filter="url(#neonPulse)"/>
+  <!-- Right Wing Facet -->
+  <polygon points="64,98 100,36 82,28 64,68" fill="url(#facetGrad)" stroke="#00F2FE" stroke-width="1.6" filter="url(#neonPulse)"/>
+  
+  <!-- Central Origin Convergence Beam (Point (0,0)) -->
+  <polygon points="64,68 52,38 64,22 76,38" fill="#00F2FE" fill-opacity="0.25" stroke="#38BDF8" stroke-width="1.2"/>
+  
+  <!-- Glowing Laser Origin Vertex Nodes -->
+  <circle cx="64" cy="98" r="3.5" fill="#FFFFFF" stroke="#00F2FE" stroke-width="2" filter="url(#neonPulse)"/>
+  <circle cx="28" cy="36" r="2.2" fill="#00F2FE"/>
+  <circle cx="100" cy="36" r="2.2" fill="#00F2FE"/>
+  <circle cx="64" cy="22" r="2.2" fill="#00F2FE"/>
 
-  <!-- Micro Monogram Text -->
-  <text x="64" y="116" fill="#ffffff" font-size="14" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif" font-weight="900" letter-spacing="3" text-anchor="middle" opacity="0.95">VDO</text>
+  <!-- Micro Blueprint Monospace Tag -->
+  <text x="64" y="115" fill="#00E5FF" font-size="9" font-family="'JetBrains Mono', 'Fira Code', 'Courier New', monospace" font-weight="700" letter-spacing="2.5" text-anchor="middle" opacity="0.95">VDO::ORIGIN</text>
 </svg>

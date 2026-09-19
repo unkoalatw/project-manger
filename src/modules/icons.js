@@ -53,5 +53,5 @@ export const icons = {
     
     arrowRight: (cls = 'w-4 h-4') => `<svg class="${cls} inline-block shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>`,
 
-    vdoLogo: (cls = 'w-6 h-6') => `<svg class="${cls} inline-block shrink-0" viewBox="0 0 24 24" fill="none"><rect width="24" height="24" rx="6" fill="#004ac6"/><path d="M7 8l5 8 5-8" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="7" r="1.5" fill="#ffffff"/></svg>`
+    vdoLogo: (cls = 'w-6 h-6') => `<svg class="${cls} inline-block shrink-0" viewBox="0 0 24 24" fill="none"><rect width="24" height="24" rx="5" fill="#030712" stroke="#00E5FF" stroke-width="1"/><path d="M4 4h4M20 4h-4M4 20h4M20 20h-4" stroke="#00F2FE" stroke-width="0.8"/><polygon points="12,19 5,7 9,5 12,12" fill="#00E5FF" fill-opacity="0.3" stroke="#00F2FE" stroke-width="1.2"/><polygon points="12,19 19,7 15,5 12,12" fill="#00E5FF" fill-opacity="0.3" stroke="#00F2FE" stroke-width="1.2"/><circle cx="12" cy="19" r="1.2" fill="#FFFFFF" stroke="#00F2FE" stroke-width="0.8"/><circle cx="12" cy="6" r="1" fill="#00F2FE"/></svg>`
 };
