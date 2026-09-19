@@ -1,24 +1,58 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="100%" height="100%">
   <defs>
-    <!-- Blueprint Radial & Linear Gradients -->
-    <radialGradient id="bpGlow" cx="50%" cy="50%" r="60%">
-      <stop offset="0%" stop-color="#0052cc" stop-opacity="0.35"/>
-      <stop offset="100%" stop-color="#030816" stop-opacity="1"/>
+    <!-- Background & Ambient Aura -->
+    <radialGradient id="auraGlow" cx="50%" cy="35%" r="75%">
+      <stop offset="0%" stop-color="#3b82f6" stop-opacity="0.5"/>
+      <stop offset="45%" stop-color="#1d1e4e" stop-opacity="0.8"/>
+      <stop offset="100%" stop-color="#0a0c16" stop-opacity="1"/>
     </radialGradient>
-    <linearGradient id="laserCyan" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#00F2FE"/>
-      <stop offset="50%" stop-color="#00C0FF"/>
-      <stop offset="100%" stop-color="#3B82F6"/>
+    <linearGradient id="squircleBorder" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.45"/>
+      <stop offset="40%" stop-color="#38bdf8" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0.05"/>
     </linearGradient>
-    <linearGradient id="facetGrad" x1="20%" y1="0%" x2="80%" y2="100%">
-      <stop offset="0%" stop-color="#00E5FF" stop-opacity="0.25"/>
-      <stop offset="100%" stop-color="#1E40AF" stop-opacity="0.6"/>
+
+    <!-- Glass Layer 1 (Back) -->
+    <linearGradient id="glassBack" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.28"/>
+      <stop offset="100%" stop-color="#6366f1" stop-opacity="0.12"/>
     </linearGradient>
-    <pattern id="cadGrid" width="8" height="8" patternUnits="userSpaceOnUse">
-      <path d="M 8 0 L 0 0 0 8" fill="none" stroke="#00d2ff" stroke-width="0.35" stroke-opacity="0.2"/>
-    </pattern>
-    <filter id="neonPulse" x="-30%" y="-30%" width="160%" height="160%">
-      <feGaussianBlur stdDeviation="2.2" result="glow" />
+
+    <!-- Glass Layer 2 (Middle) -->
+    <linearGradient id="glassMid" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.38"/>
+      <stop offset="100%" stop-color="#06b6d4" stop-opacity="0.15"/>
+    </linearGradient>
+
+    <!-- 3D Crystalline Prism 'V' (Foreground) -->
+    <linearGradient id="prismLeft" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95"/>
+      <stop offset="30%" stop-color="#60a5fa" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#2563eb" stop-opacity="0.85"/>
+    </linearGradient>
+    <linearGradient id="prismRight" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#c084fc" stop-opacity="0.95"/>
+      <stop offset="40%" stop-color="#818cf8" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#1d4ed8" stop-opacity="0.85"/>
+    </linearGradient>
+    <linearGradient id="originCore" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="50%" stop-color="#38bdf8"/>
+      <stop offset="100%" stop-color="#818cf8"/>
+    </linearGradient>
+
+    <!-- Glass Specular Highlight Arc -->
+    <linearGradient id="topHighlight" x1="50%" y1="0%" x2="50%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+
+    <!-- Soft Drop Shadows & Glass Refraction Filters -->
+    <filter id="glassShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="6" stdDeviation="6" flood-color="#000000" flood-opacity="0.45"/>
+    </filter>
+    <filter id="coreGlow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="3.5" result="glow"/>
       <feMerge>
         <feMergeNode in="glow"/>
         <feMergeNode in="SourceGraphic"/>
@@ -26,38 +60,42 @@
     </filter>
   </defs>
 
-  <!-- Background: Deep Blueprint Dark Navy with CAD Grid -->
-  <rect width="128" height="128" rx="28" fill="#030712"/>
-  <rect width="128" height="128" rx="28" fill="url(#bpGlow)"/>
-  <rect x="4" y="4" width="120" height="120" rx="24" fill="url(#cadGrid)"/>
-  
-  <!-- Outer Technical Blueprint Border with Corner Ticks -->
-  <rect x="5" y="5" width="118" height="118" rx="24" fill="none" stroke="#00E5FF" stroke-width="1.2" stroke-opacity="0.6"/>
-  <path d="M 5 24 L 14 24 M 24 5 L 24 14 M 123 24 L 114 24 M 104 5 L 104 14 M 5 104 L 14 104 M 24 123 L 24 114 M 123 104 L 114 104 M 104 123 L 104 114" stroke="#00F2FE" stroke-width="1.5" stroke-opacity="0.8"/>
+  <!-- 1. Apple Squircle Base Container -->
+  <rect x="3" y="3" width="122" height="122" rx="28" fill="url(#auraGlow)"/>
+  <rect x="3" y="3" width="122" height="122" rx="28" fill="none" stroke="url(#squircleBorder)" stroke-width="1.5"/>
 
-  <!-- Blueprint Coordinate Circles & Crosshairs -->
-  <circle cx="64" cy="64" r="48" fill="none" stroke="#00F2FE" stroke-width="0.6" stroke-dasharray="3,3" stroke-opacity="0.35"/>
-  <line x1="64" y1="12" x2="64" y2="116" stroke="#00E5FF" stroke-width="0.5" stroke-dasharray="2,4" stroke-opacity="0.3"/>
-  <line x1="12" y1="64" x2="116" y2="64" stroke="#00E5FF" stroke-width="0.5" stroke-dasharray="2,4" stroke-opacity="0.3"/>
+  <!-- 2. Ambient Light Refraction Sphere (Behind Glass) -->
+  <circle cx="64" cy="50" r="32" fill="#3b82f6" fill-opacity="0.3" filter="url(#coreGlow)"/>
+  <circle cx="78" cy="65" r="24" fill="#a855f7" fill-opacity="0.25" filter="url(#coreGlow)"/>
 
-  <!-- Isometric Document Polygon Layers (Wireframe Blueprint) -->
-  <polygon points="64,18 98,38 98,82 64,102 30,82 30,38" fill="none" stroke="#00C0FF" stroke-width="0.8" stroke-opacity="0.4" stroke-dasharray="4,2"/>
+  <!-- 3. Glass Document Layer 1 (Back Frosted Sheet) -->
+  <g transform="rotate(-8 64 64)" filter="url(#glassShadow)">
+    <rect x="32" y="24" width="64" height="76" rx="14" fill="url(#glassBack)" stroke="#ffffff" stroke-width="1" stroke-opacity="0.35"/>
+    <line x1="42" y1="36" x2="62" y2="36" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-opacity="0.4"/>
+    <line x1="42" y1="46" x2="74" y2="46" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" stroke-opacity="0.25"/>
+  </g>
 
-  <!-- Main Origami/Facet 'V' Structure with Laser Glow -->
-  <!-- Left Wing Facet -->
-  <polygon points="64,98 28,36 46,28 64,68" fill="url(#facetGrad)" stroke="#00F2FE" stroke-width="1.6" filter="url(#neonPulse)"/>
-  <!-- Right Wing Facet -->
-  <polygon points="64,98 100,36 82,28 64,68" fill="url(#facetGrad)" stroke="#00F2FE" stroke-width="1.6" filter="url(#neonPulse)"/>
-  
-  <!-- Central Origin Convergence Beam (Point (0,0)) -->
-  <polygon points="64,68 52,38 64,22 76,38" fill="#00F2FE" fill-opacity="0.25" stroke="#38BDF8" stroke-width="1.2"/>
-  
-  <!-- Glowing Laser Origin Vertex Nodes -->
-  <circle cx="64" cy="98" r="3.5" fill="#FFFFFF" stroke="#00F2FE" stroke-width="2" filter="url(#neonPulse)"/>
-  <circle cx="28" cy="36" r="2.2" fill="#00F2FE"/>
-  <circle cx="100" cy="36" r="2.2" fill="#00F2FE"/>
-  <circle cx="64" cy="22" r="2.2" fill="#00F2FE"/>
+  <!-- 4. Glass Document Layer 2 (Middle Frosted Sheet) -->
+  <g transform="rotate(6 64 64)" filter="url(#glassShadow)">
+    <rect x="30" y="26" width="68" height="78" rx="14" fill="url(#glassMid)" stroke="#ffffff" stroke-width="1.2" stroke-opacity="0.45"/>
+    <line x1="42" y1="38" x2="66" y2="38" stroke="#ffffff" stroke-width="2" stroke-linecap="round" stroke-opacity="0.5"/>
+    <line x1="42" y1="48" x2="80" y2="48" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round" stroke-opacity="0.3"/>
+  </g>
 
-  <!-- Micro Blueprint Monospace Tag -->
-  <text x="64" y="115" fill="#00E5FF" font-size="9" font-family="'JetBrains Mono', 'Fira Code', 'Courier New', monospace" font-weight="700" letter-spacing="2.5" text-anchor="middle" opacity="0.95">VDO::ORIGIN</text>
+  <!-- 5. 3D Floating Crystalline Glass 'V' Emblem (Foreground) -->
+  <g filter="url(#glassShadow)">
+    <!-- Left Prism Arm -->
+    <path d="M 28 36 L 46 36 L 64 78 L 52 86 Z" fill="url(#prismLeft)" stroke="#ffffff" stroke-width="0.8" stroke-opacity="0.7"/>
+    <!-- Right Prism Arm -->
+    <path d="M 100 36 L 82 36 L 64 78 L 76 86 Z" fill="url(#prismRight)" stroke="#ffffff" stroke-width="0.8" stroke-opacity="0.7"/>
+    <!-- Bottom Vertex Cap -->
+    <path d="M 52 86 L 64 78 L 76 86 L 64 96 Z" fill="url(#prismLeft)" stroke="#ffffff" stroke-width="0.8" stroke-opacity="0.9"/>
+  </g>
+
+  <!-- 6. Radiant Origin Jewel Core (Center Glow) -->
+  <circle cx="64" cy="56" r="8" fill="url(#originCore)" filter="url(#coreGlow)"/>
+  <circle cx="64" cy="56" r="3.5" fill="#ffffff"/>
+
+  <!-- 7. macOS Glass Surface Specular Top Highlight -->
+  <path d="M 6 28 C 6 14.5 14.5 6 28 6 L 100 6 C 113.5 6 122 14.5 122 28 C 122 36 64 48 6 28 Z" fill="url(#topHighlight)"/>
 </svg>
